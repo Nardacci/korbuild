@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KORbuild</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app" class="min-h-screen flex items-center justify-center p-6">
+    <main class="shell w-full max-w-5xl overflow-hidden">
+      <section class="brand-panel p-10 md:p-14">
+        <div class="brand-mark"><span>K</span></div>
+        <p class="eyebrow">TEAM OPERATIONS PLATFORM</p>
+        <h1>KOR<span>build</span></h1>
+        <p class="tagline">Build better teams.<br>Run better operations.</p>
+      </section>
+      <section class="login-panel p-8 md:p-14">
+        <div class="max-w-md mx-auto">
+          <p class="eyebrow">WELCOME BACK</p>
+          <h2>Sign in</h2>
+          <p class="muted mb-8">Access your company workspace.</p>
+          <form id="login-form" class="space-y-5">
+            <label>Email<input id="email" type="email" autocomplete="email" placeholder="you@company.com" required></label>
+            <label>Password<input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required></label>
+            <button type="submit" class="primary-btn">Sign in</button>
+            <p id="login-message" class="message"></p>
+          </form>
+          <div class="demo-note">KORbuild V1 · Development environment</div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
