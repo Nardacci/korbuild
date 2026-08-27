@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>KORbuild · Home</title>
+<link rel="stylesheet" href="style.css">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="app-body">
+<div class="app-shell">
+<aside class="sidebar">
+  <div class="side-brand"><div class="mini-mark">K</div><div>KOR<span>build</span></div></div>
+  <div class="company-switcher"><small>WORKSPACE</small><strong id="side-company">Loading...</strong></div>
+  <nav>
+    <a class="nav-item active" href="home.html"><span>⌂</span>Dashboard</a>
+    <a class="nav-item" href="#"><span>◉</span>People</a>
+    <a class="nav-item" href="#"><span>◇</span>Teams</a>
+    <a class="nav-item" href="#"><span>◷</span>Periods</a>
+    <a class="nav-item" href="#"><span>✓</span>Evaluations</a>
+    <a class="nav-item" href="#"><span>★</span>Bonuses</a>
+    <a class="nav-item" href="#"><span>▥</span>Reports</a>
+  </nav>
+  <div class="side-bottom"><a class="nav-item" href="#"><span>⚙</span>Settings</a><button id="logout" class="logout-link">Sign out</button></div>
+</aside>
+<main class="main-content">
+  <header class="topbar"><div><div class="breadcrumb">WORKSPACE / DASHBOARD</div><div class="page-title">Dashboard</div></div><div class="user-area"><div class="user-copy"><strong id="user-name">Owner</strong><small id="user-email"></small></div><div class="avatar">O</div></div></header>
+  <section class="welcome-row"><div><div class="eyebrow">KORBUILD WORKSPACE</div><h1>Good morning! <span>👋</span></h1><p>Here's what's happening in your company.</p></div><div class="company-pill" id="company-pill">KORbuild Demo</div></section>
+  <section class="metric-grid">
+    <article class="metric-card"><div class="metric-icon">◎</div><div><small>PEOPLE</small><strong id="employees">0</strong><p>Active employees</p></div></article>
+    <article class="metric-card"><div class="metric-icon">◇</div><div><small>TEAMS</small><strong id="teams">0</strong><p>Active teams</p></div></article>
+    <article class="metric-card"><div class="metric-icon">◷</div><div><small>CURRENT PERIOD</small><strong id="period-value">—</strong><p id="period-label">No period prepared</p></div></article>
+    <article class="metric-card"><div class="metric-icon">✓</div><div><small>EVALUATIONS</small><strong id="pending">0</strong><p>Pending</p></div></article>
+  </section>
+  <section class="action-card"><div class="action-copy"><div class="action-icon">⚡</div><div><small>NEXT STEP</small><h2>Prepare your next period</h2><p>Set up the evaluation period and get your team ready to work.</p></div></div><button class="primary-btn" id="prepare">Prepare Next Period <span>→</span></button></section>
+  <section class="lower-grid"><article class="panel"><div class="panel-head"><div><small>QUICK ACCESS</small><h3>Manage your operation</h3></div></div><div class="quick-grid"><a href="#"><b>People</b><span>Add and manage employees →</span></a><a href="#"><b>Teams</b><span>Organize your teams →</span></a><a href="#"><b>Periods</b><span>Prepare your week →</span></a><a href="#"><b>Evaluations</b><span>Review performance →</span></a></div></article><article class="panel status-panel"><small>WORKSPACE STATUS</small><h3>You're all set to begin.</h3><div class="status-line"><span class="dot"></span><span>Workspace active</span><b>Ready</b></div><div class="status-line"><span class="dot"></span><span>Account verified</span><b>Ready</b></div></article></section>
+</main>
+<button class="copilot" title="KORbuild Copilot">✦</button>
+</div>
+<script src="supabase-config.js"></script><script src="home.js"></script>
+</body></html>
