@@ -3,10 +3,42 @@ const db = window.supabase.createClient(url, publishableKey);
 
 async function loadHome() {
   const { data: { user }, error: authError } = await db.auth.getUser();
-  if (authError || !user) { window.location.href = 'index.html'; return; }
+  if (authError || !user) {
+    window.location.href = 'index.html';
+    return;
+  }
 
-  const { data: profile, error } = await db.from('usuarios').select('id,name,email,empresa_id,empresas(name)').eq('id', user.id).single();
-  if (error || !profile) { window.location.href = 'index.html'; return; }
+  // Resolve the application profile by email first. This is safer for the
+  // demo environment because the usuarios.id may not always match auth.users.id.
+  let { data: profile, error: profileError } = await db
+    .from('usuarios')
+    .select('id,name,email,empresa_id,empresas(name)')
+    .eq('email', user.email)
+    .maybeSingle();
+
+  // Fallback to auth user id when the email lookup does not find a profile.
+  if (!profile && !profileError) {
+    const result = await db
+      .from('usuarios')
+      .select('id,name,email,empresa_id,empresas(name)')
+      .eq('id', user.id)
+      .maybeSingle();
+    profile = result.data;
+    profileError = result.error;
+  }
+
+  // Do not throw the user back to login just because application profile data
+  // is temporarily unavailable. Authentication is already valid.
+  if (profileError || !profile) {
+    document.getElementById('side-company').textContent = 'Workspace';
+    document.getElementById('company-pill').textContent = 'KORbuild Demo';
+    document.getElementById('user-name').textContent = 'Owner';
+    document.getElementById('user-email').textContent = user.email || '';
+    document.querySelector('.avatar').textContent = 'O';
+    document.getElementById('period-value').textContent = '—';
+    document.getElementById('period-label').textContent = 'Profile setup required';
+    return;
+  }
 
   const company = profile.empresas?.name || 'Workspace';
   const name = profile.name || 'Owner';
@@ -38,6 +70,13 @@ async function loadHome() {
   }
 }
 
-document.getElementById('logout').addEventListener('click', async () => { await db.auth.signOut(); window.location.href='index.html'; });
-document.getElementById('prepare').addEventListener('click', () => { alert('Period preparation will be enabled in the next KORbuild V1 step.'); });
+document.getElementById('logout').addEventListener('click', async () => {
+  await db.auth.signOut();
+  window.location.href='index.html';
+});
+
+document.getElementById('prepare').addEventListener('click', () => {
+  alert('Period preparation will be enabled in the next KORbuild V1 step.');
+});
+
 loadHome();
