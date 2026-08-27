@@ -18,8 +18,6 @@ function showAuthError(message) {
 }
 
 async function loadHome() {
-  // Use the locally persisted Supabase session first. This avoids an
-  // unnecessary network auth check immediately after the login redirect.
   const { data: { session }, error: sessionError } = await db.auth.getSession();
 
   if (sessionError || !session?.user) {
@@ -29,25 +27,14 @@ async function loadHome() {
 
   const user = session.user;
 
-  let { data: profile, error: profileError } = await db
+  // public.usuarios intentionally stores the application profile, not email.
+  // auth.users is the source of truth for authentication/email.
+  const { data: profile, error: profileError } = await db
     .from('usuarios')
-    .select('id,name,email,empresa_id,empresas(name)')
-    .eq('email', user.email)
+    .select('id,name,empresa_id,active,empresas(name)')
+    .eq('id', user.id)
     .maybeSingle();
 
-  if (!profile && !profileError) {
-    const result = await db
-      .from('usuarios')
-      .select('id,name,email,empresa_id,empresas(name)')
-      .eq('id', user.id)
-      .maybeSingle();
-    profile = result.data;
-    profileError = result.error;
-  }
-
-  // Authentication is valid even if application profile data is not.
-  // Never redirect a valid session back to the login page because of RLS,
-  // profile, or temporary data issues.
   if (profileError || !profile) {
     showAuthError('Profile setup required');
     return;
@@ -58,7 +45,7 @@ async function loadHome() {
   $('side-company').textContent = company;
   $('company-pill').textContent = company;
   $('user-name').textContent = name;
-  $('user-email').textContent = profile.email || user.email || '';
+  $('user-email').textContent = user.email || '';
   document.querySelector('.avatar').textContent = name.charAt(0).toUpperCase();
 
   const [people, teams, period, evaluations] = await Promise.all([
@@ -83,10 +70,8 @@ async function loadHome() {
   }
 }
 
-db.auth.onAuthStateChange((event, session) => {
-  if (event === 'SIGNED_OUT') {
-    window.location.href = 'index.html';
-  }
+db.auth.onAuthStateChange((event) => {
+  if (event === 'SIGNED_OUT') window.location.href = 'index.html';
 });
 
 $('logout').addEventListener('click', async () => {
