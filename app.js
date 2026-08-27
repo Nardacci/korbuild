@@ -1,5 +1,5 @@
-const SUPABASE_URL = '';
-const SUPABASE_ANON_KEY = '';
+const SUPABASE_URL = 'https://nowbohxeqwlddbfnukva.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_OTGYzEhQxckBa_8Xqu4Uog_Dm3RmTtD';
 
 const message = document.getElementById('login-message');
 const form = document.getElementById('login-form');
@@ -8,14 +8,10 @@ form.addEventListener('submit', async (event) => {
   event.preventDefault();
   message.textContent = '';
 
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    message.textContent = 'Supabase DEV connection is not configured yet.';
-    return;
-  }
-
   const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const email = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;
+
   const { error } = await client.auth.signInWithPassword({ email, password });
 
   if (error) {
