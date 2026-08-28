@@ -3,3 +3,7 @@ a.menu-item,
 a.menu-item:visited,
 a.menu-item:hover,
 a.menu-item:active { text-decoration: none; }
+
+/* A completed setup alert must not remain visible just because
+   .setup-alert defines display:flex after the generic .hidden rule. */
+.setup-alert.hidden { display: none !important; }
