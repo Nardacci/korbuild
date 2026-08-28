@@ -1,14 +1,26 @@
 const { url, publishableKey } = window.KORBUILD_SUPABASE;
 const db = window.supabase.createClient(url, publishableKey, { auth: { persistSession: true, autoRefreshToken: true } });
-const state = { step: 2, maxPoints: 500, pointValue: 1.00, cycleStart: 'January', cycleEnd: 'December', frequency: 'WEEKLY', startDay: '1', endDay: '6', preparation: 'MANUAL', preparationDay: '6', preparationTime: '08:00' };
+const state = { step: 2, maxPoints: 500, pointValue: 1.00, cycleName: 'Annual Performance 2027', cycleStart: 'January', cycleEnd: 'December', frequency: 'WEEKLY', startDay: '1', endDay: '6', preparation: 'MANUAL', preparationDay: '6', preparationTime: '08:00' };
 const $ = id => document.getElementById(id);
 const views = [...document.querySelectorAll('.step-view')];
 const labels = [...document.querySelectorAll('.progress-labels span')];
 const dayName = v => ({0:'Sunday',1:'Monday',2:'Tuesday',3:'Wednesday',4:'Thursday',5:'Friday',6:'Saturday'}[v]);
 const freqName = v => ({WEEKLY:'Weekly',BIWEEKLY:'Every 2 weeks',MONTHLY:'Monthly'}[v] || v);
+
+function addCycleNameField() {
+  const step = document.querySelector('[data-step="3"]');
+  if (!step || $('cycle-name')) return;
+  const grid = step.querySelector('.form-grid');
+  if (!grid) return;
+  const label = document.createElement('label');
+  label.innerHTML = 'Cycle name<input id="cycle-name" type="text" maxlength="100" value="Annual Performance 2027"><small>Choose a name that makes sense for your company.</small>';
+  grid.prepend(label);
+  grid.style.gridTemplateColumns = '1fr 1fr 1fr';
+}
+
 function collect() {
   if (state.step === 2) { state.maxPoints = Number($('max-points').value); state.pointValue = Number($('point-value').value); }
-  if (state.step === 3) { state.cycleStart = $('cycle-start').value; state.cycleEnd = $('cycle-end').value; }
+  if (state.step === 3) { state.cycleName = $('cycle-name').value.trim() || 'Annual Performance 2027'; state.cycleStart = $('cycle-start').value; state.cycleEnd = $('cycle-end').value; }
   if (state.step === 4) { state.frequency = $('frequency').value; state.startDay = $('start-day').value; state.endDay = $('end-day').value; state.preparation = document.querySelector('input[name="preparation"]:checked')?.value || 'MANUAL'; state.preparationDay = $('prep-day').value; state.preparationTime = $('prep-time').value; }
 }
 function updatePreparationUI() {
@@ -17,11 +29,12 @@ function updatePreparationUI() {
 }
 function updateSummary() {
   $('summary-evaluation').textContent = `${state.maxPoints} points · $${state.pointValue.toFixed(2)} / point`;
-  $('summary-cycle').textContent = `${state.cycleStart} → ${state.cycleEnd}`;
+  $('summary-cycle').textContent = `${state.cycleName} · ${state.cycleStart} → ${state.cycleEnd}`;
   $('summary-period').textContent = `${freqName(state.frequency)} · ${dayName(state.startDay)} → ${dayName(state.endDay)}`;
   $('summary-prep').textContent = state.preparation === 'AUTOMATIC' ? `Automatic · ${dayName(state.preparationDay)} at ${state.preparationTime}` : 'Manual preparation';
 }
 function render() {
+  addCycleNameField();
   views.forEach(v => v.classList.toggle('hidden', Number(v.dataset.step) !== state.step));
   $('step-number').textContent = state.step;
   $('progress-bar').style.width = `${((state.step - 1) / 6) * 100}%`;
