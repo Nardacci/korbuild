@@ -45,13 +45,26 @@ async function openReport(id){
    ids.length?db.from('lancamentos').select('id,colaborador_id,equipe_id,unidade_trabalho_id,total_score').in('periodo_id',ids):Promise.resolve({data:[],error:null})
   ]);
   if(peopleError||unitError||teamError||launchError)throw(peopleError||unitError||teamError||launchError);
-  const launchIds=(launches||[]).map(l=>l.id);let occurrenceCounts={};
-  if(launchIds.length){const {data:occ,error:oe}=await db.from('ocorrencias').select('lancamento_id,quantity').in('lancamento_id',launchIds);if(oe)throw oe;(occ||[]).forEach(o=>occurrenceCounts[o.lancamento_id]=(occurrenceCounts[o.lancamento_id]||0)+Math.max(0,Number(o.quantity)||0))}
+  const launchIds=(launches||[]).map(l=>l.id);let occurrenceTotals={};
+  if(launchIds.length){
+   const {data:occ,error:oe}=await db.from('ocorrencias').select('lancamento_id,quantity,points,tipos_ocorrencia(occurrence_type)').in('lancamento_id',launchIds);
+   if(oe)throw oe;
+   (occ||[]).forEach(o=>{
+    const id=o.lancamento_id,qty=Math.max(0,Number(o.quantity)||0);
+    const sign=o.tipos_ocorrencia?.occurrence_type==='NEGATIVA'?-1:1;
+    const score=sign*Math.abs(Number(o.points)||0)*qty;
+    if(!occurrenceTotals[id])occurrenceTotals[id]={count:0,score:0};
+    occurrenceTotals[id].count+=qty;
+    occurrenceTotals[id].score+=score;
+   });
+  }
   const unitMap=Object.fromEntries((units||[]).map(x=>[x.id,x]));const teamMap=Object.fromEntries((teams||[]).map(x=>[x.id,x]));
   const rows=(people||[]).map(p=>{
    const pl=(launches||[]).filter(l=>l.colaborador_id===p.id);const last=pl[pl.length-1]||{};
-   const deductions=pl.reduce((a,l)=>a+Math.min(0,Number(l.total_score)||0),0);
-   const occurrences=pl.reduce((a,l)=>a+(occurrenceCounts[l.id]||0),0);
+   // Calculate directly from occurrence records, matching the Evaluations rule.
+   // Do not depend on lancamentos.total_score, which can be stale until an evaluation is saved.
+   const deductions=pl.reduce((a,l)=>a+Math.min(0,Number(occurrenceTotals[l.id]?.score)||0),0);
+   const occurrences=pl.reduce((a,l)=>a+(occurrenceTotals[l.id]?.count||0),0);
    const starting=Number(cycle.starting_points??state.config?.starting_points??0);
    const final=Math.max(0,starting+deductions);const bonus=final*pointValue;
    const team=teamMap[last.equipe_id||p.equipe_id];const unit=unitMap[last.unidade_trabalho_id||team?.unidade_trabalho_id];
