@@ -1,7 +1,7 @@
 window.KORBUILD_APP = Object.freeze({
-  version: '1.2.1',
+  version: '1.2.2',
   environment: 'Development environment',
-  cacheVersion: '1.2.1'
+  cacheVersion: '1.2.2'
 });
 
 (function applyKORbuildVersion(){
