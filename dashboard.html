@@ -34,13 +34,14 @@
     <article class="metric-card"><div class="metric-icon">✓</div><div><small>EVALUATIONS</small><strong id="pending">0</strong><p>Pending</p></div></article>
   </section>
   <section class="setup-alert" id="setup-alert">
-    <div class="setup-top"><div><div class="setup-label">⚠ WORKSPACE SETUP</div><h2>Your workspace needs setup</h2><p>Complete the essentials before starting your first evaluation period.</p></div><div class="setup-progress"><strong id="setup-count">1/5</strong><span>setup complete</span></div></div>
+    <div class="setup-top"><div><div class="setup-label">⚠ WORKSPACE SETUP</div><h2>Your workspace needs setup</h2><p>Complete the essentials before starting your first evaluation period.</p></div><div class="setup-progress"><strong id="setup-count">1/6</strong><span>setup complete</span></div></div>
     <div class="setup-steps">
       <div class="setup-step done"><span>✓</span><div><b>Company</b><small>Your company profile is ready</small></div></div>
-      <div class="setup-step"><span>2</span><div><b>People</b><small>Add your employees</small></div></div>
-      <div class="setup-step"><span>3</span><div><b>Teams</b><small>Create your teams</small></div></div>
-      <div class="setup-step"><span>4</span><div><b>Evaluation setup</b><small>Configure how evaluations work</small></div></div>
-      <div class="setup-step"><span>5</span><div><b>First period</b><small>Prepare your first evaluation period</small></div></div>
+      <div class="setup-step"><span>2</span><div><b>Evaluation</b><small>Configure points and scoring</small></div></div>
+      <div class="setup-step"><span>3</span><div><b>Period</b><small>Define your evaluation cycle</small></div></div>
+      <div class="setup-step"><span>4</span><div><b>People</b><small>Add your employees</small></div></div>
+      <div class="setup-step"><span>5</span><div><b>Teams</b><small>Create and organize teams</small></div></div>
+      <div class="setup-step"><span>6</span><div><b>First period</b><small>Prepare your first cycle</small></div></div>
     </div>
     <button class="setup-btn" id="start-setup">Start Setup <span>→</span></button>
   </section>
@@ -50,4 +51,5 @@
 <button class="copilot" title="KORbuild Copilot">✦</button>
 </div>
 <script src="supabase-config.js"></script><script src="home.js"></script>
+<script>document.getElementById('start-setup')?.addEventListener('click',()=>window.location.href='setup.html');</script>
 </body></html>
