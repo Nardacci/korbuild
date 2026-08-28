@@ -1,0 +1,38 @@
+/* Evaluations — canonical KORbuild layout */
+.content{padding-top:18px}
+.page-header{display:flex;justify-content:space-between;align-items:flex-end;margin:0 0 24px}
+.page-header h1{font-size:29px;letter-spacing:-.04em;margin:5px 0 6px}
+.page-header p{margin:0;color:var(--muted);font-size:13px}
+.eval-toolbar{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:14px;margin:0 0 18px}
+.eval-toolbar label{display:grid;gap:7px;font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#59667a}
+.eval-toolbar select,.eval-person select{width:100%;height:42px;border:1px solid var(--line);border-radius:10px;background:#fff;padding:0 12px;font:600 12px Inter,system-ui,sans-serif;color:var(--ink);outline:0}
+.eval-toolbar select:focus,.eval-person select:focus,.qty:focus{border-color:#8b82f5;box-shadow:0 0 0 3px rgba(99,91,255,.08)}
+.eval-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px}
+.eval-person{display:flex;justify-content:space-between;align-items:center;gap:20px;padding-bottom:18px;margin-bottom:0;border-bottom:1px solid var(--line)}
+.eval-person>div{min-width:0}
+.eval-person h2{margin:0;font-size:20px;letter-spacing:-.02em}
+.eval-person select{width:230px}
+.eval-meta{color:#657187;font-size:11px;margin-top:6px}
+#evaluation-area{padding-top:16px}
+.eval-table{width:100%;border-collapse:collapse}
+.eval-table th{font-size:10px;letter-spacing:.12em;color:#536075;text-align:left;padding:12px 10px;border-bottom:1px solid var(--line);font-weight:800}
+.eval-table td{padding:14px 10px;border-bottom:1px solid #edf0f5;font-size:12px;color:#344054}
+.eval-table th:nth-child(2),.eval-table th:nth-child(3),.eval-table th:nth-child(4),
+.eval-table td:nth-child(2),.eval-table td:nth-child(3),.eval-table td:nth-child(4){text-align:center}
+.eval-table tbody tr:hover{background:#fafbfe}
+.qty{width:86px;height:38px;border:1px solid var(--line);border-radius:9px;text-align:center;font:600 12px Inter,system-ui,sans-serif;color:var(--ink);outline:0}
+.points{font-variant-numeric:tabular-nums;font-weight:600}
+.eval-footer{display:flex;justify-content:space-between;align-items:center;margin-top:18px;padding-top:18px;border-top:1px solid var(--line)}
+.total{font-size:13px;font-weight:800;color:var(--ink)}
+.person-nav{display:flex;align-items:center;gap:8px}
+.person-nav button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 13px;cursor:pointer;font:700 11px Inter,system-ui,sans-serif;color:#536075}
+.person-nav button:hover{background:#f6f7fa}
+.save-btn{border:0;border-radius:10px;padding:11px 16px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font:700 11px Inter,system-ui,sans-serif;cursor:pointer;box-shadow:0 8px 20px rgba(99,91,255,.18)}
+.save-btn:hover{filter:brightness(1.03)}
+.empty{padding:48px 20px;text-align:center;color:var(--muted);font-size:12px}
+.message{padding:11px 13px;border-radius:10px;margin:0 0 16px;font-size:11px}
+.message:not(.error){background:#edf9f2;color:#237344}
+.message.error{background:#fff0f0;color:#a13c48}
+.hidden{display:none!important}
+@media(max-width:900px){.eval-toolbar{grid-template-columns:1fr}.eval-person{align-items:flex-start;flex-direction:column}.eval-person select{width:100%}.eval-card{overflow:auto}.eval-table{min-width:650px}}
+@media(max-width:700px){.content{padding-top:12px}.page-header h1{font-size:25px}.eval-footer{align-items:flex-start;gap:14px;flex-direction:column}.person-nav{width:100%;justify-content:space-between}}
