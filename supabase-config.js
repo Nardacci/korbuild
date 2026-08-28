@@ -3,136 +3,20 @@ window.KORBUILD_SUPABASE = {
   publishableKey: 'sb_publishable_OTGYzEhQxckBa_8Xqu4Uog_Dm3RmTtD'
 };
 
-// KORbuild V1.2.2 — single shared UI/bootstrap source.
 const KORBUILD_VERSION = '1.2.2';
 const KORBUILD_ENVIRONMENT = 'Development environment';
-
-const applyKORbuildVersion = () => {
-  document.querySelectorAll('.app-version, .demo-note').forEach(el => {
-    el.textContent = `KORbuild V${KORBUILD_VERSION} · ${KORBUILD_ENVIRONMENT}`;
-  });
-};
-
-window.KORBUILD_APP = Object.freeze({
-  version: KORBUILD_VERSION,
-  environment: KORBUILD_ENVIRONMENT,
-  cacheVersion: KORBUILD_VERSION
-});
-
-if (!document.querySelector('link[data-korbuild-ui-fixes]')) {
-  const style = document.createElement('link');
-  style.rel = 'stylesheet';
-  style.href = 'ui-fixes.css?v=1.2.2';
-  style.dataset.korbuildUiFixes = 'true';
-  document.head.appendChild(style);
-}
-
+const applyKORbuildVersion = () => { document.querySelectorAll('.app-version, .demo-note').forEach(el => { el.textContent = `KORbuild V${KORBUILD_VERSION} · ${KORBUILD_ENVIRONMENT}`; }); };
+window.KORBUILD_APP = Object.freeze({ version: KORBUILD_VERSION, environment: KORBUILD_ENVIRONMENT, cacheVersion: KORBUILD_VERSION });
+if (!document.querySelector('link[data-korbuild-ui-fixes]')) { const style=document.createElement('link');style.rel='stylesheet';style.href='ui-fixes.css?v=1.2.2';style.dataset.korbuildUiFixes='true';document.head.appendChild(style); }
 (function applyKORbuildShell(){
-  const run = () => {
-    applyKORbuildVersion();
-
-    // The wizard/setup page has a different shell and keeps its own header.
-    const sidebar = document.querySelector('aside.sidebar');
-    if (!sidebar) return;
-
-    // Canonical brand: KORbuild + DEMO, always returning to Dashboard.
-    const brand = sidebar.querySelector('.side-brand');
-    if (brand) {
-      brand.outerHTML = `
-        <a class="side-brand" href="home.html" aria-label="KORbuild Dashboard">
-          <div class="mini-mark">K</div>
-          <div>KOR<span>build</span></div>
-          <span class="demo-badge logo-demo">DEMO</span>
-        </a>`;
-    }
-
-    // Remove the visual workspace card, but preserve #side-company because
-    // existing page data-loading scripts still populate that legacy element.
-    const workspaceCard = sidebar.querySelector('.company-switcher');
-    if (workspaceCard) {
-      const legacyCompany = document.createElement('span');
-      legacyCompany.id = 'side-company';
-      legacyCompany.style.display = 'none';
-      workspaceCard.replaceWith(legacyCompany);
-    }
-
-    // Canonical sidebar navigation. Dashboard is intentionally omitted:
-    // the logo and avatar menu are the two Dashboard entry points.
-    const nav = sidebar.querySelector('nav');
-    if (nav) {
-      const path = (location.pathname.split('/').pop() || 'home.html').toLowerCase();
-      const is = files => files.includes(path);
-      const active = {
-        periods: is(['periods.html']),
-        workUnits: is(['work-units.html', 'work-units-form.html']),
-        teams: is(['teams.html', 'teams-form.html']),
-        people: is(['people.html', 'people-form.html']),
-        occurrences: is(['occurrences.html', 'occurrence-form.html'])
-      };
-      const recordsActive = active.workUnits || active.teams || active.people || active.occurrences;
-
-      nav.innerHTML = `
-        <a class="nav-item" href="#"><span>✓</span>Evaluations</a>
-        <a class="nav-item ${active.periods ? 'active' : ''}" href="periods.html"><span>◷</span>Periods</a>
-        <a class="nav-item" href="#"><span>★</span>Bonuses</a>
-        <div id="records-group" class="nav-group" style="margin:2px 0">
-          <button id="records-toggle" class="nav-group-title" type="button" aria-expanded="${recordsActive ? 'true' : 'false'}" style="width:100%;display:flex;align-items:center;gap:12px;padding:11px 12px;border:0;border-radius:9px;background:transparent;color:#40506a;font:500 13px Inter,system-ui,sans-serif;text-align:left;cursor:pointer">
-            <span id="records-chevron" style="width:16px;text-align:center;font-size:12px;color:#6b7890">${recordsActive ? '⌃' : '⌄'}</span>Records
-          </button>
-          <div id="records-items" class="nav-group-items" style="display:${recordsActive ? 'block' : 'none'};padding-left:8px">
-            <a class="nav-item ${active.workUnits ? 'active' : ''}" href="work-units.html"><span>▣</span>Work Units</a>
-            <a class="nav-item ${active.teams ? 'active' : ''}" href="teams.html"><span>◇</span>Teams</a>
-            <a class="nav-item ${active.people ? 'active' : ''}" href="people.html"><span>◉</span>People</a>
-            <a class="nav-item ${active.occurrences ? 'active' : ''}" href="occurrences.html"><span>!</span>Occurrences</a>
-          </div>
-        </div>
-        <a class="nav-item" href="#"><span>▥</span>Reports</a>`;
-
-      const toggle = document.getElementById('records-toggle');
-      const items = document.getElementById('records-items');
-      const chevron = document.getElementById('records-chevron');
-      if (toggle && items && chevron) {
-        toggle.addEventListener('click', () => {
-          const open = toggle.getAttribute('aria-expanded') === 'true';
-          toggle.setAttribute('aria-expanded', String(!open));
-          items.style.display = open ? 'none' : 'block';
-          chevron.textContent = open ? '⌄' : '⌃';
-        });
-      }
-    }
-
-    // Canonical avatar menu: Dashboard / Workspace Setup / Sign out only.
-    // Existing page scripts remain responsible for opening/closing the menu.
-    const wrap = document.querySelector('.user-menu-wrap');
-    if (wrap) {
-      let menu = wrap.querySelector('#user-menu');
-      if (!menu) {
-        menu = document.createElement('div');
-        menu.id = 'user-menu';
-        menu.className = 'user-menu hidden';
-        wrap.appendChild(menu);
-      }
-      menu.innerHTML = `
-        <div class="menu-header">
-          <span class="avatar large" id="menu-avatar">O</span>
-          <div><b id="menu-full-name">Owner</b><small id="menu-full-email"></small></div>
-        </div>
-        <div class="menu-divider"></div>
-        <a class="menu-item" href="home.html">⌂ <span>Dashboard</span></a>
-        <a class="menu-item" href="setup.html">⚙ <span>Workspace Setup</span></a>
-        <button id="menu-logout" class="menu-item danger">↪ <span>Sign out</span></button>`;
-    }
-  };
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run, { once:true });
-  else run();
-})();
-
-if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', applyKORbuildVersion, { once:false });
-else applyKORbuildVersion();
-
-if (location.pathname.endsWith('/setup.html') || location.pathname.endsWith('/setup')) {
-  const setupRefresh = document.createElement('script');
-  setupRefresh.src = 'setup-v2.js?v=5';
-  document.body.appendChild(setupRefresh);
-}
+ const run=()=>{ applyKORbuildVersion(); const sidebar=document.querySelector('aside.sidebar'); if(!sidebar)return;
+  const brand=sidebar.querySelector('.side-brand'); if(brand){brand.outerHTML=`<a class="side-brand" href="home.html" aria-label="KORbuild Dashboard"><div class="mini-mark">K</div><div>KOR<span>build</span></div><span class="demo-badge logo-demo">DEMO</span></a>`;}
+  const workspaceCard=sidebar.querySelector('.company-switcher'); if(workspaceCard){const legacyCompany=document.createElement('span');legacyCompany.id='side-company';legacyCompany.style.display='none';workspaceCard.replaceWith(legacyCompany);}
+  const nav=sidebar.querySelector('nav'); if(nav){const path=(location.pathname.split('/').pop()||'home.html').toLowerCase();const is=files=>files.includes(path);const active={evaluations:is(['evaluations.html']),periods:is(['periods.html']),workUnits:is(['work-units.html','work-units-form.html']),teams:is(['teams.html','teams-form.html']),people:is(['people.html','people-form.html']),occurrences:is(['occurrences.html','occurrence-form.html'])};const recordsActive=active.workUnits||active.teams||active.people||active.occurrences;
+   nav.innerHTML=`<a class="nav-item ${active.evaluations?'active':''}" href="evaluations.html"><span>✓</span>Evaluations</a><a class="nav-item ${active.periods?'active':''}" href="periods.html"><span>◷</span>Periods</a><a class="nav-item" href="#"><span>★</span>Bonuses</a><div id="records-group" class="nav-group" style="margin:2px 0"><button id="records-toggle" class="nav-group-title" type="button" aria-expanded="${recordsActive?'true':'false'}" style="width:100%;display:flex;align-items:center;gap:12px;padding:11px 12px;border:0;border-radius:9px;background:transparent;color:#40506a;font:500 13px Inter,system-ui,sans-serif;text-align:left;cursor:pointer"><span id="records-chevron" style="width:16px;text-align:center;font-size:12px;color:#6b7890">${recordsActive?'⌃':'⌄'}</span>Records</button><div id="records-items" class="nav-group-items" style="display:${recordsActive?'block':'none'};padding-left:8px"><a class="nav-item ${active.workUnits?'active':''}" href="work-units.html"><span>▣</span>Work Units</a><a class="nav-item ${active.teams?'active':''}" href="teams.html"><span>◇</span>Teams</a><a class="nav-item ${active.people?'active':''}" href="people.html"><span>◉</span>People</a><a class="nav-item ${active.occurrences?'active':''}" href="occurrences.html"><span>!</span>Occurrences</a></div></div><a class="nav-item" href="#"><span>▥</span>Reports</a>`;
+   const toggle=document.getElementById('records-toggle'),items=document.getElementById('records-items'),chevron=document.getElementById('records-chevron');if(toggle&&items&&chevron){toggle.addEventListener('click',()=>{const open=toggle.getAttribute('aria-expanded')==='true';toggle.setAttribute('aria-expanded',String(!open));items.style.display=open?'none':'block';chevron.textContent=open?'⌄':'⌃';});}
+  }
+  const wrap=document.querySelector('.user-menu-wrap');if(wrap){let menu=wrap.querySelector('#user-menu');if(!menu){menu=document.createElement('div');menu.id='user-menu';menu.className='user-menu hidden';wrap.appendChild(menu);}menu.innerHTML=`<div class="menu-header"><span class="avatar large" id="menu-avatar">O</span><div><b id="menu-full-name">Owner</b><small id="menu-full-email"></small></div></div><div class="menu-divider"></div><a class="menu-item" href="home.html">⌂ <span>Dashboard</span></a><a class="menu-item" href="setup.html">⚙ <span>Workspace Setup</span></a><button id="menu-logout" class="menu-item danger">↪ <span>Sign out</span></button>`;}
+ }; if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run,{once:true});else run();})();
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',applyKORbuildVersion,{once:false});else applyKORbuildVersion();
+if(location.pathname.endsWith('/setup.html')||location.pathname.endsWith('/setup')){const setupRefresh=document.createElement('script');setupRefresh.src='setup-v2.js?v=5';document.body.appendChild(setupRefresh);}
