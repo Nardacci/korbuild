@@ -1,4 +1,4 @@
-if(!window.KORBUILD_APP){const s=document.createElement('script');s.src='app-config.js?v=1.1';document.head.appendChild(s);}
+if(!window.KORBUILD_APP){const s=document.createElement('script');s.src='app-config.js?v=1.2';document.head.appendChild(s);}
 const SUPABASE_URL = 'https://nowbohxeqwlddbfnukva.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_OTGYzEhQxckBa_8Xqu4Uog_Dm3RmTtD';
 
@@ -20,6 +20,5 @@ form.addEventListener('submit', async (event) => {
     return;
   }
 
-  // Home is the single canonical dashboard route.
   window.location.href = 'home.html';
 });
