@@ -31,11 +31,11 @@ if (!document.querySelector('link[data-korbuild-ui-fixes]')) {
   const run = () => {
     applyKORbuildVersion();
 
-    // The wizard/setup page has a different shell and is handled by its own markup.
+    // The wizard/setup page has a different shell and keeps its own header.
     const sidebar = document.querySelector('aside.sidebar');
     if (!sidebar) return;
 
-    // 1. Canonical brand: KORbuild + DEMO, always links to Dashboard.
+    // Canonical brand: KORbuild + DEMO, always returning to Dashboard.
     const brand = sidebar.querySelector('.side-brand');
     if (brand) {
       brand.outerHTML = `
@@ -46,11 +46,17 @@ if (!document.querySelector('link[data-korbuild-ui-fixes]')) {
         </a>`;
     }
 
-    // 2. Remove the old workspace/company card from the sidebar.
+    // Remove the visual workspace card, but preserve #side-company because
+    // existing page data-loading scripts still populate that legacy element.
     const workspaceCard = sidebar.querySelector('.company-switcher');
-    if (workspaceCard) workspaceCard.remove();
+    if (workspaceCard) {
+      const legacyCompany = document.createElement('span');
+      legacyCompany.id = 'side-company';
+      legacyCompany.style.display = 'none';
+      workspaceCard.replaceWith(legacyCompany);
+    }
 
-    // 3. One canonical sidebar navigation for every operational page.
+    // Canonical sidebar navigation for every operational page.
     const nav = sidebar.querySelector('nav');
     if (nav) {
       const path = (location.pathname.split('/').pop() || 'home.html').toLowerCase();
@@ -96,7 +102,8 @@ if (!document.querySelector('link[data-korbuild-ui-fixes]')) {
       }
     }
 
-    // 4. Canonical avatar menu: Dashboard / Workspace Setup / Sign out only.
+    // Canonical avatar menu: Dashboard / Workspace Setup / Sign out only.
+    // Existing page scripts remain responsible for opening/closing the menu.
     const wrap = document.querySelector('.user-menu-wrap');
     if (wrap) {
       let menu = wrap.querySelector('#user-menu');
@@ -115,23 +122,6 @@ if (!document.querySelector('link[data-korbuild-ui-fixes]')) {
         <a class="menu-item" href="home.html">⌂ <span>Dashboard</span></a>
         <a class="menu-item" href="setup.html">⚙ <span>Workspace Setup</span></a>
         <button id="menu-logout" class="menu-item danger">↪ <span>Sign out</span></button>`;
-
-      const button = wrap.querySelector('#user-menu-btn');
-      if (button && !button.dataset.korbuildMenuBound) {
-        button.dataset.korbuildMenuBound = 'true';
-        button.addEventListener('click', event => {
-          event.stopPropagation();
-          const open = button.getAttribute('aria-expanded') === 'true';
-          button.setAttribute('aria-expanded', String(!open));
-          menu.classList.toggle('hidden', open);
-        });
-        document.addEventListener('click', event => {
-          if (!wrap.contains(event.target)) {
-            button.setAttribute('aria-expanded', 'false');
-            menu.classList.add('hidden');
-          }
-        });
-      }
     }
   };
 
