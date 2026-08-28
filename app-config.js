@@ -4,8 +4,10 @@ window.KORBUILD_APP = Object.freeze({
   cacheVersion: '1.2.1'
 });
 
-document.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll('.app-version, .demo-note').forEach(el => {
+(function applyKORbuildVersion(){
+  const apply = () => document.querySelectorAll('.app-version, .demo-note').forEach(el => {
     el.textContent = `KORbuild V${window.KORBUILD_APP.version} · ${window.KORBUILD_APP.environment}`;
   });
-});
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply, { once:true });
+  else apply();
+})();
