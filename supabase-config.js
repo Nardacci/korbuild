@@ -56,13 +56,13 @@ if (!document.querySelector('link[data-korbuild-ui-fixes]')) {
       workspaceCard.replaceWith(legacyCompany);
     }
 
-    // Canonical sidebar navigation for every operational page.
+    // Canonical sidebar navigation. Dashboard is intentionally omitted:
+    // the logo and avatar menu are the two Dashboard entry points.
     const nav = sidebar.querySelector('nav');
     if (nav) {
       const path = (location.pathname.split('/').pop() || 'home.html').toLowerCase();
       const is = files => files.includes(path);
       const active = {
-        dashboard: is(['home.html', 'dashboard.html']),
         periods: is(['periods.html']),
         workUnits: is(['work-units.html', 'work-units-form.html']),
         teams: is(['teams.html', 'teams-form.html']),
@@ -72,9 +72,8 @@ if (!document.querySelector('link[data-korbuild-ui-fixes]')) {
       const recordsActive = active.workUnits || active.teams || active.people || active.occurrences;
 
       nav.innerHTML = `
-        <a class="nav-item ${active.dashboard ? 'active' : ''}" href="home.html"><span>⌂</span>Dashboard</a>
-        <a class="nav-item ${active.periods ? 'active' : ''}" href="periods.html"><span>◷</span>Periods</a>
         <a class="nav-item" href="#"><span>✓</span>Evaluations</a>
+        <a class="nav-item ${active.periods ? 'active' : ''}" href="periods.html"><span>◷</span>Periods</a>
         <a class="nav-item" href="#"><span>★</span>Bonuses</a>
         <div id="records-group" class="nav-group" style="margin:2px 0">
           <button id="records-toggle" class="nav-group-title" type="button" aria-expanded="${recordsActive ? 'true' : 'false'}" style="width:100%;display:flex;align-items:center;gap:12px;padding:11px 12px;border:0;border-radius:9px;background:transparent;color:#40506a;font:500 13px Inter,system-ui,sans-serif;text-align:left;cursor:pointer">
