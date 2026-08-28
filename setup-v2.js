@@ -1,7 +1,7 @@
 const { url, publishableKey } = window.KORBUILD_SUPABASE;
 const db=window.supabase.createClient(url,publishableKey,{auth:{persistSession:true,autoRefreshToken:true}});
 const $=id=>document.getElementById(id);
-const state={step:2,maxPoints:500,pointValue:1,cycleName:'Annual Performance 2027',cycleStart:'January',cycleEnd:'December',frequency:'WEEKLY',startDay:'1',endDay:'6',preparation:'MANUAL',preparationDay:'6',preparationTime:'08:00',empresaId:null,teamCount:0,peopleCount:0,unassignedPeople:0};
+const state={step:2,maxPoints:500,pointValue:1,cycleName:'Annual Performance',cycleYear:2026,cycleStart:'January',cycleEnd:'December',frequency:'WEEKLY',startDay:'1',endDay:'6',preparation:'MANUAL',preparationDay:'6',preparationTime:'08:00',empresaId:null,teamCount:0,peopleCount:0,unassignedPeople:0};
 const views=[...document.querySelectorAll('.step-view')],labels=[...document.querySelectorAll('.progress-labels span')];
 const monthNumber=n=>({January:1,February:2,March:3,April:4,May:5,June:6,July:7,August:8,September:9,October:10,November:11,December:12}[n]);
 const monthName=n=>({1:'January',2:'February',3:'March',4:'April',5:'May',6:'June',7:'July',8:'August',9:'September',10:'October',11:'November',12:'December'}[Number(n)]||'January');
@@ -9,7 +9,7 @@ const dayName=n=>({0:'Sunday',1:'Monday',2:'Tuesday',3:'Wednesday',4:'Thursday',
 const freqName=n=>({WEEKLY:'Weekly',BIWEEKLY:'Every 2 weeks',MONTHLY:'Monthly'}[n]||n);
 function collect(){
  if(state.step===2){state.maxPoints=Number($('max-points').value);state.pointValue=Number($('point-value').value)}
- if(state.step===3){state.cycleName=$('cycle-name').value.trim()||'Annual Performance 2027';state.cycleStart=$('cycle-start').value;state.cycleEnd=$('cycle-end').value}
+ if(state.step===3){state.cycleName=$('cycle-name').value.trim()||'Annual Performance';state.cycleYear=Number($('cycle-year').value)||new Date().getFullYear();state.cycleStart=$('cycle-start').value;state.cycleEnd=$('cycle-end').value}
  if(state.step===4){state.frequency=$('frequency').value;state.startDay=$('start-day').value;state.endDay=$('end-day').value;state.preparation=document.querySelector('input[name="preparation"]:checked')?.value||'MANUAL';state.preparationDay=$('prep-day').value;state.preparationTime=$('prep-time').value}
 }
 function render(){
@@ -28,7 +28,7 @@ function render(){
 }
 function updateSummary(){
  $('summary-evaluation').textContent=`${state.maxPoints} points · $${state.pointValue.toFixed(2)} / point`;
- $('summary-cycle').textContent=state.cycleName;
+ $('summary-cycle').textContent=`${state.cycleName} ${state.cycleYear}`;
  $('summary-cycle-dates').textContent=`${state.cycleStart} → ${state.cycleEnd}`;
  $('summary-period').textContent=`${freqName(state.frequency)} · ${dayName(state.startDay)} → ${dayName(state.endDay)}`;
  $('summary-prep').textContent=state.preparation==='AUTOMATIC'?`Automatic · ${dayName(state.preparationDay)} at ${state.preparationTime}`:'Manual preparation';
@@ -69,9 +69,9 @@ async function loadSetup(){
  state.peopleCount=activePeople.length;
  state.unassignedPeople=activePeople.filter(p=>!p.equipe_id).length;
  if(config){state.maxPoints=Number(config.starting_points??state.maxPoints);state.pointValue=Number(config.point_value??state.pointValue);state.frequency=config.evaluation_frequency||state.frequency;state.startDay=String(config.period_start_day??state.startDay);state.endDay=String(config.period_end_day??state.endDay);state.preparation=config.period_preparation_mode||state.preparation;state.preparationDay=String(config.period_preparation_day??state.preparationDay);state.preparationTime=(config.period_preparation_time||state.preparationTime).toString().slice(0,5)}
- if(cycle){state.cycleName=cycle.name||state.cycleName;state.cycleStart=monthName(cycle.start_month);state.cycleEnd=monthName(cycle.end_month);if(cycle.year&&!state.cycleName.match(/20\d{2}/))state.cycleName=`${state.cycleName} ${cycle.year}`}
+ if(cycle){state.cycleName=cycle.name||state.cycleName;state.cycleYear=Number(cycle.year)||state.cycleYear;state.cycleStart=monthName(cycle.start_month);state.cycleEnd=monthName(cycle.end_month)}
  const set=(id,v)=>{if($(id))$(id).value=v};
- set('max-points',state.maxPoints);set('point-value',state.pointValue.toFixed(2));set('cycle-name',state.cycleName);set('cycle-start',state.cycleStart);set('cycle-end',state.cycleEnd);set('frequency',state.frequency);set('start-day',state.startDay);set('end-day',state.endDay);set('prep-day',state.preparationDay);set('prep-time',state.preparationTime);
+ set('max-points',state.maxPoints);set('point-value',state.pointValue.toFixed(2));set('cycle-name',state.cycleName);set('cycle-year',state.cycleYear);set('cycle-start',state.cycleStart);set('cycle-end',state.cycleEnd);set('frequency',state.frequency);set('start-day',state.startDay);set('end-day',state.endDay);set('prep-day',state.preparationDay);set('prep-time',state.preparationTime);
  const r=document.querySelector(`input[name="preparation"][value="${state.preparation}"]`);if(r)r.checked=true;
  const configReady=Boolean(config),cycleReady=Boolean(cycle);
  if(configReady&&cycleReady&&state.teamCount>0&&state.peopleCount>0&&state.unassignedPeople===0)state.step=7;
@@ -92,9 +92,9 @@ async function saveConfig(){
 async function saveCycle(){
  collect();
  if(!state.empresaId)throw new Error('Workspace not loaded.');
- const yearMatch=state.cycleName.match(/(20\d{2})/),year=yearMatch?Number(yearMatch[1]):new Date().getFullYear();
+ const year=Number(state.cycleYear);if(!Number.isInteger(year)||year<2000||year>2100)throw new Error('Please enter a valid cycle year.');
  const{data:existing,error:er}=await db.from('bonus_cycles').select('id').eq('empresa_id',state.empresaId).eq('name',state.cycleName).eq('year',year).maybeSingle();if(er)throw er;
- if(existing?.id){const{error}=await db.from('bonus_cycles').update({start_month:monthNumber(state.cycleStart),end_month:monthNumber(state.cycleEnd),starting_points:state.maxPoints,point_value:state.pointValue}).eq('id',existing.id);if(error)throw error}
+ if(existing?.id){const{error}=await db.from('bonus_cycles').update({name:state.cycleName,year,start_month:monthNumber(state.cycleStart),end_month:monthNumber(state.cycleEnd),starting_points:state.maxPoints,point_value:state.pointValue}).eq('id',existing.id);if(error)throw error}
  else{const{error}=await db.from('bonus_cycles').insert({empresa_id:state.empresaId,name:state.cycleName,year,start_month:monthNumber(state.cycleStart),end_month:monthNumber(state.cycleEnd),starting_points:state.maxPoints,point_value:state.pointValue,status:'OPEN',opened_at:new Date().toISOString()});if(error)throw error}
 }
 async function saveCurrentStep(){if(state.step===2)await saveConfig();else if(state.step===3)await saveCycle();else if(state.step===4)await saveConfig()}
