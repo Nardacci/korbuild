@@ -19,5 +19,6 @@ form.addEventListener('submit', async (event) => {
     return;
   }
 
-  window.location.href = 'dashboard.html';
+  // Home is the single canonical dashboard route.
+  window.location.href = 'home.html';
 });
