@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>KORbuild · Bonus Settlement</title>
+<link rel="stylesheet" href="home.css?v=15">
+<link rel="stylesheet" href="bonus-settlement.css?v=1.0.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app-config.js?v=1.2.2"></script>
+</head>
+<body class="app-body">
+<div class="app-shell">
+<aside class="sidebar">
+  <a class="side-brand" href="home.html" aria-label="KORbuild Dashboard"><div class="mini-mark">K</div><div>KOR<span>build</span></div><span class="demo-badge logo-demo">DEMO</span></a>
+  <nav>
+    <a class="nav-item" href="evaluations.html"><span>✓</span>Evaluations</a>
+    <a class="nav-item" href="periods.html"><span>◷</span>Periods</a>
+    <a class="nav-item" href="#"><span>★</span>Bonuses</a>
+    <div id="records-group" class="nav-group">
+      <button id="records-toggle" class="nav-group-title" type="button" aria-expanded="false"><span id="records-chevron">⌄</span>Records</button>
+      <div id="records-items" class="nav-group-items" style="display:none">
+        <a class="nav-item" href="work-units.html"><span>▣</span>Work Units</a>
+        <a class="nav-item" href="teams.html"><span>◇</span>Teams</a>
+        <a class="nav-item" href="people.html"><span>◉</span>People</a>
+        <a class="nav-item" href="occurrences.html"><span>!</span>Occurrences</a>
+      </div>
+    </div>
+    <a class="nav-item active" href="bonus-settlement.html"><span>▥</span>Reports</a>
+  </nav>
+  <div class="side-bottom"><a class="nav-item" href="setup.html"><span>⚙</span>Workspace Setup</a></div>
+</aside>
+<main class="main-content">
+<header class="topbar">
+  <div><div class="breadcrumb">REPORTS / BONUS SETTLEMENT</div><div class="page-title">Bonus Settlement</div></div>
+  <div class="user-menu-wrap">
+    <button id="user-menu-btn" class="user-menu-btn"><span class="user-copy"><strong id="user-name">Owner</strong><small id="user-email"></small></span><span class="avatar" id="user-avatar">O</span><span class="chevron">⌄</span></button>
+    <div id="user-menu" class="user-menu hidden">
+      <div class="menu-header"><span class="avatar large" id="menu-avatar">O</span><div><b id="menu-full-name">Owner</b><small id="menu-full-email"></small></div></div>
+      <div class="menu-divider"></div>
+      <a href="home.html" class="menu-item">⌂ <span>Dashboard</span></a>
+      <a href="setup.html" class="menu-item">⚙ <span>Workspace Setup</span></a>
+      <button id="menu-logout" class="menu-item danger">↪ <span>Sign out</span></button>
+    </div>
+  </div>
+</header>
+
+<section id="cycles-view">
+  <section class="intro settlement-intro">
+    <div><div class="eyebrow">FINAL BONUS REPORT</div><h2>Bonus Settlement</h2><p>Review the consolidated result of each Bonus Cycle and open the final settlement report.</p></div>
+  </section>
+  <div id="cycles-message" class="message hidden"></div>
+  <section class="cycles-card">
+    <div class="section-head"><div><div class="eyebrow">BONUS CYCLES</div><h3>Select a cycle to view the settlement.</h3></div></div>
+    <div class="cycle-list-head"><span>Cycle</span><span>Year</span><span>Period</span><span>Status</span><span></span></div>
+    <div id="cycle-list" class="cycle-list"><div class="empty">Loading Bonus Cycles...</div></div>
+  </section>
+</section>
+
+<section id="report-view" class="hidden">
+  <div class="report-toolbar">
+    <button id="back-cycles" class="back-btn">← All Bonus Cycles</button>
+    <button id="print-report" class="print-btn">▣ Print / PDF</button>
+  </div>
+  <section class="intro settlement-intro compact">
+    <div><div class="eyebrow">BONUS SETTLEMENT</div><h2 id="report-cycle-name">Loading...</h2><p id="report-cycle-meta">Loading cycle information...</p></div>
+    <div class="point-rule"><small>CALCULATION RULE</small><strong id="point-rule">Final balance × value per point</strong></div>
+  </section>
+  <section class="metric-grid settlement-metrics">
+    <article class="metric-card"><small>ELIGIBLE PEOPLE</small><strong id="metric-eligible">0</strong><p>Active people in the settlement</p></article>
+    <article class="metric-card"><small>EVALUATED PEOPLE</small><strong id="metric-evaluated">0</strong><p>People with recorded evaluation data</p></article>
+    <article class="metric-card"><small>TOTAL DEDUCTIONS</small><strong id="metric-deductions" class="negative">0 pts</strong><p>Points deducted during the cycle</p></article>
+    <article class="metric-card"><small>TOTAL BONUS</small><strong id="metric-bonus" class="money">$0.00</strong><p>Final amount to be paid</p></article>
+  </section>
+  <section class="settlement-card">
+    <div class="settlement-head">
+      <div><div class="eyebrow">CONSOLIDATED SETTLEMENT</div><h3 id="company-name">Workspace</h3><p id="report-subtitle">Grouped by Work Unit and Team.</p></div>
+      <div class="cycle-badge"><span id="report-status">—</span></div>
+    </div>
+    <div class="table-wrap">
+      <table class="settlement-table">
+        <thead><tr><th>PERSON</th><th>FUNCTION</th><th>STARTING BALANCE</th><th>OCCURRENCES</th><th>DEDUCTIONS</th><th>FINAL BALANCE</th><th>BONUS AMOUNT</th></tr></thead>
+        <tbody id="settlement-body"></tbody>
+      </table>
+    </div>
+    <div id="grand-total" class="grand-total"><span>TOTAL BONUS TO PAY</span><strong>$0.00</strong></div>
+  </section>
+</section>
+</main>
+<div class="app-version">KORbuild V1.2.2 · Development environment</div>
+</div>
+<script src="supabase-config.js?v=1.2.2"></script>
+<script src="bonus-settlement.js?v=1.0.0"></script>
+</body></html>
