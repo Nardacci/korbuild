@@ -4,16 +4,20 @@ window.KORBUILD_SUPABASE = {
 };
 
 // KORbuild V1.2.2 — single shared UI/bootstrap source.
-// The version is intentionally enforced here as well as in app-config.js so
-// pages carrying an older cached app-config URL cannot revert the footer.
 const KORBUILD_VERSION = '1.2.2';
 const KORBUILD_ENVIRONMENT = 'Development environment';
+
 const applyKORbuildVersion = () => {
   document.querySelectorAll('.app-version, .demo-note').forEach(el => {
     el.textContent = `KORbuild V${KORBUILD_VERSION} · ${KORBUILD_ENVIRONMENT}`;
   });
 };
-window.KORBUILD_APP = Object.freeze({ version: KORBUILD_VERSION, environment: KORBUILD_ENVIRONMENT, cacheVersion: KORBUILD_VERSION });
+
+window.KORBUILD_APP = Object.freeze({
+  version: KORBUILD_VERSION,
+  environment: KORBUILD_ENVIRONMENT,
+  cacheVersion: KORBUILD_VERSION
+});
 
 if (!document.querySelector('link[data-korbuild-ui-fixes]')) {
   const style = document.createElement('link');
@@ -23,60 +27,118 @@ if (!document.querySelector('link[data-korbuild-ui-fixes]')) {
   document.head.appendChild(style);
 }
 
-// One navigation definition for every operational page.
-// Dashboard is reached from the logo/user menu. Records is collapsed by default.
-(function applyKORbuildNavigation(){
+(function applyKORbuildShell(){
   const run = () => {
     applyKORbuildVersion();
+
+    // The wizard/setup page has a different shell and is handled by its own markup.
     const sidebar = document.querySelector('aside.sidebar');
     if (!sidebar) return;
+
+    // 1. Canonical brand: KORbuild + DEMO, always links to Dashboard.
+    const brand = sidebar.querySelector('.side-brand');
+    if (brand) {
+      brand.outerHTML = `
+        <a class="side-brand" href="home.html" aria-label="KORbuild Dashboard">
+          <div class="mini-mark">K</div>
+          <div>KOR<span>build</span></div>
+          <span class="demo-badge logo-demo">DEMO</span>
+        </a>`;
+    }
+
+    // 2. Remove the old workspace/company card from the sidebar.
+    const workspaceCard = sidebar.querySelector('.company-switcher');
+    if (workspaceCard) workspaceCard.remove();
+
+    // 3. One canonical sidebar navigation for every operational page.
     const nav = sidebar.querySelector('nav');
-    if (!nav) return;
+    if (nav) {
+      const path = (location.pathname.split('/').pop() || 'home.html').toLowerCase();
+      const is = files => files.includes(path);
+      const active = {
+        dashboard: is(['home.html', 'dashboard.html']),
+        periods: is(['periods.html']),
+        workUnits: is(['work-units.html', 'work-units-form.html']),
+        teams: is(['teams.html', 'teams-form.html']),
+        people: is(['people.html', 'people-form.html']),
+        occurrences: is(['occurrences.html', 'occurrence-form.html'])
+      };
+      const recordsActive = active.workUnits || active.teams || active.people || active.occurrences;
 
-    const path = (location.pathname.split('/').pop() || 'home.html').toLowerCase();
-    const is = files => files.includes(path);
-    const active = {
-      periods: is(['periods.html']),
-      workUnits: is(['work-units.html','work-units-form.html']),
-      teams: is(['teams.html','teams-form.html']),
-      people: is(['people.html','people-form.html']),
-      occurrences: is(['occurrences.html','occurrence-form.html'])
-    };
-
-    nav.innerHTML = `
-      <a class="nav-item" href="#"><span>✓</span>Evaluations</a>
-      <a class="nav-item ${active.periods ? 'active' : ''}" href="periods.html"><span>◷</span>Periods</a>
-      <a class="nav-item" href="#"><span>★</span>Bonuses</a>
-      <div id="records-group" class="nav-group" style="margin:2px 0">
-        <button id="records-toggle" class="nav-group-title" type="button" aria-expanded="false" style="width:100%;display:flex;align-items:center;gap:12px;padding:11px 12px;border:0;border-radius:9px;background:transparent;color:#40506a;font:500 13px Inter,system-ui,sans-serif;text-align:left;cursor:pointer">
-          <span id="records-chevron" style="width:16px;text-align:center;font-size:12px;color:#6b7890">⌄</span>Records
-        </button>
-        <div id="records-items" class="nav-group-items" style="display:none;padding-left:8px">
-          <a class="nav-item ${active.workUnits ? 'active' : ''}" href="work-units.html"><span>▣</span>Work Units</a>
-          <a class="nav-item ${active.teams ? 'active' : ''}" href="teams.html"><span>◇</span>Teams</a>
-          <a class="nav-item ${active.people ? 'active' : ''}" href="people.html"><span>◉</span>People</a>
-          <a class="nav-item ${active.occurrences ? 'active' : ''}" href="occurrences.html"><span>⚠</span>Occurrences</a>
+      nav.innerHTML = `
+        <a class="nav-item ${active.dashboard ? 'active' : ''}" href="home.html"><span>⌂</span>Dashboard</a>
+        <a class="nav-item ${active.periods ? 'active' : ''}" href="periods.html"><span>◷</span>Periods</a>
+        <a class="nav-item" href="#"><span>✓</span>Evaluations</a>
+        <a class="nav-item" href="#"><span>★</span>Bonuses</a>
+        <div id="records-group" class="nav-group" style="margin:2px 0">
+          <button id="records-toggle" class="nav-group-title" type="button" aria-expanded="${recordsActive ? 'true' : 'false'}" style="width:100%;display:flex;align-items:center;gap:12px;padding:11px 12px;border:0;border-radius:9px;background:transparent;color:#40506a;font:500 13px Inter,system-ui,sans-serif;text-align:left;cursor:pointer">
+            <span id="records-chevron" style="width:16px;text-align:center;font-size:12px;color:#6b7890">${recordsActive ? '⌃' : '⌄'}</span>Records
+          </button>
+          <div id="records-items" class="nav-group-items" style="display:${recordsActive ? 'block' : 'none'};padding-left:8px">
+            <a class="nav-item ${active.workUnits ? 'active' : ''}" href="work-units.html"><span>▣</span>Work Units</a>
+            <a class="nav-item ${active.teams ? 'active' : ''}" href="teams.html"><span>◇</span>Teams</a>
+            <a class="nav-item ${active.people ? 'active' : ''}" href="people.html"><span>◉</span>People</a>
+            <a class="nav-item ${active.occurrences ? 'active' : ''}" href="occurrences.html"><span>!</span>Occurrences</a>
+          </div>
         </div>
-      </div>
-      <a class="nav-item" href="#"><span>▥</span>Reports</a>`;
+        <a class="nav-item" href="#"><span>▥</span>Reports</a>`;
 
-    const toggle = document.getElementById('records-toggle');
-    const items = document.getElementById('records-items');
-    const chevron = document.getElementById('records-chevron');
-    if (toggle && items && chevron) {
-      toggle.addEventListener('click', () => {
-        const open = toggle.getAttribute('aria-expanded') === 'true';
-        toggle.setAttribute('aria-expanded', String(!open));
-        items.style.display = open ? 'none' : 'block';
-        chevron.textContent = open ? '⌄' : '⌃';
-      });
+      const toggle = document.getElementById('records-toggle');
+      const items = document.getElementById('records-items');
+      const chevron = document.getElementById('records-chevron');
+      if (toggle && items && chevron) {
+        toggle.addEventListener('click', () => {
+          const open = toggle.getAttribute('aria-expanded') === 'true';
+          toggle.setAttribute('aria-expanded', String(!open));
+          items.style.display = open ? 'none' : 'block';
+          chevron.textContent = open ? '⌄' : '⌃';
+        });
+      }
+    }
+
+    // 4. Canonical avatar menu: Dashboard / Workspace Setup / Sign out only.
+    const wrap = document.querySelector('.user-menu-wrap');
+    if (wrap) {
+      let menu = wrap.querySelector('#user-menu');
+      if (!menu) {
+        menu = document.createElement('div');
+        menu.id = 'user-menu';
+        menu.className = 'user-menu hidden';
+        wrap.appendChild(menu);
+      }
+      menu.innerHTML = `
+        <div class="menu-header">
+          <span class="avatar large" id="menu-avatar">O</span>
+          <div><b id="menu-full-name">Owner</b><small id="menu-full-email"></small></div>
+        </div>
+        <div class="menu-divider"></div>
+        <a class="menu-item" href="home.html">⌂ <span>Dashboard</span></a>
+        <a class="menu-item" href="setup.html">⚙ <span>Workspace Setup</span></a>
+        <button id="menu-logout" class="menu-item danger">↪ <span>Sign out</span></button>`;
+
+      const button = wrap.querySelector('#user-menu-btn');
+      if (button && !button.dataset.korbuildMenuBound) {
+        button.dataset.korbuildMenuBound = 'true';
+        button.addEventListener('click', event => {
+          event.stopPropagation();
+          const open = button.getAttribute('aria-expanded') === 'true';
+          button.setAttribute('aria-expanded', String(!open));
+          menu.classList.toggle('hidden', open);
+        });
+        document.addEventListener('click', event => {
+          if (!wrap.contains(event.target)) {
+            button.setAttribute('aria-expanded', 'false');
+            menu.classList.add('hidden');
+          }
+        });
+      }
     }
   };
+
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run, { once:true });
   else run();
 })();
 
-// Re-apply after any older cached app-config callback fires.
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', applyKORbuildVersion, { once:false });
 else applyKORbuildVersion();
 
