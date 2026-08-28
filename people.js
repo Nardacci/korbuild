@@ -1,4 +1,4 @@
-if(!window.KORBUILD_APP){const s=document.createElement('script');s.src='app-config.js?v=1.1';document.head.appendChild(s);}
+if(!window.KORBUILD_APP){const s=document.createElement('script');s.src='app-config.js?v=1.2';document.head.appendChild(s);}
 const { url, publishableKey } = window.KORBUILD_SUPABASE;
 const db = window.supabase.createClient(url, publishableKey, { auth: { persistSession: true, autoRefreshToken: true } });
 const $ = id => document.getElementById(id);
@@ -20,7 +20,7 @@ async function loadProfile(){
   const {data:profile,error:profileError}=await db.from('usuarios').select('id,name,empresa_id,active,empresas(name)').eq('id',session.user.id).maybeSingle();
   if(profileError||!profile?.empresa_id){showMessage(profileError?.message||'Unable to load workspace profile.','error');return false;}
   state.empresaId=profile.empresa_id; $('side-company').textContent=profile.empresas?.name||'KORbuild Demo';
-  const name=profile.name||session.user.user_metadata?.full_name||session.user.email?.split('@')[0]||'Owner'; const initial=name.trim().charAt(0).toUpperCase()||'O';
+  const company=profile.empresas?.name||'KORbuild Demo'; const profileName=profile.name?.trim(); const name=profileName&&profileName!=='Owner'?profileName:session.user.user_metadata?.full_name||`${company} Owner`; const initial=name.trim().charAt(0).toUpperCase()||'O';
   $('user-name').textContent=name;$('user-email').textContent=session.user.email||'';$('user-avatar').textContent=initial;$('menu-avatar').textContent=initial;$('menu-full-name').textContent=name;$('menu-full-email').textContent=session.user.email||''; return true;
 }
 async function loadPeople(){ clearMessage(); const {data,error}=await db.from('colaboradores').select('id,empresa_id,name,specialty,active,created_at,updated_at').eq('empresa_id',state.empresaId).order('name',{ascending:true}); if(error){showMessage(`Unable to load people. ${error.message}`,'error');return;} state.people=data||[];render(); }
