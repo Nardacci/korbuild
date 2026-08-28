@@ -1,7 +1,7 @@
 window.KORBUILD_APP = Object.freeze({
-  version: '1.2',
+  version: '1.2.1',
   environment: 'Development environment',
-  cacheVersion: '1.2'
+  cacheVersion: '1.2.1'
 });
 
 document.addEventListener('DOMContentLoaded', () => {
