@@ -1,7 +1,7 @@
 const {url,publishableKey}=window.KORBUILD_SUPABASE;
 const db=window.supabase.createClient(url,publishableKey,{auth:{persistSession:true,autoRefreshToken:true}});
 const $=id=>document.getElementById(id);
-const state={empresaId:null,period:null,people:[],units:[],teams:[],launches:[],current:null,currentRows:[]};
+const state={empresaId:null,period:null,people:[],units:[],teams:[],launches:[],occurrenceTotals:{},current:null,currentRows:[]};
 
 const fmtDate=s=>new Date(s+'T00:00:00').toLocaleDateString('en-US',{day:'2-digit',month:'short',year:'numeric'});
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -37,6 +37,15 @@ async function loadData(){
  const {data:launches,error:le}=await db.from('lancamentos').select('id,colaborador_id,equipe_id,unidade_trabalho_id,total_score').eq('periodo_id',state.period.id);
  if(le)throw le;
  state.launches=launches||[];
+ const launchIds=state.launches.map(l=>l.id);
+ state.occurrenceTotals={};
+ if(launchIds.length){
+  const {data:occurrences,error:oe}=await db.from('ocorrencias').select('lancamento_id,quantity').in('lancamento_id',launchIds);
+  if(oe)throw oe;
+  (occurrences||[]).forEach(o=>{
+   state.occurrenceTotals[o.lancamento_id]=(state.occurrenceTotals[o.lancamento_id]||0)+(Math.max(0,Number(o.quantity)||0));
+  });
+ }
  const label='Week '+state.period.week_number+' · '+fmtDate(state.period.start_date)+' → '+fmtDate(state.period.end_date);
  $('current-period').textContent=label;$('detail-period').textContent=label;
  $('period-meta').textContent='Current evaluation window';
@@ -63,13 +72,13 @@ function renderList(){
  });
  $('people-body').innerHTML=rows.map(r=>{
    const score=Number(r.total_score||0);
-   const occurrenceText=score===0?'No occurrences':'Recorded';
+   const occurrenceCount=state.occurrenceTotals[r.id]||0;
    return '<tr>'+
     '<td><div class="person-name">'+esc(r.person.name||'—')+'</div></td>'+
     '<td>'+esc(r.unit?.name||'—')+'</td>'+
     '<td>'+esc(r.team?.name||'—')+'</td>'+
     '<td>'+esc(r.person.specialty||'—')+'</td>'+
-    '<td><span class="occurrence-status '+(score===0?'none':'recorded')+'">'+occurrenceText+'</span></td>'+
+    '<td class="occurrence-count">'+occurrenceCount+'</td>'+
     '<td class="score '+(score<0?'negative':'')+'">'+score.toLocaleString('en-US')+' pts</td>'+
     '<td><div class="row-actions"><button class="small-btn" data-action="edit" data-id="'+r.id+'">Edit</button></div></td>'+
    '</tr>';
