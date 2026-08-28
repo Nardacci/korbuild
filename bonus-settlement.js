@@ -39,7 +39,7 @@ async function openReport(id){
   const {data:periods,error:pe}=await db.from('periodos').select('id').eq('empresa_id',state.empresaId).eq('bonus_cycle_id',cycle.id);
   if(pe)throw pe;const ids=(periods||[]).map(p=>p.id);
   const [{data:people,error:peopleError},{data:units,error:unitError},{data:teams,error:teamError},{data:launches,error:launchError}]=await Promise.all([
-   db.from('colaboradores').select('id,name,specialty,equipe_id,active').eq('empresa_id',state.empresaId).eq('active',true).order('name'),
+   db.from('colaboradores').select('id,name,specialty,equipe_id,active').eq('empresa_id',state.empresaId).order('name'),
    db.from('unidades_trabalho').select('id,name').eq('empresa_id',state.empresaId).order('name'),
    db.from('equipes').select('id,name,unidade_trabalho_id').eq('empresa_id',state.empresaId).order('name'),
    ids.length?db.from('lancamentos').select('id,colaborador_id,equipe_id,unidade_trabalho_id,total_score').in('periodo_id',ids):Promise.resolve({data:[],error:null})
@@ -55,8 +55,8 @@ async function openReport(id){
    const starting=Number(cycle.starting_points??state.config?.starting_points??0);
    const final=Math.max(0,starting+deductions);const bonus=final*pointValue;
    const team=teamMap[last.equipe_id||p.equipe_id];const unit=unitMap[last.unidade_trabalho_id||team?.unidade_trabalho_id];
-   return {person:p,unit,team,starting,deductions,occurrences,final,bonus,evaluated:pl.length>0}
-  });
+   return {person:p,unit,team,starting,deductions,occurrences,final,bonus,evaluated:pl.length>0,eligible:p.active||pl.length>0}
+  }).filter(r=>r.eligible);
   renderSettlement(rows)
  }catch(e){console.error(e);$('settlement-body').innerHTML='<tr><td colspan="7" class="empty">Unable to calculate settlement: '+esc(e.message||'Unknown error')+'</td></tr>'}
 }
