@@ -1,0 +1,5 @@
+/* Shared UI fixes — no layout changes */
+a.menu-item,
+a.menu-item:visited,
+a.menu-item:hover,
+a.menu-item:active { text-decoration: none; }
