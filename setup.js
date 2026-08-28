@@ -1,3 +1,4 @@
+if(!window.KORBUILD_APP){const s=document.createElement('script');s.src='app-config.js?v=1.1';document.head.appendChild(s);}
 const { url, publishableKey } = window.KORBUILD_SUPABASE;
 const db = window.supabase.createClient(url, publishableKey, { auth: { persistSession: true, autoRefreshToken: true } });
 const state = { step: 2, maxPoints: 500, pointValue: 1.00, cycleName: 'Annual Performance 2027', cycleStart: 'January', cycleEnd: 'December', frequency: 'WEEKLY', startDay: '1', endDay: '6', preparation: 'MANUAL', preparationDay: '6', preparationTime: '08:00', empresaId: null };
