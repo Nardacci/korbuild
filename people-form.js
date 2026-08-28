@@ -1,3 +1,4 @@
+if(!window.KORBUILD_APP){const s=document.createElement('script');s.src='app-config.js?v=1.1';document.head.appendChild(s);}
 const { url, publishableKey } = window.KORBUILD_SUPABASE;
 const db = window.supabase.createClient(url, publishableKey, { auth: { persistSession: true, autoRefreshToken: true } });
 const $=id=>document.getElementById(id);
