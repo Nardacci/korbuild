@@ -7,3 +7,10 @@ a.menu-item:active { text-decoration: none; }
 /* A completed setup alert must not remain visible just because
    .setup-alert defines display:flex after the generic .hidden rule. */
 .setup-alert.hidden { display: none !important; }
+
+/* Canonical KORbuild sidebar shell */
+.side-brand .logo-demo { margin-left: 2px; }
+.nav-group-title:hover { background:#f5f5fb !important; }
+.nav-group-title:focus-visible { outline:2px solid #635bff; outline-offset:2px; }
+.nav-group-items .nav-item { margin:2px 0; }
+.nav-group-items .nav-item.active { background:#eeecff; color:#5348dc; font-weight:700; }
