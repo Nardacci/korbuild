@@ -1,9 +1,9 @@
 const { url, publishableKey } = window.KORBUILD_SUPABASE;
 const db = window.supabase.createClient(url, publishableKey, { auth: { persistSession: true, autoRefreshToken: true } });
 const $ = id => document.getElementById(id);
-const state = { empresaId: null, people: [], editingId: null };
+const state = { empresaId: null, people: [] };
 function closeMenu(){ $('user-menu')?.classList.add('hidden'); $('user-menu-btn')?.setAttribute('aria-expanded','false'); }
-function showMessage(text,type='success'){ const el=$('message'); el.textContent=text; el.className=`message ${type}`; }
+function showMessage(text,type='success'){ const el=$('message'); el.textContent=text; el.className=`message ${type}`; el.classList.remove('hidden'); }
 function clearMessage(){ $('message')?.classList.add('hidden'); }
 function escapeHtml(value=''){ return String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])); }
 function formatDate(value){ if(!value)return '—'; return new Date(value).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
@@ -23,19 +23,10 @@ async function loadProfile(){
   $('user-name').textContent=name;$('user-email').textContent=session.user.email||'';$('user-avatar').textContent=initial;$('menu-avatar').textContent=initial;$('menu-full-name').textContent=name;$('menu-full-email').textContent=session.user.email||''; return true;
 }
 async function loadPeople(){ clearMessage(); const {data,error}=await db.from('colaboradores').select('id,empresa_id,name,role,active,created_at,updated_at').eq('empresa_id',state.empresaId).order('name',{ascending:true}); if(error){showMessage(`Unable to load people. ${error.message}`,'error');return;} state.people=data||[];render(); }
-function openModal(person=null){state.editingId=person?.id||null;$('person-id').value=person?.id||'';$('person-name').value=person?.name||'';$('person-role').value=person?.role||'';$('person-active').checked=person?.active??true;$('modal-eyebrow').textContent=person?'EDIT PERSON':'NEW PERSON';$('modal-title').textContent=person?'Edit person':'Add person';$('save-person').textContent=person?'Save Changes':'Save Person';$('person-modal').classList.remove('hidden');setTimeout(()=>$('person-name').focus(),50);}
-function closeModal(){ $('person-modal').classList.add('hidden'); state.editingId=null; }
-async function savePerson(event){
-  event.preventDefault(); const name=$('person-name').value.trim(); const role=$('person-role').value.trim()||null; const active=$('person-active').checked; if(!name){showMessage('Name is required.','error');return;}
-  const editing=Boolean(state.editingId); const editingId=state.editingId; const btn=$('save-person'); btn.disabled=true; btn.textContent='Saving...'; clearMessage();
-  try{let error;if(editing){({error}=await db.from('colaboradores').update({name,role,active,updated_at:new Date().toISOString()}).eq('id',editingId).eq('empresa_id',state.empresaId));}else{({error}=await db.from('colaboradores').insert({empresa_id:state.empresaId,name,role,active}));}if(error)throw error;closeModal();await loadPeople();showMessage(editing?'Person updated successfully.':'Person added successfully.');}
-  catch(error){showMessage(`We couldn't save this person. ${error.message||'Please try again.'}`,'error');}
-  finally{btn.disabled=false;btn.textContent=editing?'Save Changes':'Save Person';}
-}
 async function togglePerson(id){const person=state.people.find(p=>p.id===id);if(!person)return;const next=!person.active;const action=next?'activate':'deactivate';if(!confirm(`Are you sure you want to ${action} ${person.name}?`))return;clearMessage();const {error}=await db.from('colaboradores').update({active:next,updated_at:new Date().toISOString()}).eq('id',id).eq('empresa_id',state.empresaId);if(error){showMessage(`We couldn't update this person. ${error.message}`,'error');return;}await loadPeople();showMessage(`${person.name} is now ${next?'active':'inactive'}.`);}
 $('user-menu-btn')?.addEventListener('click',e=>{e.stopPropagation();const menu=$('user-menu');const hidden=menu.classList.toggle('hidden');$('user-menu-btn').setAttribute('aria-expanded',String(!hidden));});
 document.addEventListener('click',e=>{if(!e.target.closest('.user-menu-wrap'))closeMenu();});
 $('menu-logout')?.addEventListener('click',async()=>{await db.auth.signOut();window.location.href='index.html';});
-$('add-person').addEventListener('click',()=>openModal()); $('close-modal').addEventListener('click',closeModal); $('cancel-modal').addEventListener('click',closeModal); $('person-modal').addEventListener('click',e=>{if(e.target.id==='person-modal')closeModal();}); $('person-form').addEventListener('submit',savePerson); $('search').addEventListener('input',render); $('status-filter').addEventListener('change',render);
-$('people-body').addEventListener('click',e=>{const btn=e.target.closest('button[data-action]');if(!btn)return;const person=state.people.find(p=>p.id===btn.dataset.id);if(btn.dataset.action==='edit')openModal(person);if(btn.dataset.action==='toggle')togglePerson(btn.dataset.id);});
+$('add-person').addEventListener('click',()=>window.location.href='people-form.html'); $('search').addEventListener('input',render); $('status-filter').addEventListener('change',render);
+$('people-body').addEventListener('click',e=>{const btn=e.target.closest('button[data-action]');if(!btn)return; if(btn.dataset.action==='edit')window.location.href=`people-form.html?id=${encodeURIComponent(btn.dataset.id)}`; if(btn.dataset.action==='toggle')togglePerson(btn.dataset.id);});
 async function init(){if(await loadProfile())await loadPeople();} init();
