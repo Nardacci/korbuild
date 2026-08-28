@@ -40,10 +40,15 @@ async function loadData(){
  const launchIds=state.launches.map(l=>l.id);
  state.occurrenceTotals={};
  if(launchIds.length){
-  const {data:occurrences,error:oe}=await db.from('ocorrencias').select('lancamento_id,quantity').in('lancamento_id',launchIds);
+  const {data:occurrences,error:oe}=await db.from('ocorrencias').select('lancamento_id,quantity,points,tipos_ocorrencia(occurrence_type)').in('lancamento_id',launchIds);
   if(oe)throw oe;
   (occurrences||[]).forEach(o=>{
-   state.occurrenceTotals[o.lancamento_id]=(state.occurrenceTotals[o.lancamento_id]||0)+(Math.max(0,Number(o.quantity)||0));
+   const id=o.lancamento_id,qty=Math.max(0,Number(o.quantity)||0);
+   const sign=o.tipos_ocorrencia?.occurrence_type==='NEGATIVA'?-1:1;
+   const points=sign*Math.abs(Number(o.points)||0);
+   if(!state.occurrenceTotals[id])state.occurrenceTotals[id]={count:0,score:0};
+   state.occurrenceTotals[id].count+=qty;
+   state.occurrenceTotals[id].score+=points*qty;
   });
  }
  const label='Week '+state.period.week_number+' · '+fmtDate(state.period.start_date)+' → '+fmtDate(state.period.end_date);
@@ -71,8 +76,9 @@ function renderList(){
    return !q||hay.includes(q);
  });
  $('people-body').innerHTML=rows.map(r=>{
-   const score=Number(r.total_score||0);
-   const occurrenceCount=state.occurrenceTotals[r.id]||0;
+   const occurrenceData=state.occurrenceTotals[r.id];
+   const score=occurrenceData?occurrenceData.score:Number(r.total_score||0);
+   const occurrenceCount=occurrenceData?occurrenceData.count:0;
    return '<tr>'+
     '<td><div class="person-name">'+esc(r.person.name||'—')+'</div></td>'+
     '<td>'+esc(r.unit?.name||'—')+'</td>'+
@@ -105,11 +111,13 @@ async function openEvaluation(launchId){
 function renderEvaluation(){
  const rows=state.currentRows;
  if(!rows.length){$('evaluation-area').innerHTML='<div class="empty">No prepared occurrences found for this collaborator.</div>';return;}
- const total=rows.reduce((a,r)=>a+(Number(r.points)||0)*(Number(r.quantity)||0),0);
+ const total=rows.reduce((a,r)=>{const sign=r.tipos_ocorrencia?.occurrence_type==='NEGATIVA'?-1:1;return a+sign*Math.abs(Number(r.points)||0)*(Number(r.quantity)||0)},0);
  $('evaluation-area').innerHTML='<table class="eval-table"><thead><tr><th>Occurrence</th><th>Points</th><th>Quantity</th><th>Total</th></tr></thead><tbody>'+
  rows.map(r=>{
-   const points=Number(r.points||0), qty=Number(r.quantity||0), rowTotal=points*qty;
-   return '<tr><td>'+esc(r.tipos_ocorrencia?.name||'—')+'</td><td class="points">'+points.toLocaleString('en-US')+' pts</td><td><input class="qty" type="number" min="0" step="1" data-id="'+r.id+'" value="'+qty+'"></td><td class="points row-total">'+rowTotal.toLocaleString('en-US')+' pts</td></tr>';
+   const sign=r.tipos_ocorrencia?.occurrence_type==='NEGATIVA'?-1:1;
+   const points=sign*Math.abs(Number(r.points||0)), qty=Number(r.quantity||0), rowTotal=points*qty;
+   const negative=points<0?' negative':'';
+   return '<tr><td>'+esc(r.tipos_ocorrencia?.name||'—')+'</td><td class="points'+negative+'">'+points.toLocaleString('en-US')+' pts</td><td><input class="qty" type="number" min="0" step="1" data-id="'+r.id+'" value="'+qty+'"></td><td class="points row-total">'+rowTotal.toLocaleString('en-US')+' pts</td></tr>';
  }).join('')+
  '</tbody></table><div class="eval-footer"><div class="total">Total Score: <span id="total-score">'+total.toLocaleString('en-US')+' pts</span></div><div class="eval-actions"><button class="cancel-btn" id="cancel-btn">Cancel</button><button class="save-btn" id="save-btn">Save Evaluation</button></div></div>';
  document.querySelectorAll('.qty').forEach(i=>i.addEventListener('input',updateTotals));
@@ -122,9 +130,9 @@ function updateTotals(){
  document.querySelectorAll('.eval-table tbody tr').forEach(tr=>{
   const q=Math.max(0,Number(tr.querySelector('.qty').value)||0);
   const p=Number(tr.children[1].textContent.replace(/[^0-9.-]/g,''))||0;
-  const value=p*q;tr.querySelector('.row-total').textContent=value.toLocaleString('en-US')+' pts';total+=value;
+  const value=p*q;const totalCell=tr.querySelector('.row-total');totalCell.textContent=value.toLocaleString('en-US')+' pts';totalCell.classList.toggle('negative',value<0);total+=value;
  });
- $('total-score').textContent=total.toLocaleString('en-US')+' pts';
+ $('total-score').textContent=total.toLocaleString('en-US')+' pts';$('total-score').classList.toggle('negative',total<0);
 }
 
 async function save(){
@@ -139,7 +147,7 @@ async function save(){
     row.quantity=q;
    }
   }
-  const score=state.currentRows.reduce((a,r)=>a+(Number(r.points)||0)*(Number(r.quantity)||0),0);
+  const score=state.currentRows.reduce((a,r)=>{const sign=r.tipos_ocorrencia?.occurrence_type==='NEGATIVA'?-1:1;return a+sign*Math.abs(Number(r.points)||0)*(Number(r.quantity)||0)},0);
   const {error}=await db.from('lancamentos').update({total_score:score,penalty_value:Math.abs(Math.min(0,score)),updated_at:new Date().toISOString()}).eq('id',state.current.id);
   if(error)throw error;
   state.current.total_score=score;
