@@ -22,11 +22,9 @@
 .evaluation-list td{padding:13px 10px;border-bottom:1px solid #edf0f5;font-size:12px;color:#4b5565;vertical-align:middle}
 .evaluation-list tbody tr:hover{background:#fafbfe}
 .person-name{font-weight:700;color:var(--ink)}
-.occurrence-status{display:inline-flex;align-items:center;border-radius:999px;padding:5px 9px;font-size:10px;font-weight:700}
-.occurrence-status.none{background:#f2f4f7;color:#667085}
-.occurrence-status.recorded{background:#eef4ff;color:#3f5f9b}
-.score{font-weight:700;font-variant-numeric:tabular-nums}
-.score.negative{color:#c43d4b}
+.occurrence-count{font-weight:700;font-variant-numeric:tabular-nums;color:#344054}
+.score{font-weight:800;font-variant-numeric:tabular-nums}
+.score.negative{color:#d92d20}
 .row-actions{display:flex;justify-content:flex-end}
 .small-btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 11px;cursor:pointer;font:700 11px Inter,system-ui,sans-serif;color:#536075}
 .small-btn:hover{background:#f6f7fa;border-color:#cfd5df}
