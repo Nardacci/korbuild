@@ -3,13 +3,17 @@ window.KORBUILD_SUPABASE = {
   publishableKey: 'sb_publishable_OTGYzEhQxckBa_8Xqu4Uog_Dm3RmTtD'
 };
 
-// Single source for the product version. Every application page that loads
-// this bootstrap inherits the same version and cache key.
-if (!window.KORBUILD_APP) {
-  const script = document.createElement('script');
-  script.src = 'app-config.js?v=1.2.2';
-  document.head.appendChild(script);
-}
+// KORbuild V1.2.2 — single shared UI/bootstrap source.
+// The version is intentionally enforced here as well as in app-config.js so
+// pages carrying an older cached app-config URL cannot revert the footer.
+const KORBUILD_VERSION = '1.2.2';
+const KORBUILD_ENVIRONMENT = 'Development environment';
+const applyKORbuildVersion = () => {
+  document.querySelectorAll('.app-version, .demo-note').forEach(el => {
+    el.textContent = `KORbuild V${KORBUILD_VERSION} · ${KORBUILD_ENVIRONMENT}`;
+  });
+};
+window.KORBUILD_APP = Object.freeze({ version: KORBUILD_VERSION, environment: KORBUILD_ENVIRONMENT, cacheVersion: KORBUILD_VERSION });
 
 // Shared visual fixes. This does not alter page layout.
 if (!document.querySelector('link[data-korbuild-ui-fixes]')) {
@@ -20,10 +24,11 @@ if (!document.querySelector('link[data-korbuild-ui-fixes]')) {
   document.head.appendChild(style);
 }
 
-// Shared application navigation. All operational pages use the same menu;
-// the Records group starts collapsed and expands only when clicked.
+// Shared application navigation. Every operational page uses the same menu.
+// Records is collapsed by default and expands only when clicked.
 (function applyKORbuildNavigation(){
   const run = () => {
+    applyKORbuildVersion();
     const sidebar = document.querySelector('aside.sidebar');
     if (!sidebar) return;
     const nav = sidebar.querySelector('nav');
@@ -71,13 +76,15 @@ if (!document.querySelector('link[data-korbuild-ui-fixes]')) {
       });
     }
   };
-
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run, { once:true });
   else run();
 })();
 
-// Keep the setup page on the current setup script while GitHub Pages cache
-// settles between prototype versions.
+// Re-apply after any older cached app-config.js callback fires.
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', applyKORbuildVersion, { once:false });
+else applyKORbuildVersion();
+
+// Keep the setup page on the current setup script while GitHub Pages cache settles.
 if (location.pathname.endsWith('/setup.html') || location.pathname.endsWith('/setup')) {
   const setupRefresh = document.createElement('script');
   setupRefresh.src = 'setup-v2.js?v=5';
