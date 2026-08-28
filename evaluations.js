@@ -117,9 +117,9 @@ function renderEvaluation(){
    const sign=r.tipos_ocorrencia?.occurrence_type==='NEGATIVA'?-1:1;
    const points=sign*Math.abs(Number(r.points||0)), qty=Number(r.quantity||0), rowTotal=points*qty;
    const negative=points<0?' negative':'';
-   return '<tr><td>'+esc(r.tipos_ocorrencia?.name||'—')+'</td><td class="points'+negative+'">'+points.toLocaleString('en-US')+' pts</td><td><input class="qty" type="number" min="0" step="1" data-id="'+r.id+'" value="'+qty+'"></td><td class="points row-total">'+rowTotal.toLocaleString('en-US')+' pts</td></tr>';
+   return '<tr><td>'+esc(r.tipos_ocorrencia?.name||'—')+'</td><td class="points'+negative+'">'+points.toLocaleString('en-US')+' pts</td><td><input class="qty" type="number" min="0" step="1" data-id="'+r.id+'" value="'+qty+'"></td><td class="points row-total'+(rowTotal<0?' negative':'')+'">'+rowTotal.toLocaleString('en-US')+' pts</td></tr>';
  }).join('')+
- '</tbody></table><div class="eval-footer"><div class="total">Total Score: <span id="total-score">'+total.toLocaleString('en-US')+' pts</span></div><div class="eval-actions"><button class="cancel-btn" id="cancel-btn">Cancel</button><button class="save-btn" id="save-btn">Save Evaluation</button></div></div>';
+ '</tbody></table><div class="eval-footer"><div class="total">Total Score: <span id="total-score" class="'+(total<0?'negative':'')+'">'+total.toLocaleString('en-US')+' pts</span></div><div class="eval-actions"><button class="cancel-btn" id="cancel-btn">Cancel</button><button class="save-btn" id="save-btn">Save Evaluation</button></div></div>';
  document.querySelectorAll('.qty').forEach(i=>i.addEventListener('input',updateTotals));
  $('save-btn').addEventListener('click',save);
  $('cancel-btn').addEventListener('click',backToList);
