@@ -1,3 +1,4 @@
+if(!window.KORBUILD_APP){const s=document.createElement('script');s.src='app-config.js?v=1.1';document.head.appendChild(s);}
 const SUPABASE_URL = 'https://nowbohxeqwlddbfnukva.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_OTGYzEhQxckBa_8Xqu4Uog_Dm3RmTtD';
 
