@@ -15,7 +15,6 @@ const applyKORbuildVersion = () => {
 };
 window.KORBUILD_APP = Object.freeze({ version: KORBUILD_VERSION, environment: KORBUILD_ENVIRONMENT, cacheVersion: KORBUILD_VERSION });
 
-// Shared visual fixes. This does not alter page layout.
 if (!document.querySelector('link[data-korbuild-ui-fixes]')) {
   const style = document.createElement('link');
   style.rel = 'stylesheet';
@@ -24,8 +23,8 @@ if (!document.querySelector('link[data-korbuild-ui-fixes]')) {
   document.head.appendChild(style);
 }
 
-// Shared application navigation. Every operational page uses the same menu.
-// Records is collapsed by default and expands only when clicked.
+// One navigation definition for every operational page.
+// Dashboard is reached from the logo/user menu. Records is collapsed by default.
 (function applyKORbuildNavigation(){
   const run = () => {
     applyKORbuildVersion();
@@ -35,22 +34,19 @@ if (!document.querySelector('link[data-korbuild-ui-fixes]')) {
     if (!nav) return;
 
     const path = (location.pathname.split('/').pop() || 'home.html').toLowerCase();
-    const is = (files) => files.includes(path);
+    const is = files => files.includes(path);
     const active = {
-      evaluations: is(['evaluations.html']),
       periods: is(['periods.html']),
-      bonuses: is(['bonuses.html']),
       workUnits: is(['work-units.html','work-units-form.html']),
       teams: is(['teams.html','teams-form.html']),
       people: is(['people.html','people-form.html']),
-      occurrences: is(['occurrences.html','occurrence-form.html']),
-      reports: is(['reports.html'])
+      occurrences: is(['occurrences.html','occurrence-form.html'])
     };
 
     nav.innerHTML = `
-      <a class="nav-item ${active.evaluations ? 'active' : ''}" href="evaluations.html"><span>✓</span>Evaluations</a>
+      <a class="nav-item" href="#"><span>✓</span>Evaluations</a>
       <a class="nav-item ${active.periods ? 'active' : ''}" href="periods.html"><span>◷</span>Periods</a>
-      <a class="nav-item ${active.bonuses ? 'active' : ''}" href="bonuses.html"><span>★</span>Bonuses</a>
+      <a class="nav-item" href="#"><span>★</span>Bonuses</a>
       <div id="records-group" class="nav-group" style="margin:2px 0">
         <button id="records-toggle" class="nav-group-title" type="button" aria-expanded="false" style="width:100%;display:flex;align-items:center;gap:12px;padding:11px 12px;border:0;border-radius:9px;background:transparent;color:#40506a;font:500 13px Inter,system-ui,sans-serif;text-align:left;cursor:pointer">
           <span id="records-chevron" style="width:16px;text-align:center;font-size:12px;color:#6b7890">⌄</span>Records
@@ -62,7 +58,7 @@ if (!document.querySelector('link[data-korbuild-ui-fixes]')) {
           <a class="nav-item ${active.occurrences ? 'active' : ''}" href="occurrences.html"><span>⚠</span>Occurrences</a>
         </div>
       </div>
-      <a class="nav-item ${active.reports ? 'active' : ''}" href="reports.html"><span>▥</span>Reports</a>`;
+      <a class="nav-item" href="#"><span>▥</span>Reports</a>`;
 
     const toggle = document.getElementById('records-toggle');
     const items = document.getElementById('records-items');
@@ -80,11 +76,10 @@ if (!document.querySelector('link[data-korbuild-ui-fixes]')) {
   else run();
 })();
 
-// Re-apply after any older cached app-config.js callback fires.
+// Re-apply after any older cached app-config callback fires.
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', applyKORbuildVersion, { once:false });
 else applyKORbuildVersion();
 
-// Keep the setup page on the current setup script while GitHub Pages cache settles.
 if (location.pathname.endsWith('/setup.html') || location.pathname.endsWith('/setup')) {
   const setupRefresh = document.createElement('script');
   setupRefresh.src = 'setup-v2.js?v=5';
