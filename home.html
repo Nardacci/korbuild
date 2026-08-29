@@ -1,1 +1,124 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>KORbuild · Home</title><link rel="stylesheet" href="home.css?v=21"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app-config.js?v=1.2.2"></script></head><body class="app-body"><div class="app-shell"><aside class="sidebar"><a class="side-brand" href="home.html" aria-label="KORbuild Dashboard"><div class="mini-mark">K</div><div>KOR<span>build</span></div><span class="demo-badge logo-demo">DEMO</span></a><nav></nav><div class="side-bottom"><a class="nav-item" href="setup.html"><span>⚙</span>Workspace Setup</a></div></aside><main class="main-content"><header class="topbar"><div class="global-search-wrap"><div class="global-search"><span class="search-icon">⌕</span><input id="global-search-input" type="search" placeholder="Search KORbuild..." autocomplete="off" aria-label="Search KORbuild"><kbd>Ctrl K</kbd></div><div id="global-search-results" class="global-search-results hidden"></div></div><div class="user-menu-wrap"><button id="user-menu-btn" class="user-menu-btn" aria-expanded="false"><span class="user-copy"><strong id="user-name">Owner</strong><small id="user-email"></small></span><span class="avatar" id="user-avatar">O</span><span class="chevron">⌄</span></button><div id="user-menu" class="user-menu hidden"><div class="menu-header"><span class="avatar large" id="menu-avatar">O</span><div><b id="menu-full-name">Owner</b><small id="menu-full-email"></small></div></div><div class="menu-divider"></div><a class="menu-item" href="home.html">⌂ <span>Dashboard</span></a><a class="menu-item" href="setup.html">⚙ <span>Workspace Setup</span></a><button id="menu-logout" class="menu-item danger">↪ <span>Sign out</span></button></div></div></header><section class="metric-grid"><article class="metric-card"><div class="metric-icon">◎</div><div><small>PEOPLE</small><strong id="employees">0</strong><p>Active employees</p></div></article><article class="metric-card"><div class="metric-icon">◇</div><div><small>TEAMS</small><strong id="teams">0</strong><p>Active teams</p></div></article><article class="metric-card"><div class="metric-icon">◷</div><div><small>CURRENT PERIOD</small><strong id="period-value">—</strong><p id="period-label">No period prepared</p></div></article><article class="metric-card"><div class="metric-icon">✓</div><div><small>EVALUATIONS</small><strong id="pending">0</strong><p>Pending</p></div></article></section><section class="setup-alert" id="setup-alert"><div class="setup-alert-copy"><div class="action-icon">⚠</div><div><small>WORKSPACE SETUP</small><h2 id="setup-alert-title">Complete your workspace setup</h2><p><strong id="setup-count">0 of 4</strong> required setup steps completed. <span id="setup-alert-text">Finish the remaining configuration before starting evaluations.</span></p></div></div><a class="primary-btn" id="start-setup" href="setup.html">Continue Setup →</a></section><section class="action-card" id="period-action"><div class="action-copy"><div class="action-icon">⚡</div><div><small>NEXT STEP</small><h2>Prepare your next period</h2><p>Generate the next Evaluation Period for the active Bonus Cycle.</p></div></div><a class="primary-btn" id="prepare" href="periods.html">Prepare Next Period <span>→</span></a></section><section class="lower-grid"><article class="panel"><div class="panel-head"><div><small>QUICK ACCESS</small><h3>Manage your operation</h3></div></div><div class="quick-grid"><a href="people.html"><b>People</b><span>Add and manage employees →</span></a><a href="teams.html"><b>Teams</b><span>Organize your teams →</span></a><a href="periods.html"><b>Periods</b><span>Prepare your week →</span></a><a href="#"><b>Evaluations</b><span>Review performance →</span></a></div></article><article class="panel status-panel"><small>WORKSPACE STATUS</small><h3 id="workspace-status-title">Checking setup...</h3><div class="status-line"><span class="dot"></span><span>Workspace active</span><b>Ready</b></div><div class="status-line"><span class="dot"></span><span>Account verified</span><b>Ready</b></div></article></section></main><div class="app-version">KORbuild V1.2.2 · Development environment</div><button class="copilot" title="KORbuild Copilot">✦</button></div><script src="supabase-config.js?v=1.2.3"></script><script src="home.js?v=1.2.2"></script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>KORbuild · Dashboard</title>
+<link rel="stylesheet" href="home.css?v=23">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app-config.js?v=1.2.2"></script>
+</head>
+<body class="app-body">
+<div class="app-shell">
+  <aside class="sidebar">
+    <a class="side-brand" href="home.html" aria-label="KORbuild Dashboard"><div class="mini-mark">K</div><div>KOR<span>build</span></div><span class="demo-badge logo-demo">DEMO</span></a>
+    <nav></nav>
+    <div class="side-bottom"><a class="nav-item" href="setup.html"><span>⚙</span>Workspace Setup</a></div>
+  </aside>
+
+  <main class="main-content dashboard-main">
+    <header class="topbar dashboard-topbar">
+      <div></div>
+      <div class="user-menu-wrap">
+        <button id="user-menu-btn" class="user-menu-btn" aria-expanded="false">
+          <span class="user-copy"><strong id="user-name">Owner</strong><small id="user-email"></small></span>
+          <span class="avatar" id="user-avatar">O</span><span class="chevron">⌄</span>
+        </button>
+        <div id="user-menu" class="user-menu hidden"></div>
+      </div>
+    </header>
+
+    <section class="dashboard-intro">
+      <h1>Dashboard</h1>
+      <p>Overview of your current operational cycle and key performance indicators.</p>
+    </section>
+
+    <section class="period-hero" id="period-hero">
+      <div class="period-icon">▣</div>
+      <div class="period-copy">
+        <small>CURRENT OPEN PERIOD</small>
+        <strong id="current-period">No open period</strong>
+        <div class="period-progress-row"><div class="progress-track"><span id="period-progress"></span></div><b id="period-progress-label">—</b></div>
+        <p id="period-days">Prepare your next evaluation period to start the operation.</p>
+      </div>
+      <a class="outline-action" href="periods.html">▣ <span>View period details</span></a>
+    </section>
+
+    <section class="section-heading"><div><small>ATTENTION REQUIRED</small></div><a href="evaluations.html">View all</a></section>
+    <section class="attention-grid">
+      <article class="attention-card pending-card">
+        <div class="attention-icon danger">♙</div>
+        <div class="attention-copy"><strong id="attention-pending">0</strong><b>Pending evaluations</b><p>Collaborators still need attention</p></div>
+        <a href="evaluations.html" class="attention-action">Review now →</a>
+      </article>
+      <article class="attention-card deadline-card">
+        <div class="attention-icon warning">◷</div>
+        <div class="attention-copy"><strong id="days-remaining">—</strong><b id="deadline-title">No open period</b><p id="deadline-copy">Prepare a period to start weekly operations</p></div>
+        <a href="periods.html" class="attention-action amber">Go to periods →</a>
+      </article>
+    </section>
+
+    <section class="section-heading snapshot-heading"><div><small>WEEKLY SNAPSHOT</small></div></section>
+    <section class="snapshot-grid">
+      <article class="snapshot-card"><div class="snapshot-icon purple">♙</div><div><strong id="employees">0</strong><b>Eligible People</b><p>This period</p></div></article>
+      <article class="snapshot-card"><div class="snapshot-icon green">✓</div><div><strong id="evaluated">0</strong><b>Evaluated</b><p id="evaluated-meta">No data yet</p></div></article>
+      <article class="snapshot-card"><div class="snapshot-icon orange">◷</div><div><strong id="pending">0</strong><b>Pending</b><p id="pending-meta">No data yet</p></div></article>
+      <article class="snapshot-card"><div class="snapshot-icon blue">▤</div><div><strong id="occurrences">0</strong><b>Total Occurrences</b><p>This period</p></div></article>
+      <article class="snapshot-card"><div class="snapshot-icon purple">♧</div><div><strong id="teams">0</strong><b>Teams</b><p>Active</p></div></article>
+    </section>
+
+    <section class="dashboard-grid">
+      <article class="dashboard-panel performance-panel">
+        <div class="panel-title"><small>PERFORMANCE OVERVIEW</small></div>
+        <div class="performance-content">
+          <div class="donut" id="performance-donut"><div><strong id="performance-total">0</strong><span>People</span></div></div>
+          <div class="legend" id="performance-legend">
+            <div><span class="legend-dot high"></span><b>High Performance</b><em id="high-count">0 (0%)</em></div>
+            <div><span class="legend-dot track"></span><b>On Track</b><em id="track-count">0 (0%)</em></div>
+            <div><span class="legend-dot attention"></span><b>Attention Needed</b><em id="attention-count">0 (0%)</em></div>
+            <div><span class="legend-dot critical"></span><b>Critical</b><em id="critical-count">0 (0%)</em></div>
+          </div>
+        </div>
+        <a href="evaluations.html" class="panel-link">View evaluations →</a>
+      </article>
+
+      <article class="dashboard-panel points-panel">
+        <div class="panel-title"><small>POINTS SUMMARY</small></div>
+        <div class="points-grid">
+          <div class="point-card positive"><span>↗</span><strong id="positive-points">+0</strong><b>Positive Points</b><p>Current period</p></div>
+          <div class="point-card negative"><span>↘</span><strong id="negative-points">0</strong><b>Negative Points</b><p>Current period</p></div>
+        </div>
+        <a href="evaluations.html" class="panel-link">View detailed analysis →</a>
+      </article>
+
+      <article class="dashboard-panel people-panel">
+        <div class="panel-head"><small>TOP POSITIVE PERFORMERS</small><a href="evaluations.html">View all</a></div>
+        <div class="people-list" id="positive-list"><div class="empty-row">No positive movements in this period.</div></div>
+      </article>
+
+      <article class="dashboard-panel people-panel">
+        <div class="panel-head"><small>ATTENTION NEEDED</small><a href="evaluations.html">View all</a></div>
+        <div class="people-list" id="negative-list"><div class="empty-row">No negative movements in this period.</div></div>
+      </article>
+    </section>
+
+    <section class="quick-actions-panel">
+      <div class="panel-title"><small>QUICK ACTIONS</small></div>
+      <div class="quick-actions">
+        <a href="occurrences.html"><span class="qa-icon purple">＋</span><div><b>Manage Occurrences</b><small>Configure evaluation events</small></div></a>
+        <a href="people.html"><span class="qa-icon green">♙</span><div><b>Manage People</b><small>Add or edit collaborators</small></div></a>
+        <a href="evaluations.html"><span class="qa-icon blue">▣</span><div><b>View Evaluations</b><small>Browse current evaluations</small></div></a>
+        <a href="bonus-settlement.html"><span class="qa-icon orange">▤</span><div><b>Open Settlement</b><small>Process period settlement</small></div></a>
+      </div>
+    </section>
+  </main>
+
+  <div class="app-version">KORbuild V1.2.2 · Development environment</div>
+  <button class="copilot" title="KORbuild Copilot">✦</button>
+</div>
+<script src="supabase-config.js?v=1.2.3"></script>
+<script src="home.js?v=1.2.3"></script>
+</body></html>
