@@ -104,3 +104,62 @@
   .page-topbar .page-identity strong,
   .dashboard-topbar .page-identity strong{font-size:12px}
 }
+
+
+/* Canonical KORbuild page layout — title/description left, account menu right */
+.page-topbar{
+  justify-content:space-between !important;
+}
+.page-topbar .page-identity{
+  display:flex !important;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:center;
+  gap:3px;
+  min-width:0;
+  margin-right:auto;
+}
+.page-topbar .user-menu-wrap{
+  margin-left:auto;
+  flex:0 0 auto;
+}
+.page-topbar .topbar-page-context.page-identity strong{
+  display:block;
+  font-size:13px;
+  font-weight:700;
+  color:var(--ink);
+  line-height:1.2;
+}
+.page-topbar .topbar-page-context.page-identity small{
+  display:block;
+  font-size:11px;
+  color:var(--muted);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  max-width:min(720px,58vw);
+}
+.page-action-row{
+  display:flex;
+  justify-content:flex-end;
+  margin:18px 0 14px;
+}
+.canonical-form-action{
+  min-height:0 !important;
+  margin:16px 0 14px !important;
+  display:flex;
+  justify-content:flex-end;
+}
+.people-panel .toolbar{
+  display:grid;
+  grid-template-columns:minmax(260px,420px) auto minmax(130px,180px);
+  align-items:center;
+  gap:10px;
+}
+.people-panel .toolbar .toolbar-primary{justify-self:center}
+.people-panel .toolbar select{justify-self:end}
+@media(max-width:800px){
+  .people-panel .toolbar{display:flex;flex-direction:column;align-items:stretch}
+  .people-panel .toolbar .toolbar-primary{align-self:center}
+  .people-panel .toolbar select{align-self:stretch}
+}
