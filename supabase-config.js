@@ -3,7 +3,7 @@ window.KORBUILD_SUPABASE = {
   publishableKey: 'sb_publishable_OTGYzEhQxckBa_8Xqu4Uog_Dm3RmTtD'
 };
 
-const KORBUILD_VERSION = '1.2.4';
+const KORBUILD_VERSION = '1.2.5';
 const KORBUILD_ENVIRONMENT = 'Development environment';
 const applyKORbuildVersion = () => { document.querySelectorAll('.app-version, .demo-note').forEach(el => { el.textContent = `KORbuild V${KORBUILD_VERSION} · ${KORBUILD_ENVIRONMENT}`; }); };
 window.KORBUILD_APP = Object.freeze({ version: KORBUILD_VERSION, environment: KORBUILD_ENVIRONMENT, cacheVersion: KORBUILD_VERSION });
