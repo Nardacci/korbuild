@@ -3,11 +3,11 @@ window.KORBUILD_SUPABASE = {
   publishableKey: 'sb_publishable_OTGYzEhQxckBa_8Xqu4Uog_Dm3RmTtD'
 };
 
-const KORBUILD_VERSION = '1.2.3';
+const KORBUILD_VERSION = '1.2.4';
 const KORBUILD_ENVIRONMENT = 'Development environment';
 const applyKORbuildVersion = () => { document.querySelectorAll('.app-version, .demo-note').forEach(el => { el.textContent = `KORbuild V${KORBUILD_VERSION} · ${KORBUILD_ENVIRONMENT}`; }); };
 window.KORBUILD_APP = Object.freeze({ version: KORBUILD_VERSION, environment: KORBUILD_ENVIRONMENT, cacheVersion: KORBUILD_VERSION });
-if (!document.querySelector('link[data-korbuild-ui-fixes]')) { const style=document.createElement('link');style.rel='stylesheet';style.href='ui-fixes.css?v=1.2.3';style.dataset.korbuildUiFixes='true';document.head.appendChild(style); }
+if (!document.querySelector('link[data-korbuild-ui-fixes]')) { const style=document.createElement('link');style.rel='stylesheet';style.href='ui-fixes.css?v=1.2.4';style.dataset.korbuildUiFixes='true';document.head.appendChild(style); }
 (function applyKORbuildShell(){
  const run=()=>{ applyKORbuildVersion(); const sidebar=document.querySelector('aside.sidebar'); if(!sidebar)return;
   const brand=sidebar.querySelector('.side-brand'); if(brand){brand.outerHTML=`<a class="side-brand" href="home.html" aria-label="KORbuild Dashboard"><div class="mini-mark">K</div><div>KOR<span>build</span></div><span class="demo-badge logo-demo">DEMO</span></a>`;}
