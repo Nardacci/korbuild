@@ -52,3 +52,55 @@
 @media(max-width:700px){
   .page-topbar{margin:0 -14px;padding:0 14px;height:58px}
 }
+
+
+/* Final page-header alignment: page identity left, account controls right */
+.page-topbar .page-identity,
+.dashboard-topbar .page-identity{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:3px;
+  min-width:0;
+}
+.page-topbar .page-identity strong,
+.dashboard-topbar .page-identity strong{
+  font-size:13px;
+  font-weight:700;
+  color:var(--ink);
+  line-height:1.2;
+}
+.page-topbar .page-identity small,
+.dashboard-topbar .page-identity small{
+  font-size:11px;
+  color:var(--muted);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  max-width:720px;
+}
+.page-topbar:has(.page-identity),
+.dashboard-topbar:has(.page-identity){
+  justify-content:space-between;
+}
+.dashboard-main .period-hero{margin-top:18px}
+.teams-toolbar{
+  display:grid;
+  grid-template-columns:minmax(260px,420px) auto minmax(130px,180px);
+  align-items:center;
+}
+.teams-toolbar .toolbar-primary{justify-self:center}
+.teams-toolbar select{justify-self:end}
+@media(max-width:800px){
+  .page-topbar .page-identity small,
+  .dashboard-topbar .page-identity small{max-width:52vw}
+  .teams-toolbar{display:flex;flex-direction:column;align-items:stretch}
+  .teams-toolbar .toolbar-primary{align-self:center}
+  .teams-toolbar select{align-self:stretch}
+}
+@media(max-width:520px){
+  .page-topbar .page-identity small,
+  .dashboard-topbar .page-identity small{display:none}
+  .page-topbar .page-identity strong,
+  .dashboard-topbar .page-identity strong{font-size:12px}
+}
