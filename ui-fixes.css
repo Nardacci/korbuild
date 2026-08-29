@@ -14,3 +14,14 @@ a.menu-item:active { text-decoration: none; }
 .nav-group-title:focus-visible { outline:2px solid #635bff; outline-offset:2px; }
 .nav-group-items .nav-item { margin:2px 0; }
 .nav-group-items .nav-item.active { background:#eeecff; color:#5348dc; font-weight:700; }
+
+
+/* Global page shell standardization */
+.page-topbar{height:64px;display:flex;align-items:center;justify-content:flex-end;border-bottom:1px solid var(--line);margin:0 -34px;padding:0 34px}
+.page-topbar .topbar-page-context{display:none}
+.primary-btn{appearance:none;border:1px solid #635bff;background:#635bff;color:#fff;border-radius:9px;min-height:40px;padding:0 16px;font:700 12px Inter,system-ui,sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;white-space:nowrap;box-shadow:0 6px 14px rgba(99,91,255,.18);transition:transform .15s ease,box-shadow .15s ease,background .15s ease}
+.primary-btn:hover{background:#574fe6;box-shadow:0 9px 18px rgba(99,91,255,.24);transform:translateY(-1px)}
+.primary-btn:active{transform:translateY(0)}
+.primary-btn:focus-visible{outline:2px solid #9c97ff;outline-offset:2px}
+@media(max-width:900px){.page-topbar{margin:0 -20px;padding:0 20px}}
+@media(max-width:700px){.page-topbar{margin:0 -14px;padding:0 14px;height:58px}}
