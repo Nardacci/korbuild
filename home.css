@@ -163,3 +163,38 @@
   .people-panel .toolbar .toolbar-primary{align-self:center}
   .people-panel .toolbar select{align-self:stretch}
 }
+
+
+/* V1.2.5 — explicit canonical header alignment (no page-type exceptions) */
+.page-topbar,
+.dashboard-topbar{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+}
+.page-topbar .page-identity,
+.dashboard-topbar .page-identity{
+  display:flex !important;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:center;
+  gap:3px;
+  margin-right:auto;
+  min-width:0;
+}
+.page-topbar .user-menu-wrap,
+.dashboard-topbar .user-menu-wrap{
+  margin-left:auto !important;
+  flex:0 0 auto;
+}
+.page-topbar .page-identity strong,
+.dashboard-topbar .page-identity strong{
+  font-size:13px !important;
+  font-weight:700 !important;
+  line-height:1.2;
+}
+.page-topbar .page-identity small,
+.dashboard-topbar .page-identity small{
+  font-size:11px !important;
+  line-height:1.35;
+}
