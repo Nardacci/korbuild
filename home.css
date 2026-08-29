@@ -9,3 +9,46 @@
 .people-panel{padding-bottom:8px}.panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}.people-list{min-height:150px}.person-row{display:grid;grid-template-columns:30px 1fr auto;align-items:center;gap:9px;padding:10px 0;border-bottom:1px solid #eef0f4}.person-row:last-child{border-bottom:0}.rank{width:25px;height:25px;border-radius:50%;display:grid;place-items:center;background:#f2f3f8;color:#69778b;font-size:10px;font-weight:800}.rank.first{background:#fff1c9;color:#b27b11}.rank.danger{background:#fff0f0;color:#d85c5c}.person-row b{display:block;font-size:10px}.person-row small{display:block;color:var(--muted);font-size:9px;margin-top:3px}.person-score{font-size:10px;font-weight:800}.person-score.positive{color:#2f8a55}.person-score.negative{color:#c44343}.empty-row{font-size:10px;color:var(--muted);padding:24px 0;text-align:center}
 .quick-actions-panel{margin-top:16px}.quick-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.quick-actions a{border:1px solid var(--line);border-radius:11px;padding:12px;display:flex;align-items:center;gap:10px;transition:.15s}.quick-actions a:hover{border-color:#c7c9f4;transform:translateY(-1px)}.qa-icon{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:18px;flex:none}.qa-icon.purple{background:#efefff;color:#665de9}.qa-icon.green{background:#e9f8ee;color:#44a568}.qa-icon.blue{background:#edf5ff;color:#4383d9}.qa-icon.orange{background:#fff3df;color:#e4941c}.quick-actions b{display:block;font-size:10px}.quick-actions small{display:block;color:var(--muted);font-size:9px;margin-top:4px}.app-version{position:fixed;right:24px;bottom:18px;font-size:9px;color:#8a91a0;z-index:20}.copilot{position:fixed;left:18px;bottom:18px;width:44px;height:44px;border:0;border-radius:13px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:20px;box-shadow:0 12px 25px rgba(99,91,255,.3)}
 @media(max-width:1180px){.snapshot-grid{grid-template-columns:repeat(3,1fr)}.quick-actions{grid-template-columns:repeat(2,1fr)}}@media(max-width:900px){.sidebar{width:210px}.main-content{padding:0 20px 45px}.dashboard-topbar{margin:0 -20px;padding:0 20px}.attention-grid,.dashboard-grid{grid-template-columns:1fr}.snapshot-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:700px){.sidebar{display:none}.main-content{padding:0 14px 42px}.dashboard-topbar{margin:0 -14px;padding:0 14px;height:58px}.user-copy{display:none}.dashboard-intro{padding:18px 0 14px}.dashboard-intro h1{font-size:24px}.period-hero{align-items:flex-start;flex-wrap:wrap;padding:15px}.period-copy{min-width:calc(100% - 64px)}.outline-action{width:100%;text-align:center}.attention-card{align-items:flex-start;flex-wrap:wrap}.attention-action{width:100%;text-align:center}.snapshot-grid{grid-template-columns:1fr 1fr;gap:9px}.snapshot-card{min-height:110px;padding:12px}.performance-content{flex-direction:column}.donut{margin:auto}.dashboard-grid{gap:12px;margin-top:12px}.quick-actions{grid-template-columns:1fr}.app-version{right:12px;bottom:10px;font-size:8px}.copilot{left:auto;right:14px;bottom:26px}}
+
+
+/* Canonical page header — keep account controls anchored to the right on every page */
+.page-topbar{
+  height:64px;
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  border-bottom:1px solid var(--line);
+  margin:0 -34px;
+  padding:0 34px;
+}
+.page-topbar .topbar-page-context{display:none}
+
+/* Canonical primary action */
+.primary-btn{
+  appearance:none;
+  border:1px solid #635bff;
+  background:#635bff;
+  color:#fff;
+  border-radius:9px;
+  min-height:40px;
+  padding:0 16px;
+  font:700 12px Inter,system-ui,sans-serif;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  cursor:pointer;
+  white-space:nowrap;
+  box-shadow:0 6px 14px rgba(99,91,255,.18);
+  transition:transform .15s ease,box-shadow .15s ease,background .15s ease;
+}
+.primary-btn:hover{background:#574fe6;box-shadow:0 9px 18px rgba(99,91,255,.24);transform:translateY(-1px)}
+.primary-btn:active{transform:translateY(0)}
+.primary-btn:focus-visible{outline:2px solid #9c97ff;outline-offset:2px}
+
+@media(max-width:900px){
+  .page-topbar{margin:0 -20px;padding:0 20px}
+}
+@media(max-width:700px){
+  .page-topbar{margin:0 -14px;padding:0 14px;height:58px}
+}
