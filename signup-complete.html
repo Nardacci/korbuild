@@ -3,41 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KORbuild · Preparing workspace</title>
+  <title>KORbuild · Email confirmed</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="signup.css?v=1">
+  <link rel="stylesheet" href="signup.css?v=2">
 </head>
 <body>
   <div class="complete-page">
     <main class="complete-card">
       <div class="brand-mark complete-mark">K</div>
-      <div id="state-loading">
-        <div class="spinner"></div>
-        <p class="eyebrow panel-eyebrow">SETTING UP YOUR WORKSPACE</p>
-        <h1>Almost there.</h1>
-        <p class="muted">We're securely preparing your KORbuild workspace.</p>
-      </div>
-      <div id="state-success" hidden>
-        <div class="success-icon">✓</div>
-        <p class="eyebrow panel-eyebrow">WORKSPACE READY</p>
-        <h1>You're all set.</h1>
-        <p class="muted">Your company workspace and 14-day free trial are ready.</p>
-        <button id="enter-app" class="primary-btn">Enter KORbuild <span>→</span></button>
-      </div>
-      <div id="state-error" hidden>
-        <div class="error-icon">!</div>
-        <p class="eyebrow panel-eyebrow">SETUP NEEDS ATTENTION</p>
-        <h1>We couldn't finish setup.</h1>
-        <p id="complete-error" class="muted"></p>
-        <button id="retry-provisioning" class="primary-btn">Try again</button>
-        <p class="signin-link"><a href="index.html">Back to sign in</a></p>
-      </div>
+      <div class="success-icon">✓</div>
+      <p class="eyebrow panel-eyebrow">EMAIL CONFIRMED</p>
+      <h1>Your account is ready.</h1>
+      <p class="muted">Your email has been confirmed successfully. Sign in to continue setting up your KORbuild workspace.</p>
+      <button id="go-to-signin" class="primary-btn">Go to Sign in <span>→</span></button>
     </main>
   </div>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="provisioning-service.js?v=1"></script>
-  <script src="signup-complete.js?v=1"></script>
+  <script src="signup-complete.js?v=2"></script>
 </body>
 </html>
