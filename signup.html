@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KORbuild · Create account</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="signup.css?v=1">
+</head>
+<body>
+  <div id="signup-app" class="min-h-screen flex items-center justify-center p-6">
+    <main class="signup-shell w-full max-w-5xl overflow-hidden">
+      <section class="signup-brand-panel p-10 md:p-14">
+        <a href="index.html" class="brand-link" aria-label="Back to KORbuild sign in">
+          <div class="brand-mark"><span>K</span></div>
+          <p class="eyebrow">TEAM OPERATIONS PLATFORM</p>
+          <h1>KOR<span>build</span></h1>
+        </a>
+        <div class="brand-copy">
+          <p class="tagline">Build better teams.<br>Run better operations.</p>
+          <div class="trial-note">
+            <span class="trial-icon">✓</span>
+            <div>
+              <strong>Start with 14 days free</strong>
+              <small>No payment required to get started.</small>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="signup-panel p-8 md:p-14">
+        <div class="max-w-md mx-auto">
+          <p class="eyebrow panel-eyebrow">CREATE YOUR WORKSPACE</p>
+          <h2>Start building better.</h2>
+          <p class="muted mb-7">Create your company account and start your 14-day free trial.</p>
+
+          <form id="signup-form" class="signup-form" novalidate>
+            <div class="field-row">
+              <label>
+                Full name
+                <input id="full-name" type="text" autocomplete="name" placeholder="Your full name" required>
+              </label>
+              <label>
+                Company name
+                <input id="company-name" type="text" autocomplete="organization" placeholder="Your company" required>
+              </label>
+            </div>
+
+            <label>
+              Work email
+              <input id="signup-email" type="email" autocomplete="email" placeholder="you@company.com" required>
+            </label>
+
+            <div class="field-row">
+              <label>
+                Password
+                <input id="signup-password" type="password" autocomplete="new-password" placeholder="Minimum 8 characters" minlength="8" required>
+              </label>
+              <label>
+                Confirm password
+                <input id="confirm-password" type="password" autocomplete="new-password" placeholder="Repeat password" minlength="8" required>
+              </label>
+            </div>
+
+            <label class="terms">
+              <input id="accept-terms" type="checkbox" required>
+              <span>I agree to the Terms of Service and Privacy Policy.</span>
+            </label>
+
+            <button id="signup-submit" type="submit" class="primary-btn">Create free account <span>→</span></button>
+            <p id="signup-message" class="message" role="alert"></p>
+          </form>
+
+          <p class="signin-link">Already have an account? <a href="index.html">Sign in</a></p>
+          <div class="demo-note">KORbuild V1.2.2 · Development environment</div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="app-config.js?v=1.2.2"></script>
+  <script src="signup.js?v=1"></script>
+</body>
+</html>
