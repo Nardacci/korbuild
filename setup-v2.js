@@ -16,7 +16,7 @@ function collect(){
 function render(){
  views.forEach(v=>v.classList.toggle('hidden',Number(v.dataset.step)!==state.step));
  $('step-number').textContent=state.step;
- $('progress-bar').style.width=`${((state.step-1)/6)*100}%`;
+ $('progress-bar').style.width=`${((state.step-1)/4)*100}%`;
  labels.forEach((l,i)=>{l.classList.toggle('done',i<state.step-1);l.classList.toggle('active',i===state.step-1)});
  $('back').disabled=state.step<=1;
  $('next').classList.toggle('hidden',state.step>=5);
