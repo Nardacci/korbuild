@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KORbuild · Check your email</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="signup.css?v=4">
+  <link rel="stylesheet" href="check-email.css?v=1">
+</head>
+<body>
+  <div class="check-page">
+    <main class="check-shell">
+      <section class="check-brand-panel">
+        <a href="index.html" class="brand-link" aria-label="KORbuild">
+          <div class="brand-mark"><span>K</span></div>
+          <p class="eyebrow">TEAM OPERATIONS PLATFORM</p>
+          <h1>KOR<span>build</span></h1>
+        </a>
+
+        <div class="welcome-copy">
+          <p class="eyebrow">WELCOME TO KORBUILD</p>
+          <h2>Welcome aboard! <span aria-hidden="true">👋</span></h2>
+          <p>
+            You're about to build better teams and run better operations.
+          </p>
+          <p>
+            KORBuild helps organizations create clearer performance processes,
+            recognize contributions and connect team results to real business outcomes.
+          </p>
+        </div>
+      </section>
+
+      <section class="check-panel">
+        <div class="check-content">
+          <div class="mail-icon" aria-hidden="true">✉</div>
+          <p class="eyebrow panel-eyebrow">CONFIRM YOUR EMAIL</p>
+          <h2>One more step to get started.</h2>
+          <p class="muted intro">We've sent a confirmation link to:</p>
+
+          <div id="confirmation-email" class="email-highlight">your@email.com</div>
+
+          <p class="muted instruction">
+            Please check your inbox and click the confirmation link to activate your account.
+          </p>
+
+          <div class="help-box">
+            <strong>Didn't receive the email?</strong>
+            <button id="resend-confirmation" type="button" class="text-btn">Resend confirmation email</button>
+            <p id="resend-message" class="resend-message" role="status"></p>
+          </div>
+
+          <p class="signin-link">Already confirmed your email? <a href="index.html">Sign in</a></p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="auth-service.js?v=3"></script>
+  <script src="check-email.js?v=1"></script>
+</body>
+</html>
