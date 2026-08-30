@@ -20,8 +20,6 @@ if (!document.querySelector('link[data-korbuild-ui-fixes]')) { const style=docum
   const wrap=document.querySelector('.user-menu-wrap');if(wrap){let menu=wrap.querySelector('#user-menu');if(!menu){menu=document.createElement('div');menu.id='user-menu';menu.className='user-menu hidden';wrap.appendChild(menu);}menu.innerHTML=`<div class="menu-header"><span class="avatar large" id="menu-avatar">O</span><div><b id="menu-full-name">Owner</b><small id="menu-full-email"></small></div></div><div class="menu-divider"></div><a class="menu-item" href="home.html">⌂ <span>Dashboard</span></a><a class="menu-item" href="setup.html">⚙ <span>Workspace Setup</span></a><button id="menu-logout" class="menu-item danger">↪ <span>Sign out</span></button>`;}
  }; if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run,{once:true});else run();})();
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',applyKORbuildVersion,{once:false});else applyKORbuildVersion();
-if(location.pathname.endsWith('/setup.html')||location.pathname.endsWith('/setup')){const setupRefresh=document.createElement('script');setupRefresh.src='setup-v2.js?v=5';document.body.appendChild(setupRefresh);}
-
 // Central shell actions must use delegation because the shell replaces menu markup during initialization.
 document.addEventListener('click', async (event) => {
  const logout = event.target.closest('#menu-logout');
