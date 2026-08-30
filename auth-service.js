@@ -16,8 +16,10 @@
     return client;
   }
 
+  const APP_BASE_URL = 'https://nardacci.github.io/korbuild/';
+
   function getSignupRedirectUrl() {
-    return new URL('signup-complete.html', global.location.href).toString();
+    return new URL('signup-complete.html', APP_BASE_URL).toString();
   }
 
   async function signUp({ email, password, fullName, companyName }) {
