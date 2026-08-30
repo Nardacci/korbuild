@@ -63,11 +63,8 @@
         });
 
         if (result.user && !result.session) {
-          showMessage(
-            'Check your email to confirm your account. After confirmation, we will prepare your workspace.',
-            'success'
-          );
-          form.reset();
+          sessionStorage.setItem('korbuild_pending_confirmation_email', email);
+          window.location.href = 'check-email.html';
         } else if (result.session) {
           window.location.href = 'signup-complete.html';
         } else {
