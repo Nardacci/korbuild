@@ -37,6 +37,15 @@ function renderPerformance(rows){
  [['high-count',g.high],['track-count',g.track],['attention-count',g.attention],['critical-count',g.critical]].forEach(x=>setText(x[0],x[1]+' ('+pct(x[1],total)+'%)'));
 }
 function teamName(person){const launch=state.launches.find(l=>l.colaborador_id===person.id),teamId=launch?.equipe_id||person.equipe_id;return state.teams.find(t=>t.id===teamId)?.name||person.specialty||'—'}
+function renderWorkspaceHealth(){
+ const activeTeams=state.teams.filter(t=>t.active===true).length;
+ const activePeople=state.people.filter(p=>p.active===true).length;
+ const section=$('workspace-health');if(!section)return;
+ const teamsCard=$('health-teams'),peopleCard=$('health-people');
+ if(teamsCard)teamsCard.classList.toggle('hidden',activeTeams>0);
+ if(peopleCard)peopleCard.classList.toggle('hidden',activePeople>0);
+ section.classList.toggle('hidden',activeTeams>0&&activePeople>0);
+}
 function renderList(id,rows,type){
  const el=$(id);if(!rows.length){el.innerHTML='<div class="empty-row">No movements in this period.</div>';return}
  el.innerHTML=rows.slice(0,3).map((r,i)=>'<div class="person-row"><span class="rank '+(i===0?(type==='positive'?'first':'danger'):(type==='negative'?'danger':''))+'">'+(i+1)+'</span><div><b>'+esc(r.person.name)+'</b><small>'+esc(teamName(r.person))+'</small></div><strong class="person-score '+type+'">'+(r.score>0?'+':'')+fmtPts(r.score)+'</strong></div>').join('');
@@ -51,7 +60,7 @@ function renderSnapshot(rows){
 async function loadData(){
  const [peopleRes,teamsRes,periodRes]=await Promise.all([db.from('colaboradores').select('id,name,specialty,equipe_id,active').eq('empresa_id',state.companyId).order('name'),db.from('equipes').select('id,name,active').eq('empresa_id',state.companyId).order('name'),db.from('periodos').select('id,start_date,end_date,week_number,status').eq('empresa_id',state.companyId).eq('status','ABERTO').order('start_date',{ascending:true}).limit(1)]);
  if(peopleRes.error||teamsRes.error||periodRes.error)throw(peopleRes.error||teamsRes.error||periodRes.error);
- state.people=peopleRes.data||[];state.teams=teamsRes.data||[];state.period=(periodRes.data||[])[0]||null;renderPeriod();
+ state.people=peopleRes.data||[];state.teams=teamsRes.data||[];state.period=(periodRes.data||[])[0]||null;renderWorkspaceHealth();renderPeriod();
  if(!state.period){renderSnapshot([]);return}
  const {data:launches,error:le}=await db.from('lancamentos').select('id,colaborador_id,equipe_id').eq('periodo_id',state.period.id);if(le)throw le;state.launches=launches||[];
  const ids=state.launches.map(x=>x.id);state.scores=new Map();
