@@ -1,0 +1,26 @@
+.check-page{min-height:100vh;display:grid;place-items:center;padding:24px;background:linear-gradient(135deg,#f7f8fc,#eef2f8)}
+.check-shell{width:min(1024px,100%);min-height:min(620px,calc(100vh - 48px));display:grid;grid-template-columns:1fr 1.18fr;overflow:hidden;background:#fff;border-radius:28px;box-shadow:var(--shadow)}
+.check-brand-panel{padding:56px;background:linear-gradient(145deg,#171d35,#25204b);color:#fff;display:flex;flex-direction:column;justify-content:space-between}
+.check-brand-panel h1{font-size:48px;line-height:1;margin:0;letter-spacing:-.05em}
+.check-brand-panel h1 span{font-weight:500;opacity:.82}
+.welcome-copy{max-width:380px;margin-top:64px}
+.welcome-copy .eyebrow{color:#c8c5ff;opacity:1}
+.welcome-copy h2{font-size:30px;letter-spacing:-.04em;margin:0 0 16px}
+.welcome-copy p:not(.eyebrow){font-size:15px;line-height:1.7;color:rgba(255,255,255,.72);margin:0 0 14px}
+.check-panel{display:flex;align-items:center;padding:56px;background:#fff}
+.check-content{width:min(460px,100%);margin:0 auto}
+.mail-icon{width:58px;height:58px;border-radius:18px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);font-size:27px;margin-bottom:24px}
+.check-panel h2{font-size:32px;line-height:1.15;letter-spacing:-.04em;margin:0 0 12px}
+.intro{margin:0 0 10px}
+.email-highlight{display:inline-block;padding:12px 16px;border-radius:12px;background:#f7f7fe;border:1px solid #e3e1ff;color:var(--ink);font-size:15px;font-weight:700;word-break:break-word;margin-bottom:18px}
+.instruction{font-size:14px;line-height:1.65;margin:0 0 28px}
+.help-box{padding-top:22px;border-top:1px solid var(--line)}
+.help-box strong{display:block;font-size:13px;margin-bottom:8px;color:#30394c}
+.text-btn{padding:0;border:0;background:none;color:var(--accent);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.text-btn:hover{text-decoration:underline}
+.text-btn:disabled{opacity:.55;cursor:not-allowed}
+.resend-message{min-height:18px;margin:10px 0 0;font-size:12px;line-height:1.45;color:#b42318}
+.resend-message.success{color:#087443}
+.signin-link{text-align:left;margin-top:28px}
+@media(max-width:800px){.check-page{padding:0}.check-shell{min-height:100vh;border-radius:0;grid-template-columns:1fr}.check-brand-panel{padding:38px 36px;min-height:auto}.welcome-copy{margin-top:42px}.check-brand-panel h1{font-size:40px}.check-panel{padding:42px 32px}.welcome-copy p:last-child{display:none}}
+@media(max-width:520px){.check-panel h2{font-size:28px}.check-brand-panel{padding:34px 28px}.check-panel{padding:38px 24px}}
