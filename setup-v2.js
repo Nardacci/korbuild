@@ -1,7 +1,7 @@
 const { url, publishableKey } = window.KORBUILD_SUPABASE;
 const db=window.supabase.createClient(url,publishableKey,{auth:{persistSession:true,autoRefreshToken:true}});
 const $=id=>document.getElementById(id);
-const state={step:1,maxPoints:500,pointValue:1,cycleName:'Annual Performance',cycleYear:2026,cycleStart:'January',cycleEnd:'December',frequency:'WEEKLY',startDay:'1',endDay:'6',preparation:'MANUAL',preparationDay:'6',preparationTime:'08:00',empresaId:null,teamCount:0,peopleCount:0,unassignedPeople:0,companyName:'',ownerName:'',user:null};
+const state={step:1,maxPoints:500,pointValue:1,cycleName:'Annual Performance',cycleYear:2026,cycleStart:'January',cycleEnd:'December',frequency:'WEEKLY',startDay:'1',endDay:'6',preparation:'MANUAL',preparationDay:'6',preparationTime:'08:00',empresaId:null,companyName:'',ownerName:'',user:null};
 const views=[...document.querySelectorAll('.step-view')],labels=[...document.querySelectorAll('.progress-labels span')];
 const monthNumber=n=>({January:1,February:2,March:3,April:4,May:5,June:6,July:7,August:8,September:9,October:10,November:11,December:12}[n]);
 const monthName=n=>({1:'January',2:'February',3:'March',4:'April',5:'May',6:'June',7:'July',8:'August',9:'September',10:'October',11:'November',12:'December'}[Number(n)]||'January');
@@ -19,13 +19,13 @@ function render(){
  $('progress-bar').style.width=`${((state.step-1)/6)*100}%`;
  labels.forEach((l,i)=>{l.classList.toggle('done',i<state.step-1);l.classList.toggle('active',i===state.step-1)});
  $('back').disabled=state.step<=1;
- $('next').classList.toggle('hidden',state.step>=7);
- $('confirm').classList.toggle('hidden',state.step!==7);
+ $('next').classList.toggle('hidden',state.step>=5);
+ $('confirm').classList.toggle('hidden',state.step!==5);
  const automatic=document.querySelector('input[name="preparation"]:checked')?.value==='AUTOMATIC';
  $('automatic-options')?.classList.toggle('hidden',!automatic);
  if($('prep-day'))$('prep-day').disabled=!automatic;
  if($('prep-time'))$('prep-time').disabled=!automatic;
- if(state.step===7)updateSummary();
+ if(state.step===5)updateSummary();
 }
 function updateSummary(){
  $('summary-evaluation').textContent=`${state.maxPoints} points · $${state.pointValue.toFixed(2)} / point`;
@@ -33,8 +33,6 @@ function updateSummary(){
  $('summary-cycle-dates').textContent=`${state.cycleStart} → ${state.cycleEnd}`;
  $('summary-period').textContent=`${freqName(state.frequency)} · ${dayName(state.startDay)} → ${dayName(state.endDay)}`;
  $('summary-prep').textContent=state.preparation==='AUTOMATIC'?`Automatic · ${dayName(state.preparationDay)} at ${state.preparationTime}`:'Manual preparation';
- $('summary-teams').textContent=`${state.teamCount} team${state.teamCount===1?'':'s'} configured`;
- $('summary-people').textContent=`${state.peopleCount} people configured${state.unassignedPeople?` · ${state.unassignedPeople} without a Team`:''}`;
 }
 function closeMenu(){$('user-menu')?.classList.add('hidden');$('user-menu-btn')?.setAttribute('aria-expanded','false')}
 $('user-menu-btn')?.addEventListener('click',e=>{e.stopPropagation();const m=$('user-menu'),hidden=m.classList.toggle('hidden');$('user-menu-btn').setAttribute('aria-expanded',String(!hidden))});
@@ -85,26 +83,18 @@ async function createWorkspace(){
  $('workspace-name').textContent=state.companyName;
 }
 async function loadSetup(){
- const[{data:config,error:ce},{data:cycle,error:be},{data:teams,error:te},{data:people,error:pe}]=await Promise.all([
+ const[{data:config,error:ce},{data:cycle,error:be}]=await Promise.all([
   db.from('configuracoes_operacionais').select('*').eq('empresa_id',state.empresaId).order('created_at',{ascending:false}).limit(1).maybeSingle(),
-  db.from('bonus_cycles').select('*').eq('empresa_id',state.empresaId).order('created_at',{ascending:false}).limit(1).maybeSingle(),
-  db.from('equipes').select('id,active').eq('empresa_id',state.empresaId),
-  db.from('colaboradores').select('id,active,equipe_id').eq('empresa_id',state.empresaId)
+  db.from('bonus_cycles').select('*').eq('empresa_id',state.empresaId).order('created_at',{ascending:false}).limit(1).maybeSingle()
  ]);
- const firstError=ce||be||te||pe;if(firstError){console.error('Workspace setup query failed',firstError);throw firstError}
- state.teamCount=(teams||[]).filter(t=>t.active===true).length;
- const activePeople=(people||[]).filter(p=>p.active===true);
- state.peopleCount=activePeople.length;
- state.unassignedPeople=activePeople.filter(p=>!p.equipe_id).length;
+ const firstError=ce||be;if(firstError){console.error('Workspace setup query failed',firstError);throw firstError}
  if(config){state.maxPoints=Number(config.starting_points??state.maxPoints);state.pointValue=Number(config.point_value??state.pointValue);state.frequency=config.evaluation_frequency||state.frequency;state.startDay=String(config.period_start_day??state.startDay);state.endDay=String(config.period_end_day??state.endDay);state.preparation=config.period_preparation_mode||state.preparation;state.preparationDay=String(config.period_preparation_day??state.preparationDay);state.preparationTime=(config.period_preparation_time||state.preparationTime).toString().slice(0,5)}
  if(cycle){state.cycleName=cycle.name||state.cycleName;state.cycleYear=Number(cycle.year)||state.cycleYear;state.cycleStart=monthName(cycle.start_month);state.cycleEnd=monthName(cycle.end_month)}
  const set=(id,v)=>{if($(id))$(id).value=v};
  set('max-points',state.maxPoints);set('point-value',state.pointValue.toFixed(2));set('cycle-name',state.cycleName);set('cycle-year',state.cycleYear);set('cycle-start',state.cycleStart);set('cycle-end',state.cycleEnd);set('frequency',state.frequency);set('start-day',state.startDay);set('end-day',state.endDay);set('prep-day',state.preparationDay);set('prep-time',state.preparationTime);
  const r=document.querySelector(`input[name="preparation"][value="${state.preparation}"]`);if(r)r.checked=true;
  const configReady=Boolean(config),cycleReady=Boolean(cycle);
- if(configReady&&cycleReady&&state.teamCount>0&&state.peopleCount>0&&state.unassignedPeople===0)state.step=7;
- else if(configReady&&cycleReady&&state.teamCount>0)state.step=6;
- else if(configReady&&cycleReady)state.step=4;
+ if(configReady&&cycleReady)state.step=5;
  else if(configReady)state.step=3;
  else state.step=2;
 }
@@ -128,7 +118,7 @@ async function saveCycle(){
 async function saveCurrentStep(){if(state.step===1)await createWorkspace();else if(state.step===2)await saveConfig();else if(state.step===3)await saveCycle();else if(state.step===4)await saveConfig()}
 $('next').addEventListener('click',async()=>{
  const b=$('next');b.disabled=true;b.innerHTML='Saving...';
- try{await saveCurrentStep();if(state.step<7)state.step++;render()}
+ try{await saveCurrentStep();if(state.step<5)state.step++;render()}
  catch(e){console.error(e);alert(`We couldn't save this step. ${e.message||'Please try again.'}`)}
  finally{b.disabled=false;b.innerHTML='Save & Continue <span>→</span>'}
 });
