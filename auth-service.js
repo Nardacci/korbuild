@@ -38,6 +38,18 @@
     return data;
   }
 
+  async function resendSignupConfirmation(email) {
+    const { data, error } = await getClient().auth.resend({
+      type: 'signup',
+      email,
+      options: {
+        emailRedirectTo: getSignupRedirectUrl()
+      }
+    });
+    if (error) throw error;
+    return data;
+  }
+
   async function signIn({ email, password }) {
     const { data, error } = await getClient().auth.signInWithPassword({ email, password });
     if (error) throw error;
@@ -61,5 +73,12 @@
     return data.user;
   }
 
-  global.KORbuildAuth = Object.freeze({ signUp, signIn, signOut, getSession, getUser });
+  global.KORbuildAuth = Object.freeze({
+    signUp,
+    resendSignupConfirmation,
+    signIn,
+    signOut,
+    getSession,
+    getUser
+  });
 })(window);
