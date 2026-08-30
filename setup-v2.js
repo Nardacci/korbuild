@@ -47,10 +47,17 @@ async function loadUser(){
  if(error||!session?.user){location.href='index.html';return null}
  state.user=session.user;
  const metadata=session.user.user_metadata||{};
- const{data:p,error:e}=await db.from('usuarios').select('id,name,empresa_id,active,empresas(name)').eq('id',session.user.id).maybeSingle();
- if(e){console.error('Unable to load user profile',e);alert('Unable to load your workspace profile.');return null}
+ // A new confirmed user intentionally has no row in public.usuarios yet.
+ // Do not block onboarding if the profile does not exist.
+ const{data:p,error:e}=await db.from('usuarios').select('id,name,empresa_id,active').eq('id',session.user.id).maybeSingle();
+ if(e){console.warn('Profile lookup skipped during onboarding:',e.message); }
+ let companyRecord=null;
+ if(p?.empresa_id){
+   const{data:empresa,error:empresaError}=await db.from('empresas').select('name').eq('id',p.empresa_id).maybeSingle();
+   if(!empresaError)companyRecord=empresa;
+ }
  const profileName=p?.name?.trim()||metadata.full_name||session.user.email?.split('@')[0]||'Owner';
- const company=p?.empresas?.name||metadata.company_name||'Your company';
+ const company=companyRecord?.name||metadata.company_name||'Your company';
  state.companyName=company;
  state.ownerName=profileName;
  state.empresaId=p?.empresa_id||null;
