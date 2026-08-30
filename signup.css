@@ -1,14 +1,14 @@
 :root{--ink:#172033;--muted:#6b7280;--surface:#fff;--line:#e5e9f0;--accent:#635bff;--accent-2:#8b5cf6;--accent-soft:#eeedff;--shadow:0 24px 70px rgba(23,32,51,.12)}
 *{box-sizing:border-box}
 body{margin:0;font-family:Inter,system-ui,sans-serif;color:var(--ink);background:linear-gradient(135deg,#f7f8fc,#eef2f8);min-height:100vh}
-.signup-shell{background:var(--surface);border:1px solid rgba(255,255,255,.8);border-radius:28px;box-shadow:var(--shadow);display:grid;grid-template-columns:1fr 1.18fr;min-height:650px}
+.signup-shell{background:var(--surface);border:1px solid rgba(255,255,255,.8);border-radius:28px;box-shadow:var(--shadow);display:grid;grid-template-columns:1fr 1.18fr;min-height:min(650px,calc(100vh - 48px))}
 .signup-brand-panel{background:linear-gradient(145deg,#171d35,#25204b);color:#fff;display:flex;flex-direction:column;justify-content:space-between}
 .brand-link{color:inherit;text-decoration:none}
 .brand-mark{width:58px;height:58px;border-radius:17px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:grid;place-items:center;font-weight:800;font-size:27px;margin-bottom:28px;box-shadow:0 12px 30px rgba(99,91,255,.3)}
 .eyebrow{font-size:11px;font-weight:800;letter-spacing:.16em;margin:0 0 12px;opacity:.72}
 .signup-brand-panel h1{font-size:48px;line-height:1;margin:0;letter-spacing:-.05em}
 .signup-brand-panel h1 span{font-weight:500;opacity:.82}
-.tagline{font-size:22px;line-height:1.5;color:rgba(255,255,255,.8);margin:0 0 38px}
+.brand-copy{margin-bottom:52px}.tagline{font-size:22px;line-height:1.5;color:rgba(255,255,255,.8);margin:0 0 38px}
 .trial-note{display:flex;gap:13px;align-items:flex-start;padding:16px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:rgba(255,255,255,.06)}
 .trial-icon{width:24px;height:24px;border-radius:50%;background:rgba(139,92,246,.35);display:grid;place-items:center;font-size:13px;font-weight:800}
 .trial-note strong,.trial-note small{display:block}.trial-note strong{font-size:13px;margin-bottom:4px}.trial-note small{font-size:12px;color:rgba(255,255,255,.62)}
@@ -30,7 +30,7 @@ input:not([type=checkbox]):focus{border-color:var(--accent);box-shadow:0 0 0 4px
 .signin-link{text-align:center;margin:22px 0 0;font-size:13px;color:var(--muted)}
 .signin-link a{color:var(--accent);font-weight:700;text-decoration:none}
 .demo-note{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);font-size:11px;color:#98a0ae}
-@media(max-width:800px){.signup-shell{grid-template-columns:1fr}.signup-brand-panel{min-height:250px;padding:36px!important}.brand-copy{margin-top:36px}.tagline{font-size:19px;margin-bottom:20px}.signup-panel{padding:36px!important}.signup-brand-panel h1{font-size:40px}.field-row{grid-template-columns:1fr}.trial-note{display:none}}
+@media(max-width:800px){.signup-shell{grid-template-columns:1fr}.signup-brand-panel{min-height:250px;padding:36px!important}.brand-copy{margin:36px 0 0}.tagline{font-size:19px;margin-bottom:20px}.signup-panel{padding:36px!important}.signup-brand-panel h1{font-size:40px}.field-row{grid-template-columns:1fr}.trial-note{display:none}}
 
 
 .complete-page{min-height:100vh;display:grid;place-items:center;padding:24px;background:linear-gradient(135deg,#f7f8fc,#eef2f8)}
