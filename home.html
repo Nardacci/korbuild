@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>KORbuild · Dashboard</title>
-<link rel="stylesheet" href="home.css?v=26">
+<link rel="stylesheet" href="home.css?v=27">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -40,6 +40,23 @@
         <p id="period-days">Prepare your next evaluation period to start the operation.</p>
       </div>
       <a class="outline-action" href="periods.html">▣ <span>View period details</span></a>
+    </section>
+
+
+    <section class="workspace-health-section" id="workspace-health">
+      <div class="section-heading"><div><small>WORKSPACE HEALTH</small><h2>Complete your workspace</h2><p>These foundations are not required for setup, but you'll need them before running team operations.</p></div></div>
+      <div class="workspace-health-grid">
+        <article class="health-card" id="health-teams">
+          <div class="health-icon">◇</div>
+          <div class="health-copy"><strong>Create your first team</strong><p>Organize your people before starting evaluations.</p></div>
+          <a href="teams.html" class="health-action">Create team →</a>
+        </article>
+        <article class="health-card" id="health-people">
+          <div class="health-icon">♙</div>
+          <div class="health-copy"><strong>Add your people</strong><p>Build your organization and prepare your first operational cycle.</p></div>
+          <a href="people.html" class="health-action">Add people →</a>
+        </article>
+      </div>
     </section>
 
     <section class="section-heading"><div><small>ATTENTION REQUIRED</small></div><a href="evaluations.html">View all</a></section>
@@ -115,5 +132,5 @@
   <button class="copilot" title="KORbuild Copilot">✦</button>
 </div>
 <script src="supabase-config.js?v=1.2.4"></script>
-<script src="home.js?v=1.2.4"></script>
+<script src="home.js?v=1.2.5"></script>
 </body></html>
