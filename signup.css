@@ -31,3 +31,15 @@ input:not([type=checkbox]):focus{border-color:var(--accent);box-shadow:0 0 0 4px
 .signin-link a{color:var(--accent);font-weight:700;text-decoration:none}
 .demo-note{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);font-size:11px;color:#98a0ae}
 @media(max-width:800px){.signup-shell{grid-template-columns:1fr}.signup-brand-panel{min-height:250px;padding:36px!important}.brand-copy{margin-top:36px}.tagline{font-size:19px;margin-bottom:20px}.signup-panel{padding:36px!important}.signup-brand-panel h1{font-size:40px}.field-row{grid-template-columns:1fr}.trial-note{display:none}}
+
+
+.complete-page{min-height:100vh;display:grid;place-items:center;padding:24px;background:linear-gradient(135deg,#f7f8fc,#eef2f8)}
+.complete-card{width:min(520px,100%);padding:56px 42px;background:#fff;border-radius:28px;box-shadow:var(--shadow);text-align:center}
+.complete-mark{margin:0 auto 32px}
+.complete-card h1{font-size:32px;letter-spacing:-.04em;margin:0 0 10px}
+.complete-card .primary-btn{margin-top:24px}
+.spinner{width:42px;height:42px;border:4px solid var(--accent-soft);border-top-color:var(--accent);border-radius:50%;margin:0 auto 26px;animation:spin .8s linear infinite}
+.success-icon,.error-icon{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;margin:0 auto 22px;font-size:25px;font-weight:800}
+.success-icon{background:#eaf8ef;color:#087443}.error-icon{background:#fff0f0;color:#b42318}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:520px){.complete-card{padding:42px 24px;border-radius:22px}}
