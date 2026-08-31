@@ -7,6 +7,41 @@ const fmtPts=n=>Number(n||0).toLocaleString('en-US')+' pts';
 const pct=(n,total)=>total?Math.round(n/total*100):0;
 function setText(id,value){const el=$(id);if(el)el.textContent=value}
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function renderTrialStatus(data){
+ const card=$('trial-status-card');if(!card)return;
+ if(!data||['ACTIVE','SETUP_REQUIRED'].includes(data.status)){card.classList.add('hidden');return}
+ card.classList.remove('hidden');
+ const status=data.status||'TRIALING',days=Math.max(0,Number(data.days_remaining)||0);
+ const icon=$('trial-status-icon'),eyebrow=$('trial-eyebrow'),title=$('trial-title'),message=$('trial-message'),count=$('trial-days'),label=$('trial-days-label'),action=$('trial-action');
+ card.classList.remove('grace','blocked');
+ if(status==='GRACE_PERIOD'){
+   card.classList.add('grace');icon.textContent='!';
+   setText('trial-eyebrow','TRIAL ENDED · GRACE PERIOD');
+   setText('trial-title','Your trial has ended, but KORbuild is still available.');
+   setText('trial-message','Choose a plan to keep your workspace active without interruption.');
+   setText('trial-days',days);setText('trial-days-label',days===1?'day remaining':'days remaining');
+   if(action){action.textContent='Choose a plan →';action.href='billing.html'}
+ }else if(status==='BLOCKED'){
+   card.classList.add('blocked');icon.textContent='!';
+   setText('trial-eyebrow','TRIAL EXPIRED');
+   setText('trial-title','Your KORbuild trial has expired.');
+   setText('trial-message','Choose a plan to restore access to your workspace.');
+   setText('trial-days','0');setText('trial-days-label','days remaining');
+   if(action){action.textContent='Choose a plan →';action.href='billing.html'}
+ }else{
+   icon.textContent='✦';
+   setText('trial-eyebrow','YOUR 14-DAY FREE TRIAL');
+   setText('trial-title','Your KORbuild trial is active.');
+   setText('trial-message','Explore the platform and build your workspace with full access.');
+   setText('trial-days',days);setText('trial-days-label',days===1?'day free':'days free');
+   if(action){action.textContent='View plans →';action.href='billing.html'}
+ }
+}
+async function loadTrialStatus(){
+ const {data,error}=await db.rpc('get_workspace_access_status');
+ if(error){console.warn('Trial status unavailable',error.message);return}
+ renderTrialStatus(data);
+}
 
 async function loadProfile(){
  const {data:{session},error}=await db.auth.getSession();
@@ -68,4 +103,4 @@ async function loadData(){
  renderSnapshot(scoreRows());
 }
 function initMenu(){$('user-menu-btn')?.addEventListener('click',e=>{e.stopPropagation();$('user-menu')?.classList.toggle('hidden')});document.addEventListener('click',e=>{if(!e.target.closest('.user-menu-wrap'))$('user-menu')?.classList.add('hidden')});$('menu-logout')?.addEventListener('click',async()=>{await db.auth.signOut();location.href='index.html'});}
-(async()=>{try{const p=await loadProfile();if(p){initMenu();await loadData()}}catch(e){console.error('Dashboard load failed',e);}})();
+(async()=>{try{const p=await loadProfile();if(p){initMenu();await Promise.all([loadData(),loadTrialStatus()])}}catch(e){console.error('Dashboard load failed',e);}})();
