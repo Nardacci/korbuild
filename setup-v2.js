@@ -123,5 +123,5 @@ $('next').addEventListener('click',async()=>{
  finally{b.disabled=false;b.innerHTML='Save & Continue <span>→</span>'}
 });
 $('back').addEventListener('click',()=>{collect();if(state.step>1){state.step--;render()}});
-$('confirm').addEventListener('click',async()=>{const b=$('confirm');b.disabled=true;b.innerHTML='Saving...';try{await saveConfig();await saveCycle();location.href='home.html?setup=complete'}catch(e){console.error(e);alert(`We couldn't save the setup. ${e.message||'Please try again.'}`);b.disabled=false;b.innerHTML='Confirm & Start KORbuild <span>→</span>'}});
+$('confirm').addEventListener('click',async()=>{const b=$('confirm');b.disabled=true;b.innerHTML='Saving...';try{await saveConfig();await saveCycle();const{error:trialError}=await db.rpc('activate_workspace_trial');if(trialError)throw trialError;location.href='home.html?setup=complete'}catch(e){console.error(e);alert(`We couldn't save the setup. ${e.message||'Please try again.'}`);b.disabled=false;b.innerHTML='Confirm & Start KORbuild <span>→</span>'}});
 (async()=>{if(await loadUser()){if(state.empresaId){try{await loadSetup()}catch(e){alert(`Unable to load workspace setup. ${e.message||'Please try again.'}`)}}render()}})();
