@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>KORbuild · Dashboard</title>
-<link rel="stylesheet" href="home.css?v=27">
+<link rel="stylesheet" href="home.css?v=28">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -30,6 +30,20 @@
         <div id="user-menu" class="user-menu hidden"></div>
       </div>
     </header>
+
+    <section class="trial-status-card hidden" id="trial-status-card">
+      <div class="trial-status-icon" id="trial-status-icon">✦</div>
+      <div class="trial-status-copy">
+        <small id="trial-eyebrow">YOUR FREE TRIAL</small>
+        <strong id="trial-title">Your KORbuild trial is active</strong>
+        <p id="trial-message">You have full access to KORbuild.</p>
+      </div>
+      <div class="trial-countdown">
+        <strong id="trial-days">14</strong>
+        <span id="trial-days-label">days free</span>
+      </div>
+      <a href="billing.html" class="trial-action" id="trial-action">View plans →</a>
+    </section>
 
     <section class="period-hero" id="period-hero">
       <div class="period-icon">▣</div>
@@ -128,9 +142,9 @@
     </section>
   </main>
 
-  <div class="app-version">KORbuild V1.2.5 · Development environment</div>
+  <div class="app-version">KORbuild V1.2.6 · Development environment</div>
   <button class="copilot" title="KORbuild Copilot">✦</button>
 </div>
 <script src="supabase-config.js?v=1.2.8"></script>
-<script src="home.js?v=1.2.5"></script>
+<script src="home.js?v=1.2.6"></script>
 </body></html>
