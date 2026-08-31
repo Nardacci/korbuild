@@ -47,7 +47,11 @@ function renderTrialStatus(data){
 }
 function setDemoBadgeVisible(visible){
  const badge=$('logo-demo-badge');
- if(badge)badge.classList.toggle('hidden',!visible);
+ if(!badge)return;
+ // DEMO is visible only while this company is actively in Trial.
+ const show=visible===true;
+ badge.classList.toggle('hidden',!show);
+ badge.style.display=show?'inline-flex':'none';
 }
 
 async function loadProfile(){
@@ -64,6 +68,8 @@ async function loadProfile(){
 }
 
 async function loadTrialStatus(){
+ // Fail closed: never show DEMO or trial UI until the authoritative company state confirms Trial.
+ setDemoBadgeVisible(false);
  // Keep the card hidden until the authoritative company commercial state is resolved.
  // This prevents stale/default trial UI from surviving a failed or delayed request.
  $('trial-status-card')?.classList.add('hidden');
