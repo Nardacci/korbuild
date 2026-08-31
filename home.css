@@ -228,3 +228,6 @@
 
 /* Safety: component display:flex must never override hidden state */
 .trial-status-card.hidden{display:none!important}
+
+/* Commercial state safety: DEMO must never appear unless explicitly enabled by JS for an active trial company. */
+.logo-demo.hidden{display:none!important}
