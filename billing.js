@@ -2,7 +2,7 @@
   const cfg=window.KORBUILD_SUPABASE;if(!cfg||!window.supabase)return;
   const client=window.supabase.createClient(cfg.url,cfg.publishableKey,{auth:{persistSession:true,autoRefreshToken:true}});
   const $=id=>document.getElementById(id);
-  let commercial=null;
+  let commercial=null; let currentOffer=null; let paymentInstructions=null;
   const fmt=v=>new Intl.NumberFormat('en-US',{style:'currency',currency:commercial?.currency||'USD'}).format(Number(v||0));
 
   function setOffer(access){
@@ -42,6 +42,7 @@
       context='Your setup fee is waived. Your first monthly payment is due when your trial ends.';
     }
 
+    currentOffer={amount,suffix,button,context,phase};
     $('price').textContent=amount!=null?fmt(amount):'Contact us';
     $('price-suffix').textContent=suffix;
     $('payment-context').textContent=context;
@@ -104,7 +105,38 @@
 
     commercial=price||{};
     renderStatus(access);
-    $('subscribe-btn').addEventListener('click',()=>{console.log('Checkout flow pending Mercado Pago integration');});
+    $('subscribe-btn').addEventListener('click',openPaymentInstructions);
+    $('payment-close').addEventListener('click',closePaymentInstructions);
+    $('payment-modal').addEventListener('click',e=>{if(e.target.id==='payment-modal')closePaymentInstructions();});
+    $('copy-payment-key').addEventListener('click',copyPaymentKey);
+    document.addEventListener('keydown',e=>{if(e.key==='Escape')closePaymentInstructions();});
+  async function openPaymentInstructions(){
+    if(!currentOffer)return;
+    if(!paymentInstructions){
+      const r=await client.rpc('get_payment_instructions');
+      if(r.error){console.error(r.error);alert('Payment instructions are temporarily unavailable. Please contact KORbuild.');return;}
+      paymentInstructions=r.data||{};
+    }
+    const p=paymentInstructions;
+    $('payment-modal-amount').textContent=fmt(currentOffer.amount);
+    $('payment-modal-intro').textContent=currentOffer.suffix.includes('setup')
+      ? 'This is your one-time setup payment. Your monthly subscription begins 30 days later.'
+      : 'This payment keeps your KORbuild workspace active.';
+    $('payment-method-badge').textContent=p.method||'PAYMENT';
+    $('payment-account-holder').textContent=p.account_holder||'Payment details';
+    $('payment-bank').textContent=p.bank_name||'';
+    $('payment-key-label').textContent=(p.method||'PAYMENT')+' KEY';
+    $('payment-key').textContent=p.pix_key||'Contact KORbuild for payment details';
+    $('payment-after-text').textContent=p.instructions||'After completing payment, send your confirmation so we can activate or update your workspace access.';
+    $('payment-contact').textContent=p.payment_contact?'Send confirmation to: '+p.payment_contact:'';
+    $('payment-modal').classList.remove('hidden');
+  }
+  function closePaymentInstructions(){$('payment-modal')?.classList.add('hidden');}
+  async function copyPaymentKey(){
+    const key=$('payment-key').textContent;
+    if(!key||key==='—')return;
+    try{await navigator.clipboard.writeText(key);const b=$('copy-payment-key');const old=b.textContent;b.textContent='Copied ✓';setTimeout(()=>b.textContent=old,1800);}catch(e){console.error(e);}
+  }
   }catch(error){console.error('Billing initialization failed',error);}
   const btn=$('user-menu-btn'),menu=$('user-menu');if(btn&&menu)btn.addEventListener('click',()=>menu.classList.toggle('hidden'));
 })();
