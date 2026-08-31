@@ -9,14 +9,16 @@ function setText(id,value){const el=$(id);if(el)el.textContent=value}
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function renderTrialStatus(data){
  const card=$('trial-status-card');if(!card)return;
- if(!data){console.warn('Trial status returned no data');card.classList.add('hidden');return}
+ if(!data){console.warn('Trial status returned no data');card.classList.add('hidden');card.style.display='none';return}
  // Trial is a commercial setting per company. When disabled, the dashboard must
  // show no trial countdown, warning or trial CTA at all.
  if(data.trial_enabled===false || data.phase==='NO_TRIAL' || data.status==='ACTIVE'){
    card.classList.add('hidden');
+   card.style.display='none';
    return;
  }
  card.classList.remove('hidden');
+ card.style.display='flex';
  const status=data.status||'TRIALING',days=Math.max(0,Number(data.days_remaining)||0);
  const icon=$('trial-status-icon'),eyebrow=$('trial-eyebrow'),title=$('trial-title'),message=$('trial-message'),count=$('trial-days'),label=$('trial-days-label'),action=$('trial-action');
  card.classList.remove('grace','blocked');
