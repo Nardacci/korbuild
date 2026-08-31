@@ -43,6 +43,24 @@ function renderTrialStatus(data){
    if(action){action.textContent='View plans →';action.href='billing.html'}
  }
 }
+function renderCommercialDebug({profile=null,commercial=null,error=null,decision='CHECKING…'}={}){
+ const set=(id,v)=>setText(id,v===undefined||v===null||v===''?'—':String(v));
+ if(profile){
+   set('debug-user',profile.name||'—');
+   set('debug-company',profile.empresas?.name||profile.company_name||'—');
+   set('debug-company-id',profile.empresa_id);
+ }
+ if(commercial){
+   set('debug-status',commercial.status);
+   set('debug-trial-enabled',commercial.trial_enabled);
+   set('debug-activation-source',commercial.activation_source);
+ }
+ if(error)set('debug-backend',error);
+ else if(commercial)set('debug-backend',JSON.stringify(commercial));
+ const badge=$('commercial-debug-decision');
+ if(badge){badge.textContent=decision;badge.className='commercial-debug-badge '+(decision.includes('HIDE')?'ok':decision.includes('SHOW')?'warn':decision.includes('ERROR')?'error':'');}
+}
+
 async function loadProfile(){
  const {data:{session},error}=await db.auth.getSession();
  if(error||!session?.user){location.href='index.html';return null}
@@ -53,6 +71,7 @@ async function loadProfile(){
  ['user-email','menu-full-email'].forEach(id=>setText(id,session.user.email||''));
  ['user-avatar','menu-avatar'].forEach(id=>setText(id,initial));
  state.companyId=profile.empresa_id;
+ renderCommercialDebug({profile,decision:'CHECKING BACKEND…'});
  return profile;
 }
 
@@ -67,6 +86,7 @@ async function loadTrialStatus(){
 
  if(!commercialError && commercial?.found){
    console.info('KORbuild commercial state',commercial);
+   renderCommercialDebug({commercial,decision:(commercial.status==='ACTIVE'||commercial.trial_enabled===false)?'HIDE TRIAL':'SHOW TRIAL'});
    if(commercial.status==='ACTIVE' || commercial.trial_enabled===false){
      renderTrialStatus({
        status:commercial.status,
@@ -78,6 +98,7 @@ async function loadTrialStatus(){
    }
  }else{
    console.warn('Commercial state unavailable',commercialError?.message,commercial);
+   renderCommercialDebug({commercial,error:commercialError?.message||JSON.stringify(commercial),decision:'BACKEND ERROR'});
  }
 
  // Only companies still participating in the standard lifecycle reach this RPC.
