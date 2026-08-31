@@ -25,3 +25,22 @@ a.menu-item:active { text-decoration: none; }
 .primary-btn:focus-visible{outline:2px solid #9c97ff;outline-offset:2px}
 @media(max-width:900px){.page-topbar{margin:0 -20px;padding:0 20px}}
 @media(max-width:700px){.page-topbar{margin:0 -14px;padding:0 14px;height:58px}}
+
+
+
+/* V1.2.8 — Periods readiness lock */
+.period-locked{
+  opacity:.48 !important;
+  cursor:not-allowed !important;
+  pointer-events:auto;
+  position:relative;
+}
+.period-locked:hover{
+  background:transparent !important;
+}
+.period-locked::after{
+  content:'🔒';
+  margin-left:auto;
+  font-size:10px;
+  opacity:.75;
+}
