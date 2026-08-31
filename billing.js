@@ -45,6 +45,19 @@
     $('price').textContent=amount!=null?fmt(amount):'Contact us';
     $('price-suffix').textContent=suffix;
     $('payment-context').textContent=context;
+
+    // Always make the complete commercial journey explicit when setup is pending:
+    // pay setup now, then the standard monthly subscription starts 30 days later.
+    const monthlyFollowup=$('monthly-followup');
+    if(monthlyFollowup){
+      if(setupRequired){
+        monthlyFollowup.classList.remove('hidden');
+        $('monthly-followup-price').textContent=fmt(commercial?.monthly_price);
+      } else {
+        monthlyFollowup.classList.add('hidden');
+      }
+    }
+
     $('subscribe-btn').textContent=button;
     $('subscribe-btn').disabled=false;
   }
