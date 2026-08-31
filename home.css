@@ -231,3 +231,10 @@
 
 /* Commercial state safety: DEMO must never appear unless explicitly enabled by JS for an active trial company. */
 .logo-demo.hidden{display:none!important}
+
+
+/* V1.3.8 — global DEMO badge guard
+   Fail closed: the DEMO label is hidden unless the application explicitly
+   confirms that the current company is in an active Trial. */
+.logo-demo{display:none!important}
+.trial-active .logo-demo{display:inline-flex!important}
