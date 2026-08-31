@@ -6,22 +6,42 @@
   const fmt=v=>new Intl.NumberFormat('en-US',{style:'currency',currency:commercial?.currency||'USD'}).format(Number(v||0));
 
   function setOffer(access){
-    const phase=access?.phase||access?.status||'UNKNOWN';
-    const setupRequired=!!commercial?.setup_required;
+    const phase=String(access?.phase||access?.status||'UNKNOWN').toUpperCase();
+    const setupStatus=String(access?.setup_status||'PENDING').toUpperCase();
+    const setupFee=Number(commercial?.setup_fee ?? access?.setup_fee ?? 0);
+    const setupRequired=setupFee>0 && !['PAID','WAIVED'].includes(setupStatus);
+
     let amount=commercial?.monthly_price, suffix='/ month', button='Subscribe now →', context='Continue with the KORbuild monthly subscription.';
 
-    if(phase==='TRIAL' || phase==='TRIALING'){
-      if(setupRequired){amount=commercial.setup_fee;suffix=' one-time setup';button='View activation options →';context='After setup payment, your monthly subscription starts 30 days later.';}
-      else {amount=commercial?.monthly_price;suffix='/ month';button='Subscribe when trial ends →';context='Your setup fee is waived. Your first monthly payment is due when your trial ends.';}
-    } else if(phase==='SETUP_PAYMENT' || phase==='SETUP_PAYMENT_REQUIRED'){
-      amount=commercial?.setup_fee;suffix=' one-time setup';button='Pay setup fee →';context='After setup payment, you keep full access and monthly billing starts 30 days later.';
+    // Commercial rule: while setup is still pending, the setup fee always takes precedence.
+    // This intentionally also covers SETUP_REQUIRED and any pre-activation state.
+    if(setupRequired && !['MONTHLY_PAYMENT','PAYMENT_REQUIRED','POST_SETUP','SETUP_ACTIVE','ACTIVE'].includes(phase)){
+      amount=setupFee;
+      suffix=' one-time setup';
+      button='Continue with setup →';
+      context='After setup payment, your monthly subscription starts 30 days later.';
     } else if(phase==='MONTHLY_PAYMENT' || phase==='PAYMENT_REQUIRED'){
-      amount=commercial?.monthly_price;suffix='/ month';button='Start monthly subscription →';context='Your setup fee is waived. Your first monthly payment activates continued access.';
+      amount=commercial?.monthly_price;
+      suffix='/ month';
+      button='Start monthly subscription →';
+      context='Your setup fee is waived. Your first monthly payment activates continued access.';
     } else if(phase==='POST_SETUP' || phase==='SETUP_ACTIVE'){
-      amount=commercial?.monthly_price;suffix='/ month';button='Monthly subscription scheduled ✓';context='Your setup is complete. Monthly billing starts on '+new Date(access.monthly_starts_at).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})+'.';
-    } else if(access?.status==='ACTIVE' || phase==='ACTIVE'){
-      amount=commercial?.monthly_price;suffix='/ month';button='Subscription active ✓';context='Your KORbuild subscription is active.';
+      amount=commercial?.monthly_price;
+      suffix='/ month';
+      button='Monthly subscription scheduled ✓';
+      context='Your setup is complete. Monthly billing starts on '+new Date(access.monthly_starts_at).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})+'.';
+    } else if(phase==='ACTIVE'){
+      amount=commercial?.monthly_price;
+      suffix='/ month';
+      button='Subscription active ✓';
+      context='Your KORbuild subscription is active.';
+    } else if(phase==='TRIAL' || phase==='TRIALING'){
+      amount=commercial?.monthly_price;
+      suffix='/ month';
+      button='Subscribe when trial ends →';
+      context='Your setup fee is waived. Your first monthly payment is due when your trial ends.';
     }
+
     $('price').textContent=amount!=null?fmt(amount):'Contact us';
     $('price-suffix').textContent=suffix;
     $('payment-context').textContent=context;
@@ -31,13 +51,13 @@
 
   function renderStatus(access){
     const card=$('status-card');card.className='status-card';
-    const phase=access?.phase||access?.status||'UNKNOWN';
+    const phase=String(access?.phase||access?.status||'UNKNOWN').toUpperCase();
     const days=Math.max(0,Number(access?.days_remaining||0));
     const metric=$('status-days'),label=$('status-days-label');
     metric.textContent=days||'—';label.textContent=days===1?'day remaining':'days remaining';
 
-    if(phase==='TRIAL'){card.classList.add('active');$('status-icon').textContent='✦';$('status-eyebrow').textContent='YOUR FREE TRIAL';$('status-title').textContent='Your KORbuild trial is active';$('status-message').textContent='You have full access to every KORbuild feature during your trial.';$('billing-subtitle').textContent='You are currently exploring KORbuild with full access.';}
-    else if(phase==='SETUP_PAYMENT'){card.classList.add('warning');$('status-icon').textContent='◷';$('status-eyebrow').textContent='ACTIVATION REQUIRED';$('status-title').textContent='Complete your one-time setup payment';$('status-message').textContent='After payment, you keep full access and monthly billing begins 30 days later.';}
+    if(phase==='TRIAL' || phase==='TRIALING'){card.classList.add('active');$('status-icon').textContent='✦';$('status-eyebrow').textContent='YOUR FREE TRIAL';$('status-title').textContent='Your KORbuild trial is active';$('status-message').textContent='You have full access to every KORbuild feature during your trial.';$('billing-subtitle').textContent='You are currently exploring KORbuild with full access.';}
+    else if(phase==='SETUP_PAYMENT' || phase==='SETUP_PAYMENT_REQUIRED' || phase==='SETUP_REQUIRED'){card.classList.add('warning');$('status-icon').textContent='◷';$('status-eyebrow').textContent='ACTIVATION REQUIRED';$('status-title').textContent='Complete your one-time setup payment';$('status-message').textContent='After payment, you keep full access and monthly billing begins 30 days later.';}
     else if(phase==='POST_SETUP'){card.classList.add('active');$('status-icon').textContent='✓';$('status-eyebrow').textContent='SETUP COMPLETE';$('status-title').textContent='Your workspace is active';$('status-message').textContent='Your monthly subscription begins after the 30-day setup period.';}
     else if(phase==='MONTHLY_PAYMENT'){card.classList.add('blocked');$('status-icon').textContent='🔒';$('status-eyebrow').textContent='MONTHLY SUBSCRIPTION';$('status-title').textContent='Your first monthly payment is due';$('status-message').textContent='Your setup fee was waived. Start your monthly subscription to continue.';metric.textContent='—';label.textContent='payment required';}
     else if(access?.status==='ACTIVE'||phase==='ACTIVE'){card.classList.add('active');$('status-icon').textContent='✓';$('status-eyebrow').textContent='SUBSCRIPTION ACTIVE';$('status-title').textContent='Your KORbuild subscription is active';$('status-message').textContent='Your workspace has full access to KORbuild.';metric.textContent='✓';label.textContent='active';}
