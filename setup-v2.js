@@ -19,8 +19,16 @@ function render(){
  $('progress-bar').style.width=`${((state.step-1)/4)*100}%`;
  labels.forEach((l,i)=>{l.classList.toggle('done',i<state.step-1);l.classList.toggle('active',i===state.step-1)});
  $('back').disabled=state.step<=1;
- $('next').classList.toggle('hidden',state.step>=5||state.setupCompleted);
- $('confirm').classList.toggle('hidden',state.step!==5);$('confirm').disabled=state.setupCompleted;if(state.setupCompleted)$('confirm').innerHTML='Setup completed <span>✓</span>'; 
+ // Save & Continue is only actionable on setup steps 1-4.
+ const next=$('next'),confirm=$('confirm');
+ const isReview=state.step===5;
+ next.classList.remove('hidden');
+ next.disabled=isReview||state.setupCompleted;
+ next.setAttribute('aria-disabled',String(next.disabled));
+ if(next.disabled) next.classList.add('is-complete-step'); else next.classList.remove('is-complete-step');
+ confirm.classList.toggle('hidden',!isReview);
+ confirm.disabled=state.setupCompleted;
+ if(state.setupCompleted) confirm.innerHTML='Setup completed <span>✓</span>'; 
  const automatic=document.querySelector('input[name="preparation"]:checked')?.value==='AUTOMATIC';
  $('automatic-options')?.classList.toggle('hidden',!automatic);
  if($('prep-day'))$('prep-day').disabled=!automatic;
