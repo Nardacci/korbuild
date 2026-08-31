@@ -43,6 +43,19 @@ function renderTrialStatus(data){
    if(action){action.textContent='View plans →';action.href='billing.html'}
  }
 }
+async function loadProfile(){
+ const {data:{session},error}=await db.auth.getSession();
+ if(error||!session?.user){location.href='index.html';return null}
+ const {data:profile,error:pe}=await db.from('usuarios').select('id,name,empresa_id,empresas(name)').eq('id',session.user.id).maybeSingle();
+ if(pe||!profile?.empresa_id)throw(pe||new Error('Workspace profile not found'));
+ const name=profile.name||session.user.user_metadata?.full_name||'Owner',initial=name.trim().charAt(0).toUpperCase()||'O';
+ ['user-name','menu-full-name'].forEach(id=>setText(id,name));
+ ['user-email','menu-full-email'].forEach(id=>setText(id,session.user.email||''));
+ ['user-avatar','menu-avatar'].forEach(id=>setText(id,initial));
+ state.companyId=profile.empresa_id;
+ return profile;
+}
+
 async function loadTrialStatus(){
  // Single authoritative server-side source for the logged-in user's company.
  // This bypasses client-side RLS ambiguity and prevents trial UI from appearing
