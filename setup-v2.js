@@ -1,7 +1,7 @@
 const { url, publishableKey } = window.KORBUILD_SUPABASE;
 const db=window.supabase.createClient(url,publishableKey,{auth:{persistSession:true,autoRefreshToken:true}});
 const $=id=>document.getElementById(id);
-const state={step:1,maxPoints:500,pointValue:1,cycleName:'Annual Performance',cycleYear:2026,cycleStart:'January',cycleEnd:'December',frequency:'WEEKLY',startDay:'1',endDay:'6',preparation:'MANUAL',preparationDay:'6',preparationTime:'08:00',empresaId:null,companyName:'',ownerName:'',user:null};
+const state={step:1,setupCompleted:false,maxPoints:500,pointValue:1,cycleName:'Annual Performance',cycleYear:2026,cycleStart:'January',cycleEnd:'December',frequency:'WEEKLY',startDay:'1',endDay:'6',preparation:'MANUAL',preparationDay:'6',preparationTime:'08:00',empresaId:null,companyName:'',ownerName:'',user:null};
 const views=[...document.querySelectorAll('.step-view')],labels=[...document.querySelectorAll('.progress-labels span')];
 const monthNumber=n=>({January:1,February:2,March:3,April:4,May:5,June:6,July:7,August:8,September:9,October:10,November:11,December:12}[n]);
 const monthName=n=>({1:'January',2:'February',3:'March',4:'April',5:'May',6:'June',7:'July',8:'August',9:'September',10:'October',11:'November',12:'December'}[Number(n)]||'January');
@@ -19,8 +19,8 @@ function render(){
  $('progress-bar').style.width=`${((state.step-1)/4)*100}%`;
  labels.forEach((l,i)=>{l.classList.toggle('done',i<state.step-1);l.classList.toggle('active',i===state.step-1)});
  $('back').disabled=state.step<=1;
- $('next').classList.toggle('hidden',state.step>=5);
- $('confirm').classList.toggle('hidden',state.step!==5);
+ $('next').classList.toggle('hidden',state.step>=5||state.setupCompleted);
+ $('confirm').classList.toggle('hidden',state.step!==5);$('confirm').disabled=state.setupCompleted;if(state.setupCompleted)$('confirm').innerHTML='Setup completed <span>✓</span>'; 
  const automatic=document.querySelector('input[name="preparation"]:checked')?.value==='AUTOMATIC';
  $('automatic-options')?.classList.toggle('hidden',!automatic);
  if($('prep-day'))$('prep-day').disabled=!automatic;
@@ -94,7 +94,7 @@ async function loadSetup(){
  set('max-points',state.maxPoints);set('point-value',state.pointValue.toFixed(2));set('cycle-name',state.cycleName);set('cycle-year',state.cycleYear);set('cycle-start',state.cycleStart);set('cycle-end',state.cycleEnd);set('frequency',state.frequency);set('start-day',state.startDay);set('end-day',state.endDay);set('prep-day',state.preparationDay);set('prep-time',state.preparationTime);
  const r=document.querySelector(`input[name="preparation"][value="${state.preparation}"]`);if(r)r.checked=true;
  const configReady=Boolean(config),cycleReady=Boolean(cycle);
- if(configReady&&cycleReady)state.step=5;
+ if(configReady&&cycleReady){state.step=5;state.setupCompleted=true;}
  else if(configReady)state.step=3;
  else state.step=2;
 }
@@ -123,5 +123,5 @@ $('next').addEventListener('click',async()=>{
  finally{b.disabled=false;b.innerHTML='Save & Continue <span>→</span>'}
 });
 $('back').addEventListener('click',()=>{collect();if(state.step>1){state.step--;render()}});
-$('confirm').addEventListener('click',async()=>{const b=$('confirm');b.disabled=true;b.innerHTML='Saving...';try{await saveConfig();await saveCycle();const{error:trialError}=await db.rpc('activate_workspace_trial');if(trialError)throw trialError;location.href='home.html?setup=complete'}catch(e){console.error(e);alert(`We couldn't save the setup. ${e.message||'Please try again.'}`);b.disabled=false;b.innerHTML='Confirm & Start KORbuild <span>→</span>'}});
+$('confirm').addEventListener('click',async()=>{const b=$('confirm');b.disabled=true;b.innerHTML='Saving...';try{await saveConfig();await saveCycle();const{error:trialError}=await db.rpc('activate_workspace_trial');if(trialError)throw trialError;state.setupCompleted=true;location.href='home.html?setup=complete'}catch(e){console.error(e);alert(`We couldn't save the setup. ${e.message||'Please try again.'}`);b.disabled=false;b.innerHTML='Confirm & Start KORbuild <span>→</span>'}});
 (async()=>{if(await loadUser()){if(state.empresaId){try{await loadSetup()}catch(e){alert(`Unable to load workspace setup. ${e.message||'Please try again.'}`)}}render()}})();
