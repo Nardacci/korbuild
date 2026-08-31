@@ -44,45 +44,31 @@ function renderTrialStatus(data){
  }
 }
 async function loadTrialStatus(){
- // Commercial settings are authoritative. Read the current company's subscription
- // first so a Super Admin change (ACTIVE / trial disabled) hides trial UI immediately.
- if(state.companyId){
-   const {data:subscription,error:subscriptionError}=await db
-     .from('subscriptions')
-     .select('status,trial_enabled,activation_source')
-     .eq('empresa_id',state.companyId)
-     .maybeSingle();
+ // Single authoritative server-side source for the logged-in user's company.
+ // This bypasses client-side RLS ambiguity and prevents trial UI from appearing
+ // when Super Admin has explicitly disabled trial or activated the company.
+ const {data:commercial,error:commercialError}=await db.rpc('get_current_company_commercial_state');
 
-   if(!subscriptionError && subscription){
-     console.info('KORbuild commercial subscription',subscription);
-     if(subscription.status==='ACTIVE' || subscription.trial_enabled===false){
-       renderTrialStatus({
-         status:subscription.status,
-         phase:subscription.trial_enabled===false?'NO_TRIAL':'ACTIVE',
-         trial_enabled:subscription.trial_enabled,
-         activation_source:subscription.activation_source
-       });
-       return;
-     }
-   }else if(subscriptionError){
-     console.warn('Commercial subscription lookup unavailable',subscriptionError.message);
+ if(!commercialError && commercial?.found){
+   console.info('KORbuild commercial state',commercial);
+   if(commercial.status==='ACTIVE' || commercial.trial_enabled===false){
+     renderTrialStatus({
+       status:commercial.status,
+       phase:commercial.trial_enabled===false?'NO_TRIAL':'ACTIVE',
+       trial_enabled:commercial.trial_enabled,
+       activation_source:commercial.activation_source
+     });
+     return;
    }
+ }else{
+   console.warn('Commercial state unavailable',commercialError?.message,commercial);
  }
 
+ // Only companies still participating in the standard lifecycle reach this RPC.
  const {data,error}=await db.rpc('get_workspace_access_status');
  if(error){console.warn('Trial status unavailable',error.message,error);return}
  console.info('KORbuild trial status',data);
  renderTrialStatus(data);
-}
-
-async function loadProfile(){
- const {data:{session},error}=await db.auth.getSession();
- if(error||!session?.user){location.href='index.html';return null}
- const {data:profile,error:pe}=await db.from('usuarios').select('id,name,empresa_id,empresas(name)').eq('id',session.user.id).maybeSingle();
- if(pe||!profile?.empresa_id)throw(pe||new Error('Workspace profile not found'));
- const name=profile.name||session.user.user_metadata?.full_name||'Owner',initial=name.trim().charAt(0).toUpperCase()||'O';
- ['user-name','menu-full-name'].forEach(id=>setText(id,name));['user-email','menu-full-email'].forEach(id=>setText(id,session.user.email||''));['user-avatar','menu-avatar'].forEach(id=>setText(id,initial));
- state.companyId=profile.empresa_id;return profile;
 }
 function renderPeriod(){
  if(!state.period){setText('current-period','No open period');setText('period-progress-label','—');setText('period-days','Prepare your next evaluation period to start the operation.');$('period-progress').style.width='0%';setText('days-remaining','—');setText('deadline-title','No open period');setText('deadline-copy','Prepare a period to start weekly operations');return}
