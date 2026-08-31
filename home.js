@@ -57,10 +57,13 @@ async function loadProfile(){
 }
 
 async function loadTrialStatus(){
+ // Keep the card hidden until the authoritative company commercial state is resolved.
+ // This prevents stale/default trial UI from surviving a failed or delayed request.
+ $('trial-status-card')?.classList.add('hidden');
  // Single authoritative server-side source for the logged-in user's company.
  // This bypasses client-side RLS ambiguity and prevents trial UI from appearing
  // when Super Admin has explicitly disabled trial or activated the company.
- const {data:commercial,error:commercialError}=await db.rpc('get_current_company_commercial_state');
+ const {data:commercial,error:commercialError}=await db.rpc('get_company_commercial_state',{p_empresa_id:state.companyId});
 
  if(!commercialError && commercial?.found){
    console.info('KORbuild commercial state',commercial);
