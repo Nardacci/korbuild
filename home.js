@@ -44,6 +44,31 @@ function renderTrialStatus(data){
  }
 }
 async function loadTrialStatus(){
+ // Commercial settings are authoritative. Read the current company's subscription
+ // first so a Super Admin change (ACTIVE / trial disabled) hides trial UI immediately.
+ if(state.companyId){
+   const {data:subscription,error:subscriptionError}=await db
+     .from('subscriptions')
+     .select('status,trial_enabled,activation_source')
+     .eq('empresa_id',state.companyId)
+     .maybeSingle();
+
+   if(!subscriptionError && subscription){
+     console.info('KORbuild commercial subscription',subscription);
+     if(subscription.status==='ACTIVE' || subscription.trial_enabled===false){
+       renderTrialStatus({
+         status:subscription.status,
+         phase:subscription.trial_enabled===false?'NO_TRIAL':'ACTIVE',
+         trial_enabled:subscription.trial_enabled,
+         activation_source:subscription.activation_source
+       });
+       return;
+     }
+   }else if(subscriptionError){
+     console.warn('Commercial subscription lookup unavailable',subscriptionError.message);
+   }
+ }
+
  const {data,error}=await db.rpc('get_workspace_access_status');
  if(error){console.warn('Trial status unavailable',error.message,error);return}
  console.info('KORbuild trial status',data);
