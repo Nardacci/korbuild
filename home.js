@@ -154,3 +154,24 @@ async function loadData(){
 }
 function initMenu(){$('user-menu-btn')?.addEventListener('click',e=>{e.stopPropagation();$('user-menu')?.classList.toggle('hidden')});document.addEventListener('click',e=>{if(!e.target.closest('.user-menu-wrap'))$('user-menu')?.classList.add('hidden')});$('menu-logout')?.addEventListener('click',async()=>{await db.auth.signOut();location.href='index.html'});}
 (async()=>{try{const p=await loadProfile();if(p){initMenu();await Promise.all([loadData(),loadTrialStatus()])}}catch(e){console.error('Dashboard load failed',e);}})();
+function initKORbuildAI(){
+ const fab=$('kor-ai-fab'),panel=$('kor-ai-panel'),close=$('kor-ai-close'),form=$('kor-ai-form'),input=$('kor-ai-input'),messages=$('kor-ai-messages');
+ if(!fab||!panel)return;
+ const open=()=>{panel.classList.remove('hidden');input?.focus()};
+ const shut=()=>panel.classList.add('hidden');
+ fab.addEventListener('click',open);close?.addEventListener('click',shut);
+ document.querySelectorAll('[data-prompt]').forEach(b=>b.addEventListener('click',()=>askKORbuildAI(b.dataset.prompt)));
+ form?.addEventListener('submit',e=>{e.preventDefault();const q=input?.value.trim();if(q){askKORbuildAI(q);input.value='';}});
+ function add(text,type){const el=document.createElement('div');el.className='kor-ai-message '+type;el.textContent=text;messages?.appendChild(el);messages?.scrollTo({top:messages.scrollHeight,behavior:'smooth'});}
+ function askKORbuildAI(q){
+   open();add(q,'user');
+   // Phase 1 UI intelligence. The real model/backend connector will replace this responder.
+   const p=String(q).toLowerCase();
+   let answer='I’m ready to help. In the next phase I’ll connect to your authorized KORbuild data so I can provide contextual analysis and actionable insights.';
+   if(p.includes('dashboard')) answer='This dashboard summarizes your current open period: people, evaluations, pending items, occurrences and performance distribution. I’ll soon be able to explain each indicator using your live workspace data.';
+   else if(p.includes('attention')) answer='I can help identify pending evaluations, negative movements and other items that require attention. The next phase will connect this assistant to authorized workspace data.';
+   else if(p.includes('performance')||p.includes('summarize')) answer='I can summarize performance patterns and highlight trends. For now this is the KORbuild AI experience layer; live analytical answers come with the backend connection.';
+   setTimeout(()=>add(answer,'ai'),350);
+ }
+}
+const __korInit=document.querySelector('#kor-ai-fab'); if(__korInit) initKORbuildAI();
