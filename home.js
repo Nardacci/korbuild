@@ -46,12 +46,13 @@ function renderTrialStatus(data){
  }
 }
 function setDemoBadgeVisible(visible){
- const badge=$('logo-demo-badge');
- if(!badge)return;
- // DEMO is visible only while this company is actively in Trial.
+ // Global fail-closed branding state: DEMO is a Trial indicator, never a static label.
  const show=visible===true;
- badge.classList.toggle('hidden',!show);
- badge.style.display=show?'inline-flex':'none';
+ document.body.classList.toggle('trial-active',show);
+ document.querySelectorAll('.logo-demo').forEach(badge=>{
+   badge.classList.toggle('hidden',!show);
+   badge.style.display=show?'inline-flex':'none';
+ });
 }
 
 async function loadProfile(){
