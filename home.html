@@ -31,6 +31,23 @@
       </div>
     </header>
 
+    <!-- Temporary development diagnostic panel: remove before production launch -->
+    <section class="commercial-debug-panel" id="commercial-debug-panel">
+      <div class="commercial-debug-head">
+        <div><small>DEVELOPMENT DIAGNOSTIC</small><strong>Commercial state verification</strong></div>
+        <span id="commercial-debug-decision" class="commercial-debug-badge">CHECKING…</span>
+      </div>
+      <div class="commercial-debug-grid">
+        <div><small>Logged user</small><b id="debug-user">—</b></div>
+        <div><small>Company</small><b id="debug-company">—</b></div>
+        <div><small>Company ID</small><code id="debug-company-id">—</code></div>
+        <div><small>Commercial status</small><b id="debug-status">—</b></div>
+        <div><small>Trial enabled</small><b id="debug-trial-enabled">—</b></div>
+        <div><small>Activation source</small><b id="debug-activation-source">—</b></div>
+        <div class="commercial-debug-wide"><small>Backend result / error</small><code id="debug-backend">Waiting for RPC…</code></div>
+      </div>
+    </section>
+
     <section class="trial-status-card hidden" id="trial-status-card">
       <div class="trial-status-icon" id="trial-status-icon">✦</div>
       <div class="trial-status-copy">
@@ -146,5 +163,5 @@
   <button class="copilot" title="KORbuild Copilot">✦</button>
 </div>
 <script src="supabase-config.js?v=1.2.8"></script>
-<script src="home.js?v=1.3.2"></script>
+<script src="home.js?v=1.3.3"></script>
 </body></html>
