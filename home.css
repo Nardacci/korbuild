@@ -213,3 +213,13 @@
 .health-action:hover{background:#fffaf0}
 @media(max-width:900px){.workspace-health-grid{grid-template-columns:1fr}}
 @media(max-width:700px){.health-card{align-items:flex-start;flex-wrap:wrap}.health-action{width:100%;text-align:center}}
+
+/* V1.2.6 — Trial lifecycle status */
+.trial-status-card{margin-top:18px;background:linear-gradient(110deg,#f6f5ff,#fff);border:1px solid #dcd9ff;border-radius:16px;padding:17px 20px;display:flex;align-items:center;gap:15px;box-shadow:var(--shadow)}
+.trial-status-icon{width:48px;height:48px;border-radius:14px;background:#eeecff;color:#5d54e8;display:grid;place-items:center;font-size:22px;font-weight:800;flex:none}
+.trial-status-copy{flex:1;min-width:0}.trial-status-copy small{display:block;font-size:9px;font-weight:800;letter-spacing:.14em;color:#635bff;margin-bottom:4px}.trial-status-copy strong{display:block;font-size:16px}.trial-status-copy p{margin:5px 0 0;color:var(--muted);font-size:11px;line-height:1.45}
+.trial-countdown{min-width:92px;text-align:center;border-left:1px solid #e3e1f4;padding-left:16px}.trial-countdown strong{display:block;font-size:28px;line-height:1;color:#5148df}.trial-countdown span{display:block;margin-top:4px;font-size:10px;font-weight:700;color:#6e6a91}
+.trial-action{border:1px solid #cfcaff;background:#fff;border-radius:9px;padding:10px 13px;font-size:10px;font-weight:700;color:#554ce3;white-space:nowrap}.trial-action:hover{background:#f5f4ff}
+.trial-status-card.grace{background:linear-gradient(110deg,#fffaf0,#fff);border-color:#efd9a8}.trial-status-card.grace .trial-status-icon{background:#fff2d9;color:#c17b12}.trial-status-card.grace .trial-status-copy small,.trial-status-card.grace .trial-countdown strong{color:#bd7a15}.trial-status-card.grace .trial-action{border-color:#ead19e;color:#a86a0c}
+.trial-status-card.blocked{background:linear-gradient(110deg,#fff4f4,#fff);border-color:#efc8c8}.trial-status-card.blocked .trial-status-icon{background:#ffebeb;color:#d55252}.trial-status-card.blocked .trial-status-copy small,.trial-status-card.blocked .trial-countdown strong{color:#c94d4d}.trial-status-card.blocked .trial-action{border-color:#e7bcbc;color:#bc4444}
+@media(max-width:700px){.trial-status-card{align-items:flex-start;flex-wrap:wrap;padding:15px}.trial-status-copy{min-width:calc(100% - 64px)}.trial-countdown{border-left:0;border-top:1px solid #e3e1f4;padding:12px 0 0;min-width:0;flex:1;text-align:left}.trial-status-card .trial-action{width:100%;text-align:center}}
