@@ -9,7 +9,7 @@ function setText(id,value){const el=$(id);if(el)el.textContent=value}
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function renderTrialStatus(data){
  const card=$('trial-status-card');if(!card)return;
- if(!data||['ACTIVE','SETUP_REQUIRED'].includes(data.status)){card.classList.add('hidden');return}
+ if(!data){console.warn('Trial status returned no data');card.classList.add('hidden');return}
  card.classList.remove('hidden');
  const status=data.status||'TRIALING',days=Math.max(0,Number(data.days_remaining)||0);
  const icon=$('trial-status-icon'),eyebrow=$('trial-eyebrow'),title=$('trial-title'),message=$('trial-message'),count=$('trial-days'),label=$('trial-days-label'),action=$('trial-action');
@@ -39,7 +39,8 @@ function renderTrialStatus(data){
 }
 async function loadTrialStatus(){
  const {data,error}=await db.rpc('get_workspace_access_status');
- if(error){console.warn('Trial status unavailable',error.message);return}
+ if(error){console.warn('Trial status unavailable',error.message,error);return}
+ console.info('KORbuild trial status',data);
  renderTrialStatus(data);
 }
 
