@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>KORbuild · Billing</title>
+<link rel="stylesheet" href="billing.css?v=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app-config.js?v=1.2.2"></script>
+</head>
+<body class="app-body">
+<div class="app-shell">
+  <aside class="sidebar">
+    <a class="side-brand" href="home.html"><div class="mini-mark">K</div><div>KOR<span>build</span></div><span class="demo-badge logo-demo">DEMO</span></a>
+    <nav></nav>
+    <div class="side-bottom"><a class="nav-item" href="setup.html"><span>⚙</span>Workspace Setup</a></div>
+  </aside>
+  <main class="main-content billing-main">
+    <header class="topbar">
+      <div class="topbar-page-context"><strong>Billing & Subscription</strong><small>Manage your KORbuild access.</small></div>
+      <div class="user-menu-wrap">
+        <button id="user-menu-btn" class="user-menu-btn" aria-expanded="false">
+          <span class="user-copy"><strong id="user-name">Owner</strong><small id="user-email"></small></span>
+          <span class="avatar" id="user-avatar">O</span><span class="chevron">⌄</span>
+        </button>
+        <div id="user-menu" class="user-menu hidden"></div>
+      </div>
+    </header>
+
+    <section class="billing-hero">
+      <div><small class="eyebrow">BILLING & SUBSCRIPTION</small><h1>Your KORbuild access.</h1><p id="billing-subtitle">Manage your subscription and keep your workspace active.</p></div>
+    </section>
+
+    <section id="status-card" class="status-card loading">
+      <div class="status-icon" id="status-icon">◷</div>
+      <div class="status-copy"><small id="status-eyebrow">CHECKING SUBSCRIPTION</small><strong id="status-title">Loading your subscription...</strong><p id="status-message">Please wait while we check your workspace access.</p></div>
+      <div class="status-metric"><strong id="status-days">—</strong><span id="status-days-label">days</span></div>
+    </section>
+
+    <section class="subscription-layout">
+      <article class="plan-card">
+        <div class="plan-top"><div><small>KORBUILD SUBSCRIPTION</small><h2>Full platform access</h2></div><span class="plan-badge">ONE PLAN</span></div>
+        <p class="plan-description">Everything KORbuild offers, with no feature restrictions.</p>
+        <ul class="features">
+          <li><span>✓</span> Unlimited access to all KORbuild features</li>
+          <li><span>✓</span> Teams & People management</li>
+          <li><span>✓</span> Evaluations and Evaluation Periods</li>
+          <li><span>✓</span> Bonus Cycles and Settlement</li>
+          <li><span>✓</span> Reports and operational records</li>
+        </ul>
+        <div class="price-row"><strong id="price">$ —</strong><span>/ month</span></div>
+        <button id="subscribe-btn" class="subscribe-btn" disabled>Subscribe now <span>→</span></button>
+        <p class="provider-note">Secure payment processing by Mercado Pago.</p>
+      </article>
+
+      <aside class="billing-info">
+        <article class="info-card">
+          <small>HOW IT WORKS</small>
+          <div class="info-step"><b>1</b><div><strong>Choose to subscribe</strong><p>Continue with the KORbuild monthly subscription.</p></div></div>
+          <div class="info-step"><b>2</b><div><strong>Complete payment securely</strong><p>You will be redirected to Mercado Pago.</p></div></div>
+          <div class="info-step"><b>3</b><div><strong>Keep full access</strong><p>Your subscription is activated after payment confirmation.</p></div></div>
+        </article>
+        <article class="info-card muted"><small>YOUR DATA</small><p>Your workspace and operational data remain preserved even if your access is temporarily paused.</p></article>
+      </aside>
+    </section>
+  </main>
+  <div class="app-version">KORbuild · Development environment</div>
+</div>
+<script src="supabase-config.js?v=1.3.0"></script>
+<script src="billing.js?v=1"></script>
+</body>
+</html>
