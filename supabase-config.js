@@ -38,6 +38,60 @@ document.addEventListener('click', async (event) => {
 
 
 
+
+// V1.3.0 — Central workspace access guard.
+// Subscription access is checked before protected application pages are revealed.
+// Setup remains accessible so a new user can complete provisioning; Billing remains
+// accessible so a blocked user can regularize the subscription.
+(function initKORbuildAccessGuard(){
+  const publicPages=new Set([
+    'index.html','index-v2.html','signup.html','signup-complete.html','check-email.html'
+  ]);
+  const allowedPages=new Set(['setup.html','billing.html']);
+  const currentPage=(location.pathname.split('/').pop()||'index.html').toLowerCase();
+  if(publicPages.has(currentPage)||!window.supabase||!window.KORBUILD_SUPABASE)return;
+
+  document.documentElement.style.visibility='hidden';
+
+  const check=async()=>{
+    const client=window.supabase.createClient(
+      window.KORBUILD_SUPABASE.url,
+      window.KORBUILD_SUPABASE.publishableKey,
+      {auth:{persistSession:true,autoRefreshToken:true}}
+    );
+
+    const {data:{session},error:sessionError}=await client.auth.getSession();
+    if(sessionError||!session?.user){
+      location.replace('index.html');
+      return {status:'UNAUTHENTICATED',access:'BLOCKED'};
+    }
+
+    const {data:access,error:accessError}=await client.rpc('get_workspace_access_status');
+    if(accessError){
+      console.error('KORbuild access check failed',accessError);
+      document.documentElement.style.visibility='visible';
+      return null;
+    }
+
+    window.KORBUILD_ACCESS_STATUS=access;
+    document.dispatchEvent(new CustomEvent('korbuild:access-status',{detail:access}));
+
+    if(access?.access==='BLOCKED' && !allowedPages.has(currentPage)){
+      location.replace('billing.html');
+      return access;
+    }
+
+    document.documentElement.style.visibility='visible';
+    return access;
+  };
+
+  window.KORBUILD_ACCESS_READY=check().catch(error=>{
+    console.error('KORbuild access guard failed',error);
+    document.documentElement.style.visibility='visible';
+    return null;
+  });
+})();
+
 // V1.2.8 — operational readiness gate for Periods.
 // Periods require at least one active Team and one active Person.
 async function applyPeriodReadiness(){
