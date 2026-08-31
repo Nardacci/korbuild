@@ -1,7 +1,7 @@
 const {url,publishableKey}=window.KORBUILD_SUPABASE;
 const db=window.supabase.createClient(url,publishableKey,{auth:{persistSession:true,autoRefreshToken:true}});
 const $=id=>document.getElementById(id);
-const state={companyId:null,people:[],teams:[],period:null,launches:[],scores:new Map()};
+const state={companyId:null,profile:null,people:[],teams:[],period:null,launches:[],scores:new Map(),aiContext:null};
 const fmtDate=s=>new Date(s+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
 const fmtPts=n=>Number(n||0).toLocaleString('en-US')+' pts';
 const pct=(n,total)=>total?Math.round(n/total*100):0;
@@ -65,6 +65,7 @@ async function loadProfile(){
  ['user-email','menu-full-email'].forEach(id=>setText(id,session.user.email||''));
  ['user-avatar','menu-avatar'].forEach(id=>setText(id,initial));
  state.companyId=profile.empresa_id;
+ state.profile={name,companyName:profile.empresas?.name||'KORbuild workspace'};
  return profile;
 }
 
@@ -146,11 +147,80 @@ async function loadData(){
  const [peopleRes,teamsRes,periodRes]=await Promise.all([db.from('colaboradores').select('id,name,specialty,equipe_id,active').eq('empresa_id',state.companyId).order('name'),db.from('equipes').select('id,name,active').eq('empresa_id',state.companyId).order('name'),db.from('periodos').select('id,start_date,end_date,week_number,status').eq('empresa_id',state.companyId).eq('status','ABERTO').order('start_date',{ascending:true}).limit(1)]);
  if(peopleRes.error||teamsRes.error||periodRes.error)throw(peopleRes.error||teamsRes.error||periodRes.error);
  state.people=peopleRes.data||[];state.teams=teamsRes.data||[];state.period=(periodRes.data||[])[0]||null;renderWorkspaceHealth();renderPeriod();
- if(!state.period){renderSnapshot([]);return}
+ if(!state.period){renderSnapshot([]);refreshAIContext();return}
  const {data:launches,error:le}=await db.from('lancamentos').select('id,colaborador_id,equipe_id').eq('periodo_id',state.period.id);if(le)throw le;state.launches=launches||[];
  const ids=state.launches.map(x=>x.id);state.scores=new Map();
  if(ids.length){const {data:occ,error:oe}=await db.from('ocorrencias').select('lancamento_id,quantity,points,tipos_ocorrencia(occurrence_type)').in('lancamento_id',ids);if(oe)throw oe;(occ||[]).forEach(o=>{const id=o.lancamento_id,qty=Math.max(0,Number(o.quantity)||0),sign=o.tipos_ocorrencia?.occurrence_type==='NEGATIVA'?-1:1,score=sign*Math.abs(Number(o.points)||0)*qty,cur=state.scores.get(id)||{score:0,count:0};cur.score+=score;cur.count+=qty;state.scores.set(id,cur);});}
  renderSnapshot(scoreRows());
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// KORbuild AI Context Engine — Dashboard v1
+// The assistant receives a controlled, company-scoped summary instead of direct
+// database access. This is the contract that an LLM backend will consume later.
+// ─────────────────────────────────────────────────────────────────────────────
+function buildAIContext(){
+ const rows=scoreRows();
+ const eligible=rows.length;
+ const evaluated=rows.filter(r=>r.count>0).length;
+ const pending=Math.max(0,eligible-evaluated);
+ const occurrences=rows.reduce((sum,r)=>sum+r.count,0);
+ const positivePoints=rows.reduce((sum,r)=>sum+Math.max(0,r.score),0);
+ const negativePoints=rows.reduce((sum,r)=>sum+Math.min(0,r.score),0);
+ const activeTeams=state.teams.filter(t=>t.active===true).length;
+ let period=null;
+ if(state.period){
+   const start=new Date(state.period.start_date+'T00:00:00');
+   const end=new Date(state.period.end_date+'T00:00:00');
+   const today=new Date();today.setHours(0,0,0,0);
+   const total=Math.max(1,Math.round((end-start)/86400000)+1);
+   const elapsed=Math.max(0,Math.min(total,Math.round((today-start)/86400000)+1));
+   period={
+     week:state.period.week_number,
+     start:state.period.start_date,
+     end:state.period.end_date,
+     progress:Math.round(elapsed/total*100),
+     daysRemaining:Math.max(0,Math.round((end-today)/86400000))
+   };
+ }
+ return {
+   version:'1.0',
+   page:'dashboard',
+   generatedAt:new Date().toISOString(),
+   workspace:{
+     companyId:state.companyId,
+     companyName:state.profile?.companyName||'KORbuild workspace',
+     userName:state.profile?.name||'User'
+   },
+   period,
+   metrics:{eligible,evaluated,pending,occurrences,activeTeams,positivePoints,negativePoints},
+   signals:{
+     health:pending===0?'healthy':'attention',
+     evaluationRate:eligible?Math.round(evaluated/eligible*100):0,
+     hasOpenPeriod:!!period
+   }
+ };
+}
+function refreshAIContext(){
+ state.aiContext=buildAIContext();
+ const badge=$('kor-ai-context');
+ if(badge){
+   const c=state.aiContext;
+   const status=c.signals.health==='healthy'?'Workspace context loaded':'Attention required';
+   badge.innerHTML='<span>●</span> '+status;
+ }
+ console.info('KORbuild AI context ready',state.aiContext);
+}
+function contextSummary(c=state.aiContext){
+ if(!c)return 'I am still loading your workspace context.';
+ const m=c.metrics,p=c.period;
+ const lines=[];
+ lines.push(c.workspace.companyName+' workspace');
+ if(p)lines.push('Week '+p.week+' is '+p.progress+'% complete with '+p.daysRemaining+' day'+(p.daysRemaining===1?'':'s')+' remaining');
+ else lines.push('There is currently no open period');
+ lines.push(m.eligible+' eligible people · '+m.evaluated+' evaluated · '+m.pending+' pending');
+ lines.push(m.occurrences+' occurrence'+(m.occurrences===1?'':'s')+' · '+m.activeTeams+' active team'+(m.activeTeams===1?'':'s'));
+ return lines.join('. ');
 }
 function initMenu(){$('user-menu-btn')?.addEventListener('click',e=>{e.stopPropagation();$('user-menu')?.classList.toggle('hidden')});document.addEventListener('click',e=>{if(!e.target.closest('.user-menu-wrap'))$('user-menu')?.classList.add('hidden')});$('menu-logout')?.addEventListener('click',async()=>{await db.auth.signOut();location.href='index.html'});}
 (async()=>{try{const p=await loadProfile();if(p){initMenu();await Promise.all([loadData(),loadTrialStatus()])}}catch(e){console.error('Dashboard load failed',e);}})();
@@ -163,15 +233,22 @@ function initKORbuildAI(){
  document.querySelectorAll('[data-prompt]').forEach(b=>b.addEventListener('click',()=>askKORbuildAI(b.dataset.prompt)));
  form?.addEventListener('submit',e=>{e.preventDefault();const q=input?.value.trim();if(q){askKORbuildAI(q);input.value='';}});
  function add(text,type){const el=document.createElement('div');el.className='kor-ai-message '+type;el.textContent=text;messages?.appendChild(el);messages?.scrollTo({top:messages.scrollHeight,behavior:'smooth'});}
+ function answerFromContext(q){
+   const c=state.aiContext;if(!c)return 'I’m loading the authorized workspace context. Please try again in a moment.';
+   const p=String(q).toLowerCase(),m=c.metrics,period=c.period;
+   const periodText=period?'Week '+period.week+' is '+period.progress+'% complete, with '+period.daysRemaining+' day'+(period.daysRemaining===1?'':'s')+' remaining.':'There is no open period right now.';
+   if(p.includes('dashboard')||p.includes('explain')) return 'Here is the current picture: '+contextSummary(c)+'. The dashboard combines operational progress, evaluation status, occurrences and team activity for your company.';
+   if(p.includes('attention')||p.includes('require')||p.includes('pending')) return m.pending===0?'Good news: there are currently no pending evaluations. '+periodText:'The main item requiring attention is '+m.pending+' pending evaluation'+(m.pending===1?'':'s')+'. '+periodText;
+   if(p.includes('performance')||p.includes('summarize')||p.includes('summary')) return 'Current performance summary: '+m.evaluated+' of '+m.eligible+' eligible people evaluated ('+c.signals.evaluationRate+'%). '+m.occurrences+' occurrence'+(m.occurrences===1?'':'s')+' recorded. Points balance: +'+m.positivePoints+' positive and '+m.negativePoints+' negative. '+periodText;
+   if(p.includes('period')||p.includes('week')) return periodText;
+   if(p.includes('team')) return 'You currently have '+m.activeTeams+' active team'+(m.activeTeams===1?'':'s')+' in this workspace.';
+   if(p.includes('people')||p.includes('collaborator')||p.includes('employee')) return 'There are '+m.eligible+' eligible people. '+m.evaluated+' have been evaluated and '+m.pending+' remain pending.';
+   return 'Based on the current authorized context: '+contextSummary(c)+'. I can explain the dashboard, attention items, performance, people, teams or the current period.';
+ }
  function askKORbuildAI(q){
    open();add(q,'user');
-   // Phase 1 UI intelligence. The real model/backend connector will replace this responder.
-   const p=String(q).toLowerCase();
-   let answer='I’m ready to help. In the next phase I’ll connect to your authorized KORbuild data so I can provide contextual analysis and actionable insights.';
-   if(p.includes('dashboard')) answer='This dashboard summarizes your current open period: people, evaluations, pending items, occurrences and performance distribution. I’ll soon be able to explain each indicator using your live workspace data.';
-   else if(p.includes('attention')) answer='I can help identify pending evaluations, negative movements and other items that require attention. The next phase will connect this assistant to authorized workspace data.';
-   else if(p.includes('performance')||p.includes('summarize')) answer='I can summarize performance patterns and highlight trends. For now this is the KORbuild AI experience layer; live analytical answers come with the backend connection.';
-   setTimeout(()=>add(answer,'ai'),350);
+   const answer=answerFromContext(q);
+   setTimeout(()=>add(answer,'ai'),280);
  }
 }
 const __korInit=document.querySelector('#kor-ai-fab'); if(__korInit) initKORbuildAI();
