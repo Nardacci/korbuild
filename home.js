@@ -152,6 +152,7 @@ async function loadData(){
  const ids=state.launches.map(x=>x.id);state.scores=new Map();
  if(ids.length){const {data:occ,error:oe}=await db.from('ocorrencias').select('lancamento_id,quantity,points,tipos_ocorrencia(occurrence_type)').in('lancamento_id',ids);if(oe)throw oe;(occ||[]).forEach(o=>{const id=o.lancamento_id,qty=Math.max(0,Number(o.quantity)||0),sign=o.tipos_ocorrencia?.occurrence_type==='NEGATIVA'?-1:1,score=sign*Math.abs(Number(o.points)||0)*qty,cur=state.scores.get(id)||{score:0,count:0};cur.score+=score;cur.count+=qty;state.scores.set(id,cur);});}
  renderSnapshot(scoreRows());
+ refreshAIContext();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
