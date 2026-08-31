@@ -28,7 +28,7 @@
       $('status-title').textContent='Your KORbuild access is paused';
       $('status-message').textContent='Subscribe to reactivate your workspace and continue where you left off.';
       metric.textContent='—';metricLabel.textContent='payment required';
-      $('billing-subtitle').textContent='Your workspace is محفوظ and ready to continue after subscription activation.';
+      $('billing-subtitle').textContent='Your workspace data is preserved and ready to continue after subscription activation.';
     }else if(access?.status==='ACTIVE'||phase==='ACTIVE'){
       card.classList.add('active');
       $('status-icon').textContent='✓';$('status-eyebrow').textContent='SUBSCRIPTION ACTIVE';
