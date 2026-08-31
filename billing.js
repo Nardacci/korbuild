@@ -51,12 +51,26 @@
     $('user-email').textContent=session.user.email||'';
     const name=session.user.user_metadata?.full_name||session.user.email?.split('@')[0]||'Owner';
     $('user-name').textContent=name;$('user-avatar').textContent=name.charAt(0).toUpperCase();
-    const [{data:price,error:priceError},{data:access,error:accessError}]=await Promise.all([
+    const [priceResult, accessResult] = await Promise.all([
       client.rpc('get_company_commercial_price'),
-      window.KORBUILD_ACCESS_READY?window.KORBUILD_ACCESS_READY:client.rpc('get_workspace_access_status').then(r=>r.data)
+      window.KORBUILD_ACCESS_READY
+        ? window.KORBUILD_ACCESS_READY
+        : client.rpc('get_workspace_access_status')
     ]);
-    if(priceError)throw priceError;if(accessError)throw accessError;
-    commercial=price||{};renderStatus(access);
+
+    const price = priceResult?.data ?? priceResult;
+    const priceError = priceResult?.error || null;
+
+    // KORBUILD_ACCESS_READY resolves the access object directly,
+    // while Supabase RPC resolves { data, error }. Normalize both shapes.
+    const access = accessResult?.data ?? accessResult;
+    const accessError = accessResult?.error || null;
+
+    if(priceError)throw priceError;
+    if(accessError)throw accessError;
+
+    commercial=price||{};
+    renderStatus(access);
     $('subscribe-btn').addEventListener('click',()=>{console.log('Checkout flow pending Mercado Pago integration');});
   }catch(error){console.error('Billing initialization failed',error);}
   const btn=$('user-menu-btn'),menu=$('user-menu');if(btn&&menu)btn.addEventListener('click',()=>menu.classList.toggle('hidden'));
