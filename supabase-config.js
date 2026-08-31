@@ -150,3 +150,9 @@ async function applyPeriodReadiness(){
 window.applyKORbuildPeriodReadiness=applyPeriodReadiness;
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(applyPeriodReadiness,0),{once:true});
 else setTimeout(applyPeriodReadiness,0);
+
+// Private KORbuild commercial administration entry — rendered only for SUPER_ADMIN.
+(function initCommercialAdminEntry(){
+ const add=async()=>{try{const cfg=window.KORBUILD_SUPABASE;if(!cfg||!window.supabase)return;const c=window.supabase.createClient(cfg.url,cfg.publishableKey,{auth:{persistSession:true,autoRefreshToken:true}});const {data}=await c.rpc('is_korbuild_super_admin');if(!data)return;const menu=document.getElementById('user-menu');if(menu&&!menu.querySelector('[href="commercial-admin.html"]')){const link=document.createElement('a');link.className='menu-item';link.href='commercial-admin.html';link.textContent='🔐 Commercial Administration';const logout=menu.querySelector('#menu-logout');menu.insertBefore(link,logout||null);}}catch(e){console.warn('Commercial admin check failed',e);}};
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(add,50),{once:true});else setTimeout(add,50);
+})();
