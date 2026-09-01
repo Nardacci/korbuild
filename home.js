@@ -185,7 +185,7 @@ function buildAIContext(){
    };
  }
  return {
-   version:'1.0',
+   version:'2.0',
    page:'dashboard',
    generatedAt:new Date().toISOString(),
    workspace:{
@@ -199,8 +199,19 @@ function buildAIContext(){
      health:pending===0?'healthy':'attention',
      evaluationRate:eligible?Math.round(evaluated/eligible*100):0,
      hasOpenPeriod:!!period
-   }
+   },
+   insights:buildAIInsights({eligible,evaluated,pending,occurrences,activeTeams,period})
  };
+}
+function buildAIInsights({eligible,evaluated,pending,occurrences,activeTeams,period}){
+ const insights=[];
+ if(!period) insights.push({level:'attention',type:'no_open_period',message:'There is no open evaluation period. Create the next period to start operations.'});
+ if(pending>0) insights.push({level:'attention',type:'pending_evaluations',message:pending+' evaluation'+(pending===1?' is':'s are')+' still pending.'});
+ if(period&&period.daysRemaining<=1) insights.push({level:'attention',type:'deadline',message:period.daysRemaining===0?'The current period ends today.':'The current period ends tomorrow.'});
+ if(activeTeams===0) insights.push({level:'setup',type:'no_teams',message:'No active teams are configured yet.'});
+ if(eligible===0) insights.push({level:'setup',type:'no_people',message:'No eligible people are configured yet.'});
+ if(insights.length===0) insights.push({level:'healthy',type:'all_clear',message:'No critical operational attention points were detected.'});
+ return insights;
 }
 function refreshAIContext(){
  state.aiContext=buildAIContext();
@@ -234,17 +245,38 @@ function initKORbuildAI(){
  document.querySelectorAll('[data-prompt]').forEach(b=>b.addEventListener('click',()=>askKORbuildAI(b.dataset.prompt)));
  form?.addEventListener('submit',e=>{e.preventDefault();const q=input?.value.trim();if(q){askKORbuildAI(q);input.value='';}});
  function add(text,type){const el=document.createElement('div');el.className='kor-ai-message '+type;el.textContent=text;messages?.appendChild(el);messages?.scrollTo({top:messages.scrollHeight,behavior:'smooth'});}
+ function classifyAIIntent(q){
+   const text=String(q||'').toLowerCase().trim();
+   const intents=[
+     ['dashboard',['dashboard','explain','picture','overview','what is happening']],
+     ['attention',['attention','require','pending','urgent','problem','issue','wrong','should i do','what should']],
+     ['performance',['performance','summarize','summary','progress','how are we doing','status']],
+     ['period',['period','week','deadline','ends','ending','remaining']],
+     ['teams',['team','teams']],
+     ['people',['people','person','collaborator','employee','employees','staff']]
+   ];
+   let best='general',score=0;
+   intents.forEach(([intent,words])=>{
+     const s=words.reduce((n,w)=>n+(text.includes(w)?1:0),0);
+     if(s>score){best=intent;score=s;}
+   });
+   return best;
+ }
  function answerFromContext(q){
    const c=state.aiContext;if(!c)return 'I’m loading the authorized workspace context. Please try again in a moment.';
-   const p=String(q).toLowerCase(),m=c.metrics,period=c.period;
+   const m=c.metrics,period=c.period,intent=classifyAIIntent(q);
    const periodText=period?'Week '+period.week+' is '+period.progress+'% complete, with '+period.daysRemaining+' day'+(period.daysRemaining===1?'':'s')+' remaining.':'There is no open period right now.';
-   if(p.includes('dashboard')||p.includes('explain')) return 'Here is the current picture: '+contextSummary(c)+'. The dashboard combines operational progress, evaluation status, occurrences and team activity for your company.';
-   if(p.includes('attention')||p.includes('require')||p.includes('pending')) return m.pending===0?'Good news: there are currently no pending evaluations. '+periodText:'The main item requiring attention is '+m.pending+' pending evaluation'+(m.pending===1?'':'s')+'. '+periodText;
-   if(p.includes('performance')||p.includes('summarize')||p.includes('summary')) return 'Current performance summary: '+m.evaluated+' of '+m.eligible+' eligible people evaluated ('+c.signals.evaluationRate+'%). '+m.occurrences+' occurrence'+(m.occurrences===1?'':'s')+' recorded. Points balance: +'+m.positivePoints+' positive and '+m.negativePoints+' negative. '+periodText;
-   if(p.includes('period')||p.includes('week')) return periodText;
-   if(p.includes('team')) return 'You currently have '+m.activeTeams+' active team'+(m.activeTeams===1?'':'s')+' in this workspace.';
-   if(p.includes('people')||p.includes('collaborator')||p.includes('employee')) return 'There are '+m.eligible+' eligible people. '+m.evaluated+' have been evaluated and '+m.pending+' remain pending.';
-   return 'Based on the current authorized context: '+contextSummary(c)+'. I can explain the dashboard, attention items, performance, people, teams or the current period.';
+   const attention=c.insights.filter(i=>i.level==='attention');
+   if(intent==='dashboard') return 'Here is the current picture: '+contextSummary(c)+'. The dashboard combines operational progress, evaluation status, occurrences and team activity for your company.';
+   if(intent==='attention'){
+     if(!attention.length)return 'Everything looks under control right now. '+periodText;
+     return 'Here is what deserves attention: '+attention.map(i=>i.message).join(' ')+' '+periodText;
+   }
+   if(intent==='performance') return 'Current performance summary: '+m.evaluated+' of '+m.eligible+' eligible people evaluated ('+c.signals.evaluationRate+'%). '+m.occurrences+' occurrence'+(m.occurrences===1?'':'s')+' recorded. Points balance: +'+m.positivePoints+' positive and '+m.negativePoints+' negative. '+periodText;
+   if(intent==='period') return periodText;
+   if(intent==='teams') return 'You currently have '+m.activeTeams+' active team'+(m.activeTeams===1?'':'s')+' in this workspace.';
+   if(intent==='people') return 'There are '+m.eligible+' eligible people. '+m.evaluated+' have been evaluated and '+m.pending+' remain pending.';
+   return 'Based on the current authorized context: '+contextSummary(c)+'. Current insight: '+(c.insights?.[0]?.message||'No critical attention points detected.')+' I can help explain the dashboard, priorities, performance, people, teams or the current period.';
  }
  function askKORbuildAI(q){
    open();add(q,'user');
