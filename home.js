@@ -237,12 +237,18 @@ function contextSummary(c=state.aiContext){
 function initMenu(){$('user-menu-btn')?.addEventListener('click',e=>{e.stopPropagation();$('user-menu')?.classList.toggle('hidden')});document.addEventListener('click',e=>{if(!e.target.closest('.user-menu-wrap'))$('user-menu')?.classList.add('hidden')});$('menu-logout')?.addEventListener('click',async()=>{await db.auth.signOut();location.href='index.html'});}
 (async()=>{try{const p=await loadProfile();if(p){initMenu();await Promise.all([loadData(),loadTrialStatus()])}}catch(e){console.error('Dashboard load failed',e);}})();
 function initKORbuildAI(){
- const fab=$('kor-ai-fab'),panel=$('kor-ai-panel'),close=$('kor-ai-close'),form=$('kor-ai-form'),input=$('kor-ai-input'),messages=$('kor-ai-messages');
+ const fab=$('kor-ai-fab'),panel=$('kor-ai-panel'),close=$('kor-ai-close'),form=$('kor-ai-form'),input=$('kor-ai-input'),messages=$('kor-ai-messages'),insightList=$('kor-ai-insight-list');
  if(!fab||!panel)return;
  const open=()=>{panel.classList.remove('hidden');input?.focus()};
  const shut=()=>panel.classList.add('hidden');
  fab.addEventListener('click',open);close?.addEventListener('click',shut);
  document.querySelectorAll('[data-prompt]').forEach(b=>b.addEventListener('click',()=>askKORbuildAI(b.dataset.prompt)));
+ insightList?.addEventListener('click',e=>{
+   const button=e.target.closest('[data-ai-insight]');if(!button)return;
+   const items=[...(state.aiContext?.insights||[])].sort((a,b)=>({attention:0,setup:1,healthy:2}[a.level]??9)-({attention:0,setup:1,healthy:2}[b.level]??9));
+   const item=items[Number(button.dataset.aiInsight)];
+   if(item)askKORbuildAI('Explain this operational insight: '+item.message);
+ });
  form?.addEventListener('submit',e=>{e.preventDefault();const q=input?.value.trim();if(q){askKORbuildAI(q);input.value='';}});
  function add(text,type){const el=document.createElement('div');el.className='kor-ai-message '+type;el.textContent=text;messages?.appendChild(el);messages?.scrollTo({top:messages.scrollHeight,behavior:'smooth'});}
  function classifyAIIntent(q){
@@ -262,15 +268,31 @@ function initKORbuildAI(){
    });
    return best;
  }
+ function recommendAIAction(insight,c){
+   if(!insight)return 'Continue monitoring the workspace.';
+   if(insight.type==='no_open_period')return 'Create the next evaluation period and define its dates before operations begin.';
+   if(insight.type==='pending_evaluations')return 'Review the pending evaluations and follow up with the responsible managers.';
+   if(insight.type==='deadline')return 'Prioritize closing pending evaluations before the period deadline.';
+   if(insight.type==='no_teams')return 'Create at least one active team so people and evaluations can be organized.';
+   if(insight.type==='no_people')return 'Add eligible people to the workspace before starting evaluations.';
+   return 'Continue monitoring the workspace.';
+ }
  function answerFromContext(q){
    const c=state.aiContext;if(!c)return 'I’m loading the authorized workspace context. Please try again in a moment.';
    const m=c.metrics,period=c.period,intent=classifyAIIntent(q);
+   const explicitInsight=String(q||'').toLowerCase().includes('operational insight');
    const periodText=period?'Week '+period.week+' is '+period.progress+'% complete, with '+period.daysRemaining+' day'+(period.daysRemaining===1?'':'s')+' remaining.':'There is no open period right now.';
    const attention=c.insights.filter(i=>i.level==='attention');
+   if(explicitInsight){
+     const match=c.insights.find(i=>String(q).toLowerCase().includes(i.message.toLowerCase()));
+     const insight=match||c.insights[0];
+     return insight.message+' Recommended next step: '+recommendAIAction(insight,c);
+   }
    if(intent==='dashboard') return 'Here is the current picture: '+contextSummary(c)+'. The dashboard combines operational progress, evaluation status, occurrences and team activity for your company.';
    if(intent==='attention'){
      if(!attention.length)return 'Everything looks under control right now. '+periodText;
-     return 'Here is what deserves attention: '+attention.map(i=>i.message).join(' ')+' '+periodText;
+     const next=attention[0];
+     return 'Here is what deserves attention: '+attention.map(i=>i.message).join(' ')+' Recommended next step: '+recommendAIAction(next,c)+' '+periodText;
    }
    if(intent==='performance') return 'Current performance summary: '+m.evaluated+' of '+m.eligible+' eligible people evaluated ('+c.signals.evaluationRate+'%). '+m.occurrences+' occurrence'+(m.occurrences===1?'':'s')+' recorded. Points balance: +'+m.positivePoints+' positive and '+m.negativePoints+' negative. '+periodText;
    if(intent==='period') return periodText;
