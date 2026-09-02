@@ -18,162 +18,21 @@
     <nav></nav>
     <div class="side-bottom"><a class="nav-item" href="setup.html"><span>⚙</span>Workspace Setup</a></div>
   </aside>
-
   <main class="main-content dashboard-main">
-    <header class="topbar dashboard-topbar">
-      <div class="topbar-page-context page-identity"><strong>Dashboard</strong><small>Overview of your current operational cycle and key performance indicators.</small></div>
-      <div class="user-menu-wrap">
-        <button id="user-menu-btn" class="user-menu-btn" aria-expanded="false">
-          <span class="user-copy"><strong id="user-name">Owner</strong><small id="user-email"></small></span>
-          <span class="avatar" id="user-avatar">O</span><span class="chevron">⌄</span>
-        </button>
-        <div id="user-menu" class="user-menu hidden"></div>
-      </div>
-    </header>
-
-    <section class="trial-status-card hidden" id="trial-status-card">
-      <div class="trial-status-icon" id="trial-status-icon">✦</div>
-      <div class="trial-status-copy">
-        <small id="trial-eyebrow">YOUR FREE TRIAL</small>
-        <strong id="trial-title">Your KORbuild trial is active</strong>
-        <p id="trial-message">You have full access to KORbuild.</p>
-      </div>
-      <div class="trial-countdown">
-        <strong id="trial-days">14</strong>
-        <span id="trial-days-label">days free</span>
-      </div>
-      <a href="billing.html" class="trial-action" id="trial-action">Subscribe now →</a>
-    </section>
-
-    <section class="period-hero" id="period-hero">
-      <div class="period-icon">▣</div>
-      <div class="period-copy">
-        <small>CURRENT OPEN PERIOD</small>
-        <strong id="current-period">No open period</strong>
-        <div class="period-progress-row"><div class="progress-track"><span id="period-progress"></span></div><b id="period-progress-label">—</b></div>
-        <p id="period-days">Prepare your next evaluation period to start the operation.</p>
-      </div>
-      <a class="outline-action" href="periods.html">▣ <span>View period details</span></a>
-    </section>
-
-
-    <section class="workspace-health-section" id="workspace-health">
-      <div class="section-heading"><div><small>WORKSPACE HEALTH</small><h2>Complete your workspace</h2><p>These foundations are not required for setup, but you'll need them before running team operations.</p></div></div>
-      <div class="workspace-health-grid">
-        <article class="health-card" id="health-teams">
-          <div class="health-icon">◇</div>
-          <div class="health-copy"><strong>Create your first team</strong><p>Organize your people before starting evaluations.</p></div>
-          <a href="teams.html" class="health-action">Create team →</a>
-        </article>
-        <article class="health-card" id="health-people">
-          <div class="health-icon">♙</div>
-          <div class="health-copy"><strong>Add your people</strong><p>Build your organization and prepare your first operational cycle.</p></div>
-          <a href="people.html" class="health-action">Add people →</a>
-        </article>
-      </div>
-    </section>
-
-    <section class="section-heading"><div><small>ATTENTION REQUIRED</small></div><a href="evaluations.html">View all</a></section>
-    <section class="attention-grid">
-      <article class="attention-card pending-card">
-        <div class="attention-icon danger">♙</div>
-        <div class="attention-copy"><strong id="attention-pending">0</strong><b>Pending evaluations</b><p>Collaborators still need attention</p></div>
-        <a href="evaluations.html" class="attention-action">Review now →</a>
-      </article>
-      <article class="attention-card deadline-card">
-        <div class="attention-icon warning">◷</div>
-        <div class="attention-copy"><strong id="days-remaining">—</strong><b id="deadline-title">No open period</b><p id="deadline-copy">Prepare a period to start weekly operations</p></div>
-        <a href="periods.html" class="attention-action amber">Go to periods →</a>
-      </article>
-    </section>
-
-    <section class="section-heading snapshot-heading"><div><small>WEEKLY SNAPSHOT</small></div></section>
-    <section class="snapshot-grid">
-      <article class="snapshot-card"><div class="snapshot-icon purple">♙</div><div><strong id="employees">0</strong><b>Eligible People</b><p>This period</p></div></article>
-      <article class="snapshot-card"><div class="snapshot-icon green">✓</div><div><strong id="evaluated">0</strong><b>Evaluated</b><p id="evaluated-meta">No data yet</p></div></article>
-      <article class="snapshot-card"><div class="snapshot-icon orange">◷</div><div><strong id="pending">0</strong><b>Pending</b><p id="pending-meta">No data yet</p></div></article>
-      <article class="snapshot-card"><div class="snapshot-icon blue">▤</div><div><strong id="occurrences">0</strong><b>Total Occurrences</b><p>This period</p></div></article>
-      <article class="snapshot-card"><div class="snapshot-icon purple">♧</div><div><strong id="teams">0</strong><b>Teams</b><p>Active</p></div></article>
-    </section>
-
-    <section class="dashboard-grid">
-      <article class="dashboard-panel performance-panel">
-        <div class="panel-title"><small>PERFORMANCE OVERVIEW</small></div>
-        <div class="performance-content">
-          <div class="donut" id="performance-donut"><div><strong id="performance-total">0</strong><span>People</span></div></div>
-          <div class="legend" id="performance-legend">
-            <div><span class="legend-dot high"></span><b>High Performance</b><em id="high-count">0 (0%)</em></div>
-            <div><span class="legend-dot track"></span><b>On Track</b><em id="track-count">0 (0%)</em></div>
-            <div><span class="legend-dot attention"></span><b>Attention Needed</b><em id="attention-count">0 (0%)</em></div>
-            <div><span class="legend-dot critical"></span><b>Critical</b><em id="critical-count">0 (0%)</em></div>
-          </div>
-        </div>
-        <a href="evaluations.html" class="panel-link">View evaluations →</a>
-      </article>
-
-      <article class="dashboard-panel points-panel">
-        <div class="panel-title"><small>POINTS SUMMARY</small></div>
-        <div class="points-grid">
-          <div class="point-card positive"><span>↗</span><strong id="positive-points">+0</strong><b>Positive Points</b><p>Current period</p></div>
-          <div class="point-card negative"><span>↘</span><strong id="negative-points">0</strong><b>Negative Points</b><p>Current period</p></div>
-        </div>
-        <a href="evaluations.html" class="panel-link">View detailed analysis →</a>
-      </article>
-
-      <article class="dashboard-panel people-panel">
-        <div class="panel-head"><small>TOP POSITIVE PERFORMERS</small><a href="evaluations.html">View all</a></div>
-        <div class="people-list" id="positive-list"><div class="empty-row">No positive movements in this period.</div></div>
-      </article>
-
-      <article class="dashboard-panel people-panel">
-        <div class="panel-head"><small>ATTENTION NEEDED</small><a href="evaluations.html">View all</a></div>
-        <div class="people-list" id="negative-list"><div class="empty-row">No negative movements in this period.</div></div>
-      </article>
-    </section>
-
-    <section class="quick-actions-panel">
-      <div class="panel-title"><small>QUICK ACTIONS</small></div>
-      <div class="quick-actions">
-        <a href="occurrences.html"><span class="qa-icon purple">＋</span><div><b>Manage Occurrences</b><small>Configure evaluation events</small></div></a>
-        <a href="people.html"><span class="qa-icon green">♙</span><div><b>Manage People</b><small>Add or edit collaborators</small></div></a>
-        <a href="evaluations.html"><span class="qa-icon blue">▣</span><div><b>View Evaluations</b><small>Browse current evaluations</small></div></a>
-        <a href="bonus-settlement.html"><span class="qa-icon orange">▤</span><div><b>Open Settlement</b><small>Process period settlement</small></div></a>
-      </div>
-    </section>
+    <header class="topbar dashboard-topbar"><div class="topbar-page-context page-identity"><strong>Dashboard</strong><small>Overview of your current operational cycle and key performance indicators.</small></div><div class="user-menu-wrap"><button id="user-menu-btn" class="user-menu-btn" aria-expanded="false"><span class="user-copy"><strong id="user-name">Owner</strong><small id="user-email"></small></span><span class="avatar" id="user-avatar">O</span><span class="chevron">⌄</span></button><div id="user-menu" class="user-menu hidden"></div></div></header>
+    <section class="trial-status-card hidden" id="trial-status-card"><div class="trial-status-icon" id="trial-status-icon">✦</div><div class="trial-status-copy"><small id="trial-eyebrow">YOUR FREE TRIAL</small><strong id="trial-title">Your KORbuild trial is active</strong><p id="trial-message">You have full access to KORbuild.</p></div><div class="trial-countdown"><strong id="trial-days">14</strong><span id="trial-days-label">days free</span></div><a href="billing.html" class="trial-action" id="trial-action">Subscribe now →</a></section>
+    <section class="period-hero" id="period-hero"><div class="period-icon">▣</div><div class="period-copy"><small>CURRENT OPEN PERIOD</small><strong id="current-period">No open period</strong><div class="period-progress-row"><div class="progress-track"><span id="period-progress"></span></div><b id="period-progress-label">—</b></div><p id="period-days">Prepare your next evaluation period to start the operation.</p></div><a class="outline-action" href="periods.html">▣ <span>View period details</span></a></section>
+    <section class="workspace-health-section" id="workspace-health"><div class="section-heading"><div><small>WORKSPACE HEALTH</small><h2>Complete your workspace</h2><p>These foundations are not required for setup, but you'll need them before running team operations.</p></div></div><div class="workspace-health-grid"><article class="health-card" id="health-teams"><div class="health-icon">◇</div><div class="health-copy"><strong>Create your first team</strong><p>Organize your people before starting evaluations.</p></div><a href="teams.html" class="health-action">Create team →</a></article><article class="health-card" id="health-people"><div class="health-icon">♙</div><div class="health-copy"><strong>Add your people</strong><p>Build your organization and prepare your first operational cycle.</p></div><a href="people.html" class="health-action">Add people →</a></article></div></section>
+    <section class="section-heading"><div><small>ATTENTION REQUIRED</small></div><a href="evaluations.html">View all</a></section><section class="attention-grid"><article class="attention-card pending-card"><div class="attention-icon danger">♙</div><div class="attention-copy"><strong id="attention-pending">0</strong><b>Pending evaluations</b><p>Collaborators still need attention</p></div><a href="evaluations.html" class="attention-action">Review now →</a></article><article class="attention-card deadline-card"><div class="attention-icon warning">◷</div><div class="attention-copy"><strong id="days-remaining">—</strong><b id="deadline-title">No open period</b><p id="deadline-copy">Prepare a period to start weekly operations</p></div><a href="periods.html" class="attention-action amber">Go to periods →</a></article></section>
+    <section class="section-heading snapshot-heading"><div><small>WEEKLY SNAPSHOT</small></div></section><section class="snapshot-grid"><article class="snapshot-card"><div class="snapshot-icon purple">♙</div><div><strong id="employees">0</strong><b>Eligible People</b><p>This period</p></div></article><article class="snapshot-card"><div class="snapshot-icon green">✓</div><div><strong id="evaluated">0</strong><b>Evaluated</b><p id="evaluated-meta">No data yet</p></div></article><article class="snapshot-card"><div class="snapshot-icon orange">◷</div><div><strong id="pending">0</strong><b>Pending</b><p id="pending-meta">No data yet</p></div></article><article class="snapshot-card"><div class="snapshot-icon blue">▤</div><div><strong id="occurrences">0</strong><b>Total Occurrences</b><p>This period</p></div></article><article class="snapshot-card"><div class="snapshot-icon purple">♧</div><div><strong id="teams">0</strong><b>Teams</b><p>Active</p></div></article></section>
+    <section class="dashboard-grid"><article class="dashboard-panel performance-panel"><div class="panel-title"><small>PERFORMANCE OVERVIEW</small></div><div class="performance-content"><div class="donut" id="performance-donut"><div><strong id="performance-total">0</strong><span>People</span></div></div><div class="legend" id="performance-legend"><div><span class="legend-dot high"></span><b>High Performance</b><em id="high-count">0 (0%)</em></div><div><span class="legend-dot track"></span><b>On Track</b><em id="track-count">0 (0%)</em></div><div><span class="legend-dot attention"></span><b>Attention Needed</b><em id="attention-count">0 (0%)</em></div><div><span class="legend-dot critical"></span><b>Critical</b><em id="critical-count">0 (0%)</em></div></div></div><a href="evaluations.html" class="panel-link">View evaluations →</a></article><article class="dashboard-panel points-panel"><div class="panel-title"><small>POINTS SUMMARY</small></div><div class="points-grid"><div class="point-card positive"><span>↗</span><strong id="positive-points">+0</strong><b>Positive Points</b><p>Current period</p></div><div class="point-card negative"><span>↘</span><strong id="negative-points">0</strong><b>Negative Points</b><p>Current period</p></div></div><a href="evaluations.html" class="panel-link">View detailed analysis →</a></article><article class="dashboard-panel people-panel"><div class="panel-head"><small>TOP POSITIVE PERFORMERS</small><a href="evaluations.html">View all</a></div><div class="people-list" id="positive-list"><div class="empty-row">No positive movements in this period.</div></div></article><article class="dashboard-panel people-panel"><div class="panel-head"><small>ATTENTION NEEDED</small><a href="evaluations.html">View all</a></div><div class="people-list" id="negative-list"><div class="empty-row">No negative movements in this period.</div></div></article></section>
+    <section class="quick-actions-panel"><div class="panel-title"><small>QUICK ACTIONS</small></div><div class="quick-actions"><a href="occurrences.html"><span class="qa-icon purple">＋</span><div><b>Manage Occurrences</b><small>Configure evaluation events</small></div></a><a href="people.html"><span class="qa-icon green">♙</span><div><b>Manage People</b><small>Add or edit collaborators</small></div></a><a href="evaluations.html"><span class="qa-icon blue">▣</span><div><b>View Evaluations</b><small>Browse current evaluations</small></div></a><a href="bonus-settlement.html"><span class="qa-icon orange">▤</span><div><b>Open Settlement</b><small>Process period settlement</small></div></a></div></section>
   </main>
-
   <div class="app-version">KORbuild V1.2.7 · Development environment</div>
-  
-  <!-- KORbuild AI · global assistant entry point -->
-  <button class="kor-ai-fab" id="kor-ai-fab" type="button" aria-label="Open KORbuild AI">
-    <span class="kor-ai-spark">✦</span><span class="kor-ai-label">AI</span>
-  </button>
-  <aside class="kor-ai-panel hidden" id="kor-ai-panel" aria-label="KORbuild AI Assistant">
-    <header class="kor-ai-header">
-      <div class="kor-ai-brand"><span class="kor-ai-orb">✦</span><div><strong>KORbuild AI</strong><small>Your intelligent workspace assistant</small></div></div>
-      <button class="kor-ai-close" id="kor-ai-close" type="button" aria-label="Close">×</button>
-    </header>
-    <div class="kor-ai-body">
-      <div class="kor-ai-welcome"><div class="kor-ai-welcome-icon">✦</div><strong>How can I help?</strong><p>I understand your workspace and can help you navigate, analyze and manage your work.</p></div>
-      <div class="kor-ai-context" id="kor-ai-context"><span>●</span> Dashboard context loaded</div>
-      <section class="kor-ai-insights hidden" id="kor-ai-insights" aria-label="Operational insights">
-        <div class="kor-ai-insights-title">Operational insights <span id="kor-ai-insight-count"></span></div>
-        <div class="kor-ai-insight-list" id="kor-ai-insight-list"></div>
-      </section>
-      <div class="kor-ai-suggestions" id="kor-ai-suggestions">
-        <button type="button" data-prompt="Explain this dashboard">Explain this dashboard</button>
-        <button type="button" data-prompt="What requires my attention?">What requires my attention?</button>
-        <button type="button" data-prompt="Summarize current performance">Summarize current performance</button>
-      </div>
-      <div class="kor-ai-messages" id="kor-ai-messages"></div>
-    </div>
-    <form class="kor-ai-input" id="kor-ai-form">
-      <input id="kor-ai-input" autocomplete="off" placeholder="Ask KORbuild AI..." />
-      <button type="submit" aria-label="Send">➜</button>
-    </form>
-    <footer class="kor-ai-footer">KORbuild AI · Context-aware assistance</footer>
-  </aside>
+  <button class="kor-ai-fab" id="kor-ai-fab" type="button" aria-label="Open KORbuild AI"><span class="kor-ai-spark">✦</span><span class="kor-ai-label">AI</span></button>
+  <aside class="kor-ai-panel hidden" id="kor-ai-panel" aria-label="KORbuild AI Assistant"><header class="kor-ai-header"><div class="kor-ai-brand"><span class="kor-ai-orb">✦</span><div><strong>KORbuild AI</strong><small>Your intelligent workspace assistant</small></div></div><button class="kor-ai-close" id="kor-ai-close" type="button" aria-label="Close">×</button></header><div class="kor-ai-body"><div class="kor-ai-welcome"><div class="kor-ai-welcome-icon">✦</div><strong>How can I help?</strong><p>I understand your workspace and can help you navigate, analyze and manage your work.</p></div><div class="kor-ai-context" id="kor-ai-context"><span>●</span> Dashboard context loaded</div><section class="kor-ai-insights hidden" id="kor-ai-insights" aria-label="Operational insights"><div class="kor-ai-insights-title">Operational insights <span id="kor-ai-insight-count"></span></div><div class="kor-ai-insight-list" id="kor-ai-insight-list"></div></section><div class="kor-ai-suggestions" id="kor-ai-suggestions"><button type="button" data-prompt="Explain this dashboard">Explain this dashboard</button><button type="button" data-prompt="What requires my attention?">What requires my attention?</button><button type="button" data-prompt="Summarize current performance">Summarize current performance</button></div><div class="kor-ai-messages" id="kor-ai-messages"></div></div><form class="kor-ai-input" id="kor-ai-form"><input id="kor-ai-input" autocomplete="off" placeholder="Ask KORbuild AI..." /><button type="submit" aria-label="Send">➜</button></form><footer class="kor-ai-footer">KORbuild AI · Context-aware assistance</footer></aside>
 </div>
 <script src="supabase-config.js?v=1.2.8"></script>
 <script src="home.js?v=1.4.1"></script>
+<script src="ai-gateway.js?v=1"></script>
 </body></html>
