@@ -34,7 +34,7 @@
     }catch(error){
       typing.remove();
       if(typeof localFallback==='function'){
-        try{const result=await localFallback(text);if(result){addMessage(typeof result==='string'?result:(result.answer||'I can help with your workspace.'),'assistant');return;}}catch{}
+        try{await localFallback(text);return;}catch{}
       }
       addMessage('A IA está temporariamente indisponível. Seus dados e limites de consumo continuam protegidos.','assistant');
     }
