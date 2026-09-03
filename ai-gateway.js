@@ -5,62 +5,170 @@
   const $=id=>document.getElementById(id);
   const messages=$('kor-ai-messages');
   if(!messages)return;
+
   const addMessage=(text,role)=>{const el=document.createElement('div');el.className='kor-ai-message '+role;el.textContent=text;messages.appendChild(el);messages.scrollTop=messages.scrollHeight;return el;};
   const addTyping=()=>{const el=document.createElement('div');el.className='kor-ai-message assistant typing';el.textContent='KORbuild AI is thinking…';messages.appendChild(el);messages.scrollTop=messages.scrollHeight;return el;};
-  const intentFor=(text)=>{try{return typeof classifyAIIntent==='function'?classifyAIIntent(text):'general'}catch{return'general'}};
-  const contextFor=()=>{try{return typeof buildAIContext==='function'?buildAIContext():{page:'dashboard'}}catch{return{page:'dashboard'}}};
-  const localFallback=window.askKORbuildAI;
+  const openPanel=()=>{$('kor-ai-panel')?.classList.remove('hidden');$('kor-ai-input')?.focus();};
 
-  async function learningLoopContext(base){
-    try{
-      // The detector executes in the authenticated user's tenant context.
-      await client.rpc('detect_ai_performance_declines');
-      const {data:sessionData}=await client.auth.getSession();
-      const uid=sessionData?.session?.user?.id;
-      if(!uid)return base;
-      const {data:profile}=await client.from('usuarios').select('empresa_id').eq('id',uid).maybeSingle();
-      const empresaId=profile?.empresa_id;
-      if(!empresaId)return base;
-      // Explicit tenant filter in addition to RLS: an AI context must never
-      // aggregate or expose another company's learning data.
-      const {data:insights}=await client.from('ai_insights').select('id,tipo,titulo,descricao,severidade,confidence,status,evidencias,created_at').eq('empresa_id',empresaId).eq('status','active').order('created_at',{ascending:false}).limit(10);
-      return {...base,learningLoop:{version:'1.0',tenantScoped:true,insights:insights||[]}};
-    }catch(error){
-      console.warn('Learning Loop context unavailable',error?.message||error);
-      return base;
+  function classifyIntent(q){
+    const text=String(q||'').toLowerCase().trim();
+    if(/\b(next|next step|do next|should i do|what should i do|o que devo fazer|próximo passo|proxima ação|próxima ação|o que fazer agora)\b/.test(text))return'next_action';
+    if(/\b(attention|require|pending|urgent|problem|issue|wrong|atenção|pendente|urgente|problema|prioridade)\b/.test(text))return'attention';
+    if(/\b(performance|summarize|summary|progress|how are we doing|desempenho|resumo|progresso|como estamos)\b/.test(text))return'performance';
+    if(/\b(period|week|deadline|ends|ending|remaining|período|semana|prazo|termina|restante)\b/.test(text))return'period';
+    if(/\b(team|teams|equipe|equipes)\b/.test(text))return'teams';
+    if(/\b(people|person|collaborator|employee|employees|staff|pessoas|colaborador|colaboradores|funcionários)\b/.test(text))return'people';
+    if(/\b(dashboard|explain|picture|overview|what is happening|painel|explique|visão geral|o que está acontecendo)\b/.test(text))return'dashboard';
+    return'general';
+  }
+
+  function buildPeriod(period){
+    if(!period)return null;
+    const start=new Date(period.start_date+'T00:00:00'),end=new Date(period.end_date+'T00:00:00');
+    const today=new Date();today.setHours(0,0,0,0);
+    const total=Math.max(1,Math.round((end-start)/86400000)+1);
+    const elapsed=Math.max(0,Math.min(total,Math.round((today-start)/86400000)+1));
+    return {week:period.week_number,start:period.start_date,end:period.end_date,progress:Math.round(elapsed/total*100),daysRemaining:Math.max(0,Math.round((end-today)/86400000))};
+  }
+
+  async function buildAuthorizedContext(){
+    const {data:sessionData}=await client.auth.getSession();
+    const uid=sessionData?.session?.user?.id;
+    if(!uid)throw new Error('unauthorized');
+
+    const {data:profile,error:profileError}=await client.from('usuarios').select('id,name,empresa_id,empresas(name)').eq('id',uid).maybeSingle();
+    if(profileError||!profile?.empresa_id)throw(profileError||new Error('workspace_profile_not_found'));
+    const empresaId=profile.empresa_id;
+
+    // Run the detector inside the authenticated tenant context. Failure is non-fatal;
+    // the assistant can still answer from the authoritative operational snapshot.
+    await client.rpc('detect_ai_performance_declines').catch(()=>null);
+
+    const [peopleRes,teamsRes,periodRes,insightRes]=await Promise.all([
+      client.from('colaboradores').select('id,name,specialty,equipe_id,active').eq('empresa_id',empresaId).order('name'),
+      client.from('equipes').select('id,name,active').eq('empresa_id',empresaId).order('name'),
+      client.from('periodos').select('id,start_date,end_date,week_number,status').eq('empresa_id',empresaId).eq('status','ABERTO').order('start_date',{ascending:true}).limit(1),
+      client.from('ai_insights').select('id,tipo,titulo,descricao,severidade,confidence,status,evidencias,created_at').eq('empresa_id',empresaId).eq('status','active').order('created_at',{ascending:false}).limit(10)
+    ]);
+    if(peopleRes.error||teamsRes.error||periodRes.error)throw(peopleRes.error||teamsRes.error||periodRes.error);
+
+    const people=peopleRes.data||[],teams=teamsRes.data||[],period=periodRes.data?.[0]||null;
+    let launches=[],scores=new Map();
+    if(period){
+      const {data,error}=await client.from('lancamentos').select('id,colaborador_id,equipe_id').eq('empresa_id',empresaId).eq('periodo_id',period.id);
+      if(error)throw error;
+      launches=data||[];
+      const ids=launches.map(x=>x.id);
+      if(ids.length){
+        const {data:occ,error:oe}=await client.from('ocorrencias').select('lancamento_id,quantity,points,tipos_ocorrencia(occurrence_type)').eq('empresa_id',empresaId).in('lancamento_id',ids);
+        if(oe)throw oe;
+        (occ||[]).forEach(o=>{
+          const qty=Math.max(0,Number(o.quantity)||0);
+          const sign=o.tipos_ocorrencia?.occurrence_type==='NEGATIVA'?-1:1;
+          const score=sign*Math.abs(Number(o.points)||0)*qty;
+          const cur=scores.get(o.lancamento_id)||{score:0,count:0};
+          cur.score+=score;cur.count+=qty;scores.set(o.lancamento_id,cur);
+        });
+      }
     }
+
+    const rows=[];const byPerson=new Map();
+    people.filter(p=>p.active===true).forEach(p=>{const row={person:p,score:0,count:0};rows.push(row);byPerson.set(p.id,row);});
+    launches.forEach(l=>{const row=byPerson.get(l.colaborador_id);if(!row)return;const s=scores.get(l.id)||{score:0,count:0};row.score+=s.score;row.count+=s.count;});
+
+    const eligible=rows.length,evaluated=rows.filter(r=>r.count>0).length,pending=Math.max(0,eligible-evaluated),occurrences=rows.reduce((s,r)=>s+r.count,0);
+    const activeTeams=teams.filter(t=>t.active===true).length;
+    const positivePoints=rows.reduce((s,r)=>s+Math.max(0,r.score),0),negativePoints=rows.reduce((s,r)=>s+Math.min(0,r.score),0);
+    const p=buildPeriod(period);
+    const operational=[];
+    if(!p)operational.push({level:'attention',type:'no_open_period',message:'There is no open evaluation period. Create the next period to start operations.'});
+    if(pending>0)operational.push({level:'attention',type:'pending_evaluations',message:pending+' evaluation'+(pending===1?' is':'s are')+' still pending.'});
+    if(p&&p.daysRemaining<=1)operational.push({level:'attention',type:'deadline',message:p.daysRemaining===0?'The current period ends today.':'The current period ends tomorrow.'});
+    if(activeTeams===0)operational.push({level:'setup',type:'no_teams',message:'No active teams are configured yet.'});
+    if(eligible===0)operational.push({level:'setup',type:'no_people',message:'No eligible people are configured yet.'});
+    if(!operational.length)operational.push({level:'healthy',type:'all_clear',message:'No critical operational attention points were detected.'});
+
+    return {
+      version:'3.0',page:'dashboard',generatedAt:new Date().toISOString(),
+      workspace:{companyId:empresaId,companyName:profile.empresas?.name||'KORbuild workspace',userName:profile.name||'User'},
+      period:p,metrics:{eligible,evaluated,pending,occurrences,activeTeams,positivePoints,negativePoints},
+      signals:{health:pending===0?'healthy':'attention',evaluationRate:eligible?Math.round(evaluated/eligible*100):0,hasOpenPeriod:!!p},
+      insights:operational,
+      learningLoop:{version:'1.0',tenantScoped:true,insights:insightRes.error?[]:(insightRes.data||[])}
+    };
+  }
+
+  function recommend(c){
+    const dbInsights=c.learningLoop?.insights||[];
+    const performance=dbInsights.find(i=>i.tipo==='PERFORMANCE_DECLINE'&&i.status==='active');
+    if(performance)return'Prioritize a review of '+(performance.evidencias?.collaborator_name||'the affected collaborator')+' and compare the recent evaluation trend before taking corrective action.';
+    const i=(c.insights||[]).find(x=>x.level==='attention');
+    if(i?.type==='pending_evaluations')return'Review the pending evaluations and follow up with the responsible managers.';
+    if(i?.type==='deadline')return'Prioritize closing pending evaluations before the period deadline.';
+    if(i?.type==='no_open_period')return'Create the next evaluation period and define its dates before operations begin.';
+    if(i?.type==='no_teams')return'Create at least one active team so people and evaluations can be organized.';
+    if(i?.type==='no_people')return'Add eligible people to the workspace before starting evaluations.';
+    return'Review the current period performance and keep the evaluation cycle moving.';
+  }
+
+  function localAnswer(q,c){
+    const m=c.metrics,p=c.period,intent=classifyIntent(q);
+    const periodText=p?'Week '+p.week+' is '+p.progress+'% complete, with '+p.daysRemaining+' day'+(p.daysRemaining===1?'':'s')+' remaining.':'There is no open period right now.';
+    const attention=(c.insights||[]).filter(i=>i.level==='attention');
+    const learned=c.learningLoop?.insights||[];
+    if(intent==='next_action')return'Your next best step is: '+recommend(c)+' '+periodText;
+    if(intent==='dashboard')return'Here is the current picture: '+c.workspace.companyName+' workspace. '+periodText+' '+m.eligible+' eligible people, '+m.evaluated+' evaluated and '+m.pending+' pending. '+m.occurrences+' occurrences and '+m.activeTeams+' active team'+(m.activeTeams===1?'':'s')+'.';
+    if(intent==='attention')return attention.length?'Here is what deserves attention: '+attention.map(i=>i.message).join(' ')+' Recommended next step: '+recommend(c)+' '+periodText:'Everything looks under control right now. '+periodText+' Recommended next step: '+recommend(c);
+    if(intent==='performance')return'Current performance summary: '+m.evaluated+' of '+m.eligible+' eligible people evaluated ('+c.signals.evaluationRate+'%). '+m.occurrences+' occurrence'+(m.occurrences===1?'':'s')+' recorded. Points balance: +'+m.positivePoints+' positive and '+m.negativePoints+' negative. '+(learned.length?'The Learning Loop has '+learned.length+' active insight'+(learned.length===1?'':'s')+' available for analysis. ':'')+periodText;
+    if(intent==='period')return periodText;
+    if(intent==='teams')return'You currently have '+m.activeTeams+' active team'+(m.activeTeams===1?'':'s')+' in this workspace.';
+    if(intent==='people')return'There are '+m.eligible+' eligible people. '+m.evaluated+' have been evaluated and '+m.pending+' remain pending.';
+    return'Based on the current authorized context: '+c.workspace.companyName+' workspace. '+periodText+' '+m.eligible+' eligible people, '+m.activeTeams+' active team'+(m.activeTeams===1?'':'s')+'. '+(learned[0]?.descricao||c.insights?.[0]?.message||'No critical attention points detected.');
   }
 
   async function askViaGateway(text){
     const {data:{session}}=await client.auth.getSession();
     if(!session?.access_token)throw new Error('unauthorized');
-    const base= contextFor();
-    const context=await learningLoopContext(base);
-    const response=await fetch(cfg.url+'/functions/v1/korbuild-ai',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},body:JSON.stringify({message:text,context,intent:intentFor(text),feature:'dashboard_ai'})});
+    const context=await buildAuthorizedContext();
+    const response=await fetch(cfg.url+'/functions/v1/korbuild-ai',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},body:JSON.stringify({message:text,context,intent:classifyIntent(text),feature:'dashboard_ai'})});
     const payload=await response.json().catch(()=>({}));
     if(!response.ok)throw new Error(payload.error||'gateway_error');
     if(!payload.answer)throw new Error('empty_ai_response');
     return payload;
   }
 
-  document.addEventListener('submit',async event=>{
-    const form=event.target;
-    if(form?.id!=='kor-ai-form')return;
-    event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
-    const input=$('kor-ai-input');const text=String(input?.value||'').trim();if(!text)return;
-    if(input)input.value='';
-    addMessage(text,'user');
+  async function answer(text){
+    openPanel();addMessage(text,'user');
     const typing=addTyping();
     try{
       const result=await askViaGateway(text);
-      typing.remove();
-      addMessage(result.answer,'assistant');
+      typing.remove();addMessage(result.answer,'assistant');
     }catch(error){
-      typing.remove();
-      if(typeof localFallback==='function'){
-        try{await localFallback(text);return;}catch{}
+      console.warn('KORbuild AI gateway unavailable; using protected local context fallback',error?.message||error);
+      try{
+        const context=await buildAuthorizedContext();
+        typing.remove();addMessage(localAnswer(text,context),'ai');
+      }catch(fallbackError){
+        typing.remove();addMessage('A IA está temporariamente indisponível. Seus dados e limites de consumo continuam protegidos.','assistant');
       }
-      addMessage('A IA está temporariamente indisponível. Seus dados e limites de consumo continuam protegidos.','assistant');
     }
+  }
+
+  // Capture before the legacy local handler. This makes the gateway the single
+  // submit path while preserving the existing UI and avoiding duplicate replies.
+  document.addEventListener('submit',event=>{
+    const form=event.target;if(form?.id!=='kor-ai-form')return;
+    event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+    const input=$('kor-ai-input');const text=String(input?.value||'').trim();if(!text)return;
+    if(input)input.value='';answer(text);
+  },true);
+
+  // Suggestion buttons used to call the legacy local handler directly. Capture
+  // them here too so suggestions use the same gateway + tenant-scoped context.
+  document.addEventListener('click',event=>{
+    const button=event.target.closest?.('[data-prompt]');
+    if(!button)return;
+    event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+    const text=button.dataset.prompt;if(text)answer(text);
   },true);
 })();
