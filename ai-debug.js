@@ -1,4 +1,4 @@
-// Temporary V1.3.1 diagnostic + AI panel scroll behavior for Dashboard validation.
+// Temporary V1.4.0 diagnostic bootstrap for Dashboard AI validation.
 (function(){
   if(window.KORBUILD_AI_DEBUG_INSTALLED)return;
   window.KORBUILD_AI_DEBUG_INSTALLED=true;
@@ -8,9 +8,6 @@
     if(el)el.textContent='KORbuild AI · '+text;
   };
 
-  // Keep the assistant viewport at the latest content whenever the panel opens
-  // or a message/typing indicator is added. The scrollable container is the
-  // panel body, not only the messages list.
   const scrollToLatest=()=>requestAnimationFrame(()=>{
     const body=document.querySelector('.kor-ai-body');
     const messages=document.querySelector('.kor-ai-messages');
@@ -44,15 +41,24 @@
     if(event.target.closest?.('#kor-ai-fab'))scrollToLatest();
   },true);
 
-  const observer=new MutationObserver(mutations=>{
-    if(mutations.some(m=>m.target?.id==='kor-ai-messages'||m.target?.closest?.('#kor-ai-messages')))scrollToLatest();
-  });
-
+  const observer=new MutationObserver(()=>scrollToLatest());
   const startObserver=()=>{
     const messages=document.querySelector('#kor-ai-messages');
     if(messages)observer.observe(messages,{childList:true,subtree:true});
     scrollToLatest();
   };
+
+  // The page previously loaded a cached gateway build. Remove that pending
+  // script before the parser reaches it and load the current build explicitly.
+  // This is development-only and prevents stale gateway code from competing
+  // with the legacy local AI handler.
+  const legacyGateway=document.querySelector('script[src*="ai-gateway.js"]');
+  if(legacyGateway)legacyGateway.remove();
+  const gateway=document.createElement('script');
+  gateway.src='ai-gateway.js?v=1.4.0';
+  gateway.onload=()=>setStatus('Gateway loaded · ready');
+  gateway.onerror=()=>setStatus('Gateway script load error');
+  document.head.appendChild(gateway);
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{
     setStatus('Diagnostic ready');
