@@ -1,9 +1,12 @@
 (function(){
+  if(window.KORBUILD_AI_GATEWAY_INSTALLED)return;
+  window.KORBUILD_AI_GATEWAY_INSTALLED=true;
+
   const cfg=window.KORBUILD_SUPABASE;
   if(!cfg||!window.supabase)return;
   const client=window.supabase.createClient(cfg.url,cfg.publishableKey,{auth:{persistSession:true,autoRefreshToken:true}});
   const $=id=>document.getElementById(id);
-  const messages=$('kor-ai-messages');
+  let messages=$('kor-ai-messages');
   if(!messages)return;
 
   const addMessage=(text,role)=>{const el=document.createElement('div');el.className='kor-ai-message '+role;el.textContent=text;messages.appendChild(el);messages.scrollTop=messages.scrollHeight;return el;};
@@ -35,15 +38,10 @@
     const {data:sessionData}=await client.auth.getSession();
     const uid=sessionData?.session?.user?.id;
     if(!uid)throw new Error('unauthorized');
-
     const {data:profile,error:profileError}=await client.from('usuarios').select('id,name,empresa_id,empresas(name)').eq('id',uid).maybeSingle();
     if(profileError||!profile?.empresa_id)throw(profileError||new Error('workspace_profile_not_found'));
     const empresaId=profile.empresa_id;
-
-    // Run the detector inside the authenticated tenant context. Failure is non-fatal;
-    // the assistant can still answer from the authoritative operational snapshot.
     await client.rpc('detect_ai_performance_declines').catch(()=>null);
-
     const [peopleRes,teamsRes,periodRes,insightRes]=await Promise.all([
       client.from('colaboradores').select('id,name,specialty,equipe_id,active').eq('empresa_id',empresaId).order('name'),
       client.from('equipes').select('id,name,active').eq('empresa_id',empresaId).order('name'),
@@ -51,7 +49,6 @@
       client.from('ai_insights').select('id,tipo,titulo,descricao,severidade,confidence,status,evidencias,created_at').eq('empresa_id',empresaId).eq('status','active').order('created_at',{ascending:false}).limit(10)
     ]);
     if(peopleRes.error||teamsRes.error||periodRes.error)throw(peopleRes.error||teamsRes.error||periodRes.error);
-
     const people=peopleRes.data||[],teams=teamsRes.data||[],period=periodRes.data?.[0]||null;
     let launches=[],scores=new Map();
     if(period){
@@ -71,31 +68,20 @@
         });
       }
     }
-
     const rows=[];const byPerson=new Map();
     people.filter(p=>p.active===true).forEach(p=>{const row={person:p,score:0,count:0};rows.push(row);byPerson.set(p.id,row);});
     launches.forEach(l=>{const row=byPerson.get(l.colaborador_id);if(!row)return;const s=scores.get(l.id)||{score:0,count:0};row.score+=s.score;row.count+=s.count;});
-
     const eligible=rows.length,evaluated=rows.filter(r=>r.count>0).length,pending=Math.max(0,eligible-evaluated),occurrences=rows.reduce((s,r)=>s+r.count,0);
     const activeTeams=teams.filter(t=>t.active===true).length;
     const positivePoints=rows.reduce((s,r)=>s+Math.max(0,r.score),0),negativePoints=rows.reduce((s,r)=>s+Math.min(0,r.score),0);
-    const p=buildPeriod(period);
-    const operational=[];
+    const p=buildPeriod(period);const operational=[];
     if(!p)operational.push({level:'attention',type:'no_open_period',message:'There is no open evaluation period. Create the next period to start operations.'});
     if(pending>0)operational.push({level:'attention',type:'pending_evaluations',message:pending+' evaluation'+(pending===1?' is':'s are')+' still pending.'});
     if(p&&p.daysRemaining<=1)operational.push({level:'attention',type:'deadline',message:p.daysRemaining===0?'The current period ends today.':'The current period ends tomorrow.'});
     if(activeTeams===0)operational.push({level:'setup',type:'no_teams',message:'No active teams are configured yet.'});
     if(eligible===0)operational.push({level:'setup',type:'no_people',message:'No eligible people are configured yet.'});
     if(!operational.length)operational.push({level:'healthy',type:'all_clear',message:'No critical operational attention points were detected.'});
-
-    return {
-      version:'3.0',page:'dashboard',generatedAt:new Date().toISOString(),
-      workspace:{companyId:empresaId,companyName:profile.empresas?.name||'KORbuild workspace',userName:profile.name||'User'},
-      period:p,metrics:{eligible,evaluated,pending,occurrences,activeTeams,positivePoints,negativePoints},
-      signals:{health:pending===0?'healthy':'attention',evaluationRate:eligible?Math.round(evaluated/eligible*100):0,hasOpenPeriod:!!p},
-      insights:operational,
-      learningLoop:{version:'1.0',tenantScoped:true,insights:insightRes.error?[]:(insightRes.data||[])}
-    };
+    return {version:'3.0',page:'dashboard',generatedAt:new Date().toISOString(),workspace:{companyId:empresaId,companyName:profile.empresas?.name||'KORbuild workspace',userName:profile.name||'User'},period:p,metrics:{eligible,evaluated,pending,occurrences,activeTeams,positivePoints,negativePoints},signals:{health:pending===0?'healthy':'attention',evaluationRate:eligible?Math.round(evaluated/eligible*100):0,hasOpenPeriod:!!p},insights:operational,learningLoop:{version:'1.0',tenantScoped:true,insights:insightRes.error?[]:(insightRes.data||[])}};
   }
 
   function recommend(c){
@@ -154,21 +140,22 @@
     }
   }
 
-  // Capture before the legacy local handler. This makes the gateway the single
-  // submit path while preserving the existing UI and avoiding duplicate replies.
-  document.addEventListener('submit',event=>{
-    const form=event.target;if(form?.id!=='kor-ai-form')return;
-    event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
-    const input=$('kor-ai-input');const text=String(input?.value||'').trim();if(!text)return;
-    if(input)input.value='';answer(text);
-  },true);
+  // Remove the legacy Home AI listeners by replacing only the interactive nodes.
+  // This keeps the approved UI intact while giving this module a single owner.
+  function wireInteractiveNodes(){
+    const form=$('kor-ai-form');
+    if(form&&!form.dataset.gatewayOwned){
+      const fresh=form.cloneNode(true);form.replaceWith(fresh);fresh.dataset.gatewayOwned='true';
+      const input=fresh.querySelector('#kor-ai-input');
+      fresh.addEventListener('submit',event=>{event.preventDefault();event.stopPropagation();const text=String(input?.value||'').trim();if(!text)return;if(input)input.value='';answer(text);});
+    }
+    document.querySelectorAll('[data-prompt]').forEach(button=>{
+      if(button.dataset.gatewayOwned)return;
+      const fresh=button.cloneNode(true);button.replaceWith(fresh);fresh.dataset.gatewayOwned='true';
+      fresh.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();const text=fresh.dataset.prompt;if(text)answer(text);});
+    });
+    messages=$('kor-ai-messages')||messages;
+  }
 
-  // Suggestion buttons used to call the legacy local handler directly. Capture
-  // them here too so suggestions use the same gateway + tenant-scoped context.
-  document.addEventListener('click',event=>{
-    const button=event.target.closest?.('[data-prompt]');
-    if(!button)return;
-    event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
-    const text=button.dataset.prompt;if(text)answer(text);
-  },true);
+  wireInteractiveNodes();
 })();
