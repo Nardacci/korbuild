@@ -1,0 +1,77 @@
+/* KORbuild AI — approved compact floating assistant */
+.kor-ai-fab{
+  position:fixed!important;
+  right:24px!important;
+  bottom:26px!important;
+  left:auto!important;
+  top:auto!important;
+  width:86px!important;
+  height:56px!important;
+  min-width:86px!important;
+  min-height:56px!important;
+  padding:0 14px 0 10px!important;
+  border:0!important;
+  border-radius:18px!important;
+  background:linear-gradient(135deg,#635bff 0%,#7357f3 52%,#8b5cf6 100%)!important;
+  color:#fff!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:8px!important;
+  z-index:1000!important;
+  cursor:pointer!important;
+  box-shadow:0 12px 25px rgba(99,91,255,.30),0 0 0 1px rgba(255,255,255,.20) inset!important;
+  transition:transform .18s ease,box-shadow .18s ease!important;
+  overflow:hidden!important;
+}
+.kor-ai-fab::before{
+  content:"";
+  position:absolute;
+  inset:1px;
+  border-radius:17px;
+  background:linear-gradient(145deg,rgba(255,255,255,.18),transparent 45%,rgba(255,255,255,.04));
+  pointer-events:none;
+}
+.kor-ai-fab .kor-ai-spark{
+  position:relative;
+  z-index:1;
+  width:30px;
+  height:30px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  background:rgba(255,255,255,.22);
+  color:#fff;
+  font-size:17px;
+  line-height:1;
+  font-weight:800;
+  text-shadow:0 1px 4px rgba(34,20,91,.20);
+}
+.kor-ai-fab .kor-ai-label{
+  position:relative;
+  z-index:1;
+  font-size:14px;
+  font-weight:800;
+  letter-spacing:-.02em;
+}
+.kor-ai-fab:hover{
+  transform:translateY(-2px)!important;
+  box-shadow:0 15px 30px rgba(99,91,255,.36),0 0 0 1px rgba(255,255,255,.24) inset!important;
+}
+.kor-ai-fab:active{transform:translateY(-1px) scale(.98)!important}
+.kor-ai-fab:focus-visible{outline:3px solid rgba(99,91,255,.24)!important;outline-offset:3px!important}
+@media(max-width:700px){
+  .kor-ai-fab{
+    right:16px!important;
+    bottom:22px!important;
+    width:78px!important;
+    height:52px!important;
+    min-width:78px!important;
+    min-height:52px!important;
+    border-radius:16px!important;
+    padding:0 12px 0 9px!important;
+  }
+  .kor-ai-fab::before{border-radius:15px}
+  .kor-ai-fab .kor-ai-spark{width:28px;height:28px;font-size:16px}
+  .kor-ai-fab .kor-ai-label{font-size:13px}
+}
