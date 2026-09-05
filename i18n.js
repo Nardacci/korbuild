@@ -94,5 +94,5 @@
   window.KORbuildI18n={get language(){return lang;},setLanguage(v){if(v==='pt-BR'||v==='en-US'){lang=v;localStorage.setItem(KEY,v);location.reload();}},t:translate,apply};
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',apply);else apply();
-  new MutationObserver(scheduleDynamicTranslation).observe(document.body,{childList:true,subtree:true});
+  new MutationObserver(scheduleDynamicTranslation).observe(document.body,{childList:true,subtree:true,characterData:true});
 })();
