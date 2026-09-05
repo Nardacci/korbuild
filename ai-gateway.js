@@ -10,7 +10,45 @@
   const setStatus=text=>{const el=document.querySelector('.kor-ai-footer');if(el)el.textContent='KORbuild AI · '+text;};
   const waitForDom=()=>new Promise(resolve=>{if(document.getElementById('kor-ai-messages'))return resolve();document.addEventListener('DOMContentLoaded',resolve,{once:true});});
   let messages=null;
-  const addMessage=(text,role)=>{const el=document.createElement('div');el.className='kor-ai-message '+role;el.textContent=text;messages.appendChild(el);messages.scrollTop=messages.scrollHeight;return el;};
+  const escapeHtml=value=>String(value??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  function renderAssistantMarkdown(text){
+    const source=String(text??'').replace(/\r\n/g,'\n').trim();
+    if(!source)return '';
+    const lines=source.split('\n');
+    const blocks=[];let paragraph=[];let list=[];
+    const flushParagraph=()=>{if(paragraph.length){blocks.push('<p>'+paragraph.join(' ')+'</p>');paragraph=[];}};
+    const flushList=()=>{if(list.length){blocks.push('<ul>'+list.map(item=>'<li>'+item+'</li>').join('')+'</ul>');list=[];}};
+    const inline=value=>escapeHtml(value)
+      .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+      .replace(/__(.+?)__/g,'<strong>$1</strong>')
+      .replace(/`([^`]+)`/g,'<code>$1</code>')
+      .replace(/(^|\s)\*([^*\n]+)\*(?=\s|[.,!?;:]|$)/g,'$1<em>$2</em>');
+    lines.forEach(raw=>{
+      const line=raw.trim();
+      if(!line){flushParagraph();flushList();return;}
+      const bullet=line.match(/^[-*•]\s+(.+)$/);
+      if(bullet){flushParagraph();list.push(inline(bullet[1]));return;}
+      const heading=line.match(/^#{1,3}\s+(.+)$/);
+      if(heading){flushParagraph();flushList();blocks.push('<h4>'+inline(heading[1])+'</h4>');return;}
+      flushList();paragraph.push(inline(line));
+    });
+    flushParagraph();flushList();
+    return blocks.join('');
+  }
+  function installAnswerStyles(){
+    if(document.getElementById('kor-ai-answer-format-styles'))return;
+    const style=document.createElement('style');style.id='kor-ai-answer-format-styles';style.textContent=`
+      .kor-ai-message.assistant,.kor-ai-message.ai{line-height:1.55;text-align:left;white-space:normal;overflow-wrap:anywhere}
+      .kor-ai-message.assistant p,.kor-ai-message.ai p{margin:0 0 9px}
+      .kor-ai-message.assistant p:last-child,.kor-ai-message.ai p:last-child{margin-bottom:0}
+      .kor-ai-message.assistant ul,.kor-ai-message.ai ul{margin:6px 0 9px;padding-left:19px}
+      .kor-ai-message.assistant li,.kor-ai-message.ai li{margin:5px 0;padding-left:2px}
+      .kor-ai-message.assistant h4,.kor-ai-message.ai h4{margin:0 0 7px;font-size:12px;line-height:1.35}
+      .kor-ai-message.assistant strong,.kor-ai-message.ai strong{font-weight:800}
+      .kor-ai-message.assistant code,.kor-ai-message.ai code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em;padding:1px 4px;border-radius:4px;background:rgba(99,91,255,.08)}
+    `;document.head.appendChild(style);
+  }
+  const addMessage=(text,role)=>{const el=document.createElement('div');el.className='kor-ai-message '+role;if(role==='assistant'||role==='ai')el.innerHTML=renderAssistantMarkdown(text);else el.textContent=text;messages.appendChild(el);messages.scrollTop=messages.scrollHeight;return el;};
   const addTyping=()=>{const el=document.createElement('div');el.className='kor-ai-message assistant typing';el.textContent='KORbuild AI is thinking…';messages.appendChild(el);messages.scrollTop=messages.scrollHeight;return el;};
   const openPanel=()=>{$('kor-ai-panel')?.classList.remove('hidden');$('kor-ai-input')?.focus();};
 
@@ -42,8 +80,6 @@
       if(profileError)throw new Error('profile: '+profileError.message);if(!profile?.empresa_id)throw new Error('profile: empresa_id not found');
       const empresaId=profile.empresa_id;
       stage='detector';
-      // Supabase query builders are awaitable but do not expose Promise.prototype.catch().
-      // Await the RPC directly so failures remain non-fatal for context assembly.
       try{await client.rpc('detect_ai_performance_declines');}catch(detectorError){console.warn('[KORbuild AI] detector refresh skipped',detectorError);}
       stage='workspace queries';
       const [peopleRes,teamsRes,periodRes,insightRes]=await Promise.all([
@@ -81,7 +117,7 @@
     const payload=await response.json().catch(()=>({}));if(!response.ok){setStatus('Gateway response · HTTP '+response.status);throw new Error(payload.error||'gateway_error');}if(!payload.answer)throw new Error('empty_ai_response');setStatus('Gateway response · HTTP '+response.status);return payload;
   }
   async function answer(text){openPanel();addMessage(text,'user');const typing=addTyping();try{const result=await askViaGateway(text);typing.remove();addMessage(result.answer,'assistant');}catch(error){console.warn('KORbuild AI gateway unavailable; using protected local context fallback',error?.message||error);try{const context=await buildAuthorizedContext();typing.remove();addMessage(localAnswer(text,context),'ai');}catch(fallbackError){typing.remove();setStatus('AI error · '+(fallbackError?.message||error?.message||'unknown error'));addMessage('A IA está temporariamente indisponível. Verifique o diagnóstico no rodapé.','assistant');}}}
-  async function init(){await waitForDom();messages=$('kor-ai-messages');if(!messages){setStatus('AI DOM error · messages not found');return;}setStatus('Gateway initialized · ready');
+  async function init(){await waitForDom();installAnswerStyles();messages=$('kor-ai-messages');if(!messages){setStatus('AI DOM error · messages not found');return;}setStatus('Gateway initialized · ready');
     const form=$('kor-ai-form');if(form&&!form.dataset.gatewayOwned){const fresh=form.cloneNode(true);form.replaceWith(fresh);fresh.dataset.gatewayOwned='true';const input=fresh.querySelector('#kor-ai-input');fresh.addEventListener('submit',event=>{event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();const text=String(input?.value||'').trim();if(!text)return;if(input)input.value='';answer(text);});}
     document.querySelectorAll('[data-prompt]').forEach(button=>{if(button.dataset.gatewayOwned)return;const fresh=button.cloneNode(true);button.replaceWith(fresh);fresh.dataset.gatewayOwned='true';fresh.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();const text=fresh.dataset.prompt;if(text)answer(text);});});
   }
