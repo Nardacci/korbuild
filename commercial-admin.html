@@ -19,76 +19,18 @@
         <a href="commercial-admin.html" aria-current="page">Settings</a>
       </div>
     </header>
-
     <section id="denied" class="notice hidden">
       <strong>Access denied.</strong>
       <p>You do not have permission to access Super Admin settings.</p>
     </section>
-
     <section id="admin-content" class="hidden">
-      <div class="grid">
-        <section class="card">
-          <div class="card-head">
-            <div>
-              <small>COMMERCIAL PRICING</small>
-              <h2>Standard pricing</h2>
-              <p>Define the standard commercial values used by KORbuild.</p>
-            </div>
-            <span class="lock">SUPER ADMIN</span>
-          </div>
-          <form id="settings-form">
-            <label>Base setup fee<input id="base-setup-fee" type="number" min="0" step="0.01"></label>
-            <label>Monthly price<input id="monthly-price" type="number" min="0" step="0.01"></label>
-            <label>Currency<select id="currency"><option value="USD">USD</option><option value="EUR">EUR</option><option value="BRL">BRL</option></select></label>
-            <div class="formula" id="base-preview">Base setup: —</div>
-            <button type="submit">Save standard pricing</button>
-          </form>
-        </section>
-      </div>
-
-      <section class="companies">
-        <div class="section-title">
-          <div>
-            <small>COMPANY COMMERCIAL TERMS</small>
-            <h2>Company pricing adjustments</h2>
-            <p>Review and update company-specific setup adjustments.</p>
-          </div>
-          <span>Super Admin only</span>
-        </div>
-        <div id="companies-list"></div>
+      <section class="card">
+        <div class="card-head"><div><small>COMMERCIAL PRICING</small><h2>Standard pricing</h2><p>Define the standard commercial values used by KORbuild.</p></div><span class="lock">SUPER ADMIN</span></div>
+        <form id="settings-form"><label>Base setup fee<input id="base-setup-fee" type="number" min="0" step="0.01"></label><label>Monthly price<input id="monthly-price" type="number" min="0" step="0.01"></label><label>Currency<select id="currency"><option value="USD">USD</option><option value="EUR">EUR</option><option value="BRL">BRL</option></select></label><div class="formula" id="base-preview">Base setup: —</div><button type="submit">Save standard pricing</button></form>
       </section>
-
-      <section class="companies access-section">
-        <div class="section-title">
-          <div>
-            <small>PLATFORM ACCESS</small>
-            <h2>Company access control</h2>
-            <p>Control trial and commercial access for each company.</p>
-          </div>
-          <span>Super Admin only</span>
-        </div>
-        <div id="access-companies-list"></div>
-      </section>
-
-      <section class="companies access-section">
-        <div class="section-title">
-          <div>
-            <small>PAYMENT INSTRUCTIONS</small>
-            <h2>Manual payment instructions</h2>
-            <p>Maintain the payment information shown for manual payments.</p>
-          </div>
-          <span>Super Admin only</span>
-        </div>
-        <form id="payment-instructions-form" class="payment-admin-form">
-          <label>Payment method<select id="payment-method"><option value="PIX">PIX</option><option value="BANK_TRANSFER">Bank transfer</option><option value="OTHER">Other</option></select></label>
-          <label>Account holder<input id="payment-account-holder-input" type="text"></label>
-          <label>PIX key<input id="payment-key-input" type="text"></label>
-          <label>Bank name<input id="payment-bank-input" type="text"></label>
-          <label>Payment contact<input id="payment-contact-input" type="text"></label>
-          <label class="payment-instructions-notes">Instructions<textarea id="payment-instructions-notes"></textarea></label>
-          <button type="submit">Save payment instructions</button>
-        </form>
-      </section>
+      <section class="companies"><div class="section-title"><div><small>COMPANY COMMERCIAL TERMS</small><h2>Company pricing adjustments</h2><p>Review and update company-specific setup adjustments.</p></div><span>Super Admin only</span></div><div id="companies-list"></div></section>
+      <section class="companies access-section"><div class="section-title"><div><small>PLATFORM ACCESS</small><h2>Company access control</h2><p>Control trial and commercial access for each company.</p></div><span>Super Admin only</span></div><div id="access-companies-list"></div></section>
+      <section class="companies access-section"><div class="section-title"><div><small>PAYMENT INSTRUCTIONS</small><h2>Manual payment instructions</h2><p>Maintain the payment information shown for manual payments.</p></div><span>Super Admin only</span></div><form id="payment-instructions-form" class="payment-admin-form"><label>Payment method<select id="payment-method"><option value="PIX">PIX</option><option value="BANK_TRANSFER">Bank transfer</option><option value="OTHER">Other</option></select></label><label>Account holder<input id="payment-account-holder-input" type="text"></label><label>PIX key<input id="payment-key-input" type="text"></label><label>Bank name<input id="payment-bank-input" type="text"></label><label>Payment contact<input id="payment-contact-input" type="text"></label><label class="payment-instructions-notes">Instructions<textarea id="payment-instructions-notes"></textarea></label><button type="submit">Save payment instructions</button></form></section>
     </section>
   </main>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
