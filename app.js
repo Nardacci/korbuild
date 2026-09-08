@@ -9,7 +9,27 @@ function setMessage(text) {
   if (message) message.textContent = text || '';
 }
 
+async function isSuperAdmin(client, userId) {
+  const { data, error } = await client
+    .from('korbuild_admins')
+    .select('user_id')
+    .eq('user_id', userId)
+    .eq('active', true)
+    .maybeSingle();
+
+  if (error) {
+    console.error('KORbuild Super Admin check failed:', error);
+    throw new Error('Unable to verify your platform access. Please try again.');
+  }
+
+  return !!data;
+}
+
 async function resolvePostLoginRoute(client, user) {
+  if (await isSuperAdmin(client, user.id)) {
+    return 'super-admin.html';
+  }
+
   const { data: profile, error } = await client
     .from('usuarios')
     .select('empresa_id, active')
