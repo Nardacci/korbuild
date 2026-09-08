@@ -2,12 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>KORbuild · Super Admin</title>
-<link rel="stylesheet" href="super-admin.css?v=1.0.0">
+<link rel="stylesheet" href="super-admin.css?v=1.0.1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div class="app-shell">
@@ -22,10 +23,10 @@
       <a class="nav-item" href="#finance"><span>▤</span>Financeiro</a>
       <a class="nav-item" href="#ai"><span>✦</span>IA</a>
     </nav>
-    <div class="side-bottom"><a class="nav-item" href="#settings"><span>⚙</span>Configurações</a></div>
+    <div class="side-bottom"><a class="nav-item" href="commercial-admin.html"><span>⚙</span>Configurações</a></div>
   </aside>
   <main class="main-content">
-    <header class="topbar"><div class="page-context"><strong>Super Admin</strong><small>Platform overview and administration.</small></div><button class="user-menu-btn" type="button"><span class="user-copy"><strong>Super Admin</strong><small>Platform administrator</small></span><span class="avatar">S</span><span class="chevron">⌄</span></button></header>
+    <header class="topbar"><div class="page-context"><strong>Super Admin</strong><small>Platform overview and administration.</small></div><div class="user-menu-wrap"><button id="user-menu-btn" class="user-menu-btn" type="button" aria-expanded="false"><span class="user-copy"><strong id="user-name">Super Admin</strong><small id="user-email">Platform administrator</small></span><span class="avatar" id="user-avatar">S</span><span class="chevron">⌄</span></button><div id="user-menu" class="user-menu" aria-hidden="true"></div></div></header>
     <section class="intro"><h1>Platform Dashboard</h1><p>Monitor and manage the KORbuild platform from a single place.</p></section>
     <section class="section-heading"><small>PLATFORM OVERVIEW</small></section>
     <section class="overview-grid">
@@ -41,11 +42,12 @@
       <a class="option-card" href="#subscriptions"><div class="option-icon">▣</div><h3>Subscriptions</h3><p>Manage plans and workspace subscriptions.</p><span class="option-link">Open Subscriptions →</span></a>
       <a class="option-card" href="#finance"><div class="option-icon">▤</div><h3>Finance</h3><p>Access platform financial information and controls.</p><span class="option-link">Open Finance →</span></a>
       <a class="option-card" href="#ai"><div class="option-icon">✦</div><h3>AI</h3><p>Manage global AI configuration, consumption and limits.</p><span class="option-link">Open AI →</span></a>
-      <a class="option-card" href="#settings"><div class="option-icon">⚙</div><h3>Settings</h3><p>Access the existing KORbuild platform configuration.</p><span class="option-link">Open Settings →</span></a>
+      <a class="option-card" href="commercial-admin.html"><div class="option-icon">⚙</div><h3>Configurações</h3><p>Configure commercial rules, company access, trials, AI consumption and payment instructions.</p><span class="option-link">Open Configurações →</span></a>
     </section>
     <section class="status-card"><span class="status-dot"></span><div class="status-copy"><strong>Platform access active</strong><small>You are signed in as a Super Admin. Dashboard modules will be connected in the next steps.</small></div></section>
   </main>
   <div class="version">KORbuild V1.2.9 · Development environment</div>
 </div>
+<script src="super-admin.js?v=1.0.0"></script>
 </body>
 </html>
