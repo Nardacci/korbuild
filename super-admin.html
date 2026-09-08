@@ -1,13 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KORbuild · Super Admin</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>KORbuild · Super Admin</title>
+<link rel="stylesheet" href="super-admin.css?v=1.0.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-  <main>
-    <h1>Super Admin</h1>
+<div class="app-shell">
+  <aside class="sidebar">
+    <a class="side-brand" href="super-admin.html"><div class="mini-mark">K</div><div>KOR<span>build</span></div><span class="admin-badge">ADMIN</span></a>
+    <div class="nav-label">PLATFORM</div>
+    <nav>
+      <a class="nav-item active" href="super-admin.html"><span>⌂</span>Dashboard</a>
+      <a class="nav-item" href="#workspaces"><span>◇</span>Workspaces</a>
+      <a class="nav-item" href="#users"><span>♙</span>Usuários</a>
+      <a class="nav-item" href="#subscriptions"><span>▣</span>Assinaturas</a>
+      <a class="nav-item" href="#finance"><span>▤</span>Financeiro</a>
+      <a class="nav-item" href="#ai"><span>✦</span>IA</a>
+    </nav>
+    <div class="side-bottom"><a class="nav-item" href="#settings"><span>⚙</span>Configurações</a></div>
+  </aside>
+  <main class="main-content">
+    <header class="topbar"><div class="page-context"><strong>Super Admin</strong><small>Platform overview and administration.</small></div><button class="user-menu-btn" type="button"><span class="user-copy"><strong>Super Admin</strong><small>Platform administrator</small></span><span class="avatar">S</span><span class="chevron">⌄</span></button></header>
+    <section class="intro"><h1>Platform Dashboard</h1><p>Monitor and manage the KORbuild platform from a single place.</p></section>
+    <section class="section-heading"><small>PLATFORM OVERVIEW</small></section>
+    <section class="overview-grid">
+      <article class="metric-card"><div class="metric-icon purple">◇</div><strong>—</strong><b>Workspaces</b><p>Platform total</p></article>
+      <article class="metric-card"><div class="metric-icon blue">♙</div><strong>—</strong><b>Users</b><p>Platform total</p></article>
+      <article class="metric-card"><div class="metric-icon green">▣</div><strong>—</strong><b>Active Subscriptions</b><p>Current status</p></article>
+      <article class="metric-card"><div class="metric-icon orange">↗</div><strong>—</strong><b>Platform Revenue</b><p>Current period</p></article>
+    </section>
+    <section class="section-heading"><small>ADMINISTRATION</small></section>
+    <section class="options-grid">
+      <a class="option-card" href="#workspaces"><div class="option-icon">◇</div><h3>Workspaces</h3><p>View and manage the companies using KORbuild.</p><span class="option-link">Open Workspaces →</span></a>
+      <a class="option-card" href="#users"><div class="option-icon">♙</div><h3>Users</h3><p>Manage platform users and administrators.</p><span class="option-link">Open Users →</span></a>
+      <a class="option-card" href="#subscriptions"><div class="option-icon">▣</div><h3>Subscriptions</h3><p>Manage plans and workspace subscriptions.</p><span class="option-link">Open Subscriptions →</span></a>
+      <a class="option-card" href="#finance"><div class="option-icon">▤</div><h3>Finance</h3><p>Access platform financial information and controls.</p><span class="option-link">Open Finance →</span></a>
+      <a class="option-card" href="#ai"><div class="option-icon">✦</div><h3>AI</h3><p>Manage global AI configuration, consumption and limits.</p><span class="option-link">Open AI →</span></a>
+      <a class="option-card" href="#settings"><div class="option-icon">⚙</div><h3>Settings</h3><p>Access the existing KORbuild platform configuration.</p><span class="option-link">Open Settings →</span></a>
+    </section>
+    <section class="status-card"><span class="status-dot"></span><div class="status-copy"><strong>Platform access active</strong><small>You are signed in as a Super Admin. Dashboard modules will be connected in the next steps.</small></div></section>
   </main>
+  <div class="version">KORbuild V1.2.9 · Development environment</div>
+</div>
 </body>
 </html>
