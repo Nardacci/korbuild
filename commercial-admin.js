@@ -1,7 +1,7 @@
 (async()=>{const cfg=window.KORBUILD_SUPABASE;if(!cfg||!window.supabase)return;const c=window.supabase.createClient(cfg.url,cfg.publishableKey,{auth:{persistSession:true,autoRefreshToken:true}});const $=x=>document.getElementById(x);
 function toast(message,type='success'){let el=document.querySelector('.kor-toast');if(!el){el=document.createElement('div');el.className='kor-toast';document.body.appendChild(el);}el.className='kor-toast show '+type;el.innerHTML='<span class="toast-icon">'+(type==='success'?'✓':'!')+'</span><span>'+message+'</span>';clearTimeout(window.__korToastTimer);window.__korToastTimer=setTimeout(()=>el.classList.remove('show'),3200);}
-const money=(v,currency='USD')=>v==null?'Not defined':new Intl.NumberFormat('en-US',{style:'currency',currency}).format(Number(v));let data;
-async function load(){const {data:d,error}=await c.rpc('get_korbuild_commercial_admin_data');if(error||!d){$('denied').classList.remove('hidden');return;}data=d;$('admin-content').classList.remove('hidden');const s=d.settings||{};$('base-setup-fee').value=s.base_setup_fee??'';$('monthly-price').value=s.monthly_price??'';$('currency').value=s.currency||'USD';$('base-preview').textContent='Base setup: '+money(s.base_setup_fee,s.currency);renderCompanies();renderAccessCompanies();loadPaymentInstructions();}
+const money=(v,currency='USD')=>v==null?'Not defined':new Intl.NumberFormat('en-US',{style:'currency',currency}).format(Number(v));let data;let aiWorkspaces;
+async function load(){const {data:d,error}=await c.rpc('get_korbuild_commercial_admin_data');if(error||!d){$('denied').classList.remove('hidden');return;}data=d;$('admin-content').classList.remove('hidden');const s=d.settings||{};$('base-setup-fee').value=s.base_setup_fee??'';$('monthly-price').value=s.monthly_price??'';$('currency').value=s.currency||'USD';$('base-preview').textContent='Base setup: '+money(s.base_setup_fee,s.currency);renderCompanies();renderAccessCompanies();loadPaymentInstructions();loadAiWorkspaces();}
 async function loadPaymentInstructions(){const {data:p,error}=await c.from('payment_instructions').select('*').eq('id',true).maybeSingle();if(error)return;const x=p||{};$('payment-method').value=x.method||'PIX';$('payment-account-holder-input').value=x.account_holder||'';$('payment-key-input').value=x.pix_key||'';$('payment-bank-input').value=x.bank_name||'';$('payment-contact-input').value=x.payment_contact||'';$('payment-instructions-notes').value=x.instructions||'';}
 $('payment-instructions-form').onsubmit=async e=>{e.preventDefault();const user=(await c.auth.getUser()).data.user;const payload={id:true,method:$('payment-method').value,account_holder:$('payment-account-holder-input').value||null,pix_key:$('payment-key-input').value||null,bank_name:$('payment-bank-input').value||null,payment_contact:$('payment-contact-input').value||null,instructions:$('payment-instructions-notes').value||null,updated_at:new Date().toISOString(),updated_by:user?.id};const {error}=await c.from('payment_instructions').upsert(payload);if(error){toast(error.message,'error');return;}toast('Payment instructions updated successfully.');};
 async function loadPaymentInstructions(){const {data:p,error}=await c.from('payment_instructions').select('*').eq('id',true).maybeSingle();if(error)return;const x=p||{};$('payment-method').value=x.method||'PIX';$('payment-account-holder-input').value=x.account_holder||'';$('payment-key-input').value=x.pix_key||'';$('payment-bank-input').value=x.bank_name||'';$('payment-contact-input').value=x.payment_contact||'';$('payment-instructions-notes').value=x.instructions||'';}
@@ -36,6 +36,33 @@ async function saveAccess(id){
  if(error){toast(error.message,'error');return;}
  await load();
  toast('Company access control updated successfully.');
+}
+async function loadAiWorkspaces(){
+ const {data:rows,error}=await c.rpc('get_finances_ai_limits');
+ if(error){toast(error.message,'error');return;}
+ aiWorkspaces=rows||[];
+ renderAiWorkspaces();
+}
+function renderAiWorkspaces(){
+ $('ai-workspaces-list').innerHTML=(aiWorkspaces||[]).map(w=>{
+  return '<div class="access-row" data-workspace="'+w.workspace_id+'">'
+   +'<div class="company-name"><strong>'+escapeHtml(w.display_name||'Untitled workspace')+'</strong><small>'+escapeHtml(w.country||'')+'</small></div>'
+   +'<label>Monthly AI limit<input class="ai-limit" type="number" min="0" step="1" value="'+w.monthly_request_limit+'"></label>'
+   +'<label class="toggle-label"><span>AI enabled</span><input class="ai-enabled" type="checkbox" '+(w.enabled?'checked':'')+'><i></i></label>'
+   +'<button class="save-ai-limit" data-id="'+w.workspace_id+'">Save</button></div>';
+ }).join('')||'<p>No financial workspaces found.</p>';
+ document.querySelectorAll('.save-ai-limit').forEach(b=>b.onclick=()=>saveAiLimit(b.dataset.id));
+}
+async function saveAiLimit(workspaceId){
+ const row=document.querySelector('.access-row[data-workspace="'+workspaceId+'"]');
+ const limit=Number(row.querySelector('.ai-limit').value||0);
+ const enabled=row.querySelector('.ai-enabled').checked;
+ const {error}=await c.rpc('update_finances_ai_limit',{
+  p_workspace_id:workspaceId,p_monthly_request_limit:limit,p_enabled:enabled
+ });
+ if(error){toast(error.message,'error');return;}
+ await loadAiWorkspaces();
+ toast('AI limit updated successfully.');
 }
 function escapeHtml(v){return String(v||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));}
 $('settings-form').onsubmit=async e=>{e.preventDefault();const payload={id:true,base_setup_fee:$('base-setup-fee').value===''?null:Number($('base-setup-fee').value),monthly_price:$('monthly-price').value===''?null:Number($('monthly-price').value),currency:$('currency').value,updated_by:(await c.auth.getUser()).data.user?.id};const {error}=await c.from('commercial_pricing_settings').upsert(payload);if(error){toast(error.message,'error');return;}await load();toast('Standard pricing updated successfully.');};

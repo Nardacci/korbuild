@@ -23,7 +23,7 @@
       <a class="nav-item" href="#users"><span>♙</span>Usuários</a>
       <a class="nav-item" href="#subscriptions"><span>▣</span>Assinaturas</a>
       <a class="nav-item" href="#finance"><span>▤</span>Financeiro</a>
-      <a class="nav-item" href="#ai"><span>✦</span>IA</a>
+      <a class="nav-item" href="#ai-consumption"><span>✦</span>IA</a>
     </nav>
     <div class="side-bottom"><a class="nav-item active" href="commercial-admin.html?source=super-admin"><span>⚙</span>Configurações</a></div>
   </aside>
@@ -70,6 +70,11 @@
         <div id="access-companies-list"></div>
       </section>
 
+      <section id="ai-consumption" class="companies access-section">
+        <div class="section-title"><div><small>AI CONSUMPTION</small><h2>KORbuild Finances — monthly AI limit</h2><p>Set the monthly AI request limit per financial workspace. Independent from the commercial company terms above — KORbuild Finances has no relation to empresa_id.</p></div><span>Super Admin only</span></div>
+        <div id="ai-workspaces-list"></div>
+      </section>
+
       <section class="companies access-section">
         <div class="section-title"><div><small>PAYMENT INSTRUCTIONS</small><h2>Manual payment instructions</h2><p>Maintain the payment information shown for manual payments.</p></div><span>Super Admin only</span></div>
         <form id="payment-instructions-form" class="payment-admin-form">
@@ -87,7 +92,7 @@
   <div class="version">KORbuild V1.2.9 · Development environment</div>
 </div>
 <script>window.KORBUILD_SUPABASE={url:'https://nowbohxeqwlddbfnukva.supabase.co',publishableKey:'sb_publishable_OTGYzEhQxckBa_8Xqu4Uog_Dm3RmTtD'};</script>
-<script src="commercial-admin.js?v=1.0.4"></script>
+<script src="commercial-admin.js?v=1.0.5"></script>
 <script src="super-admin.js?v=1.0.1"></script>
 </body>
 </html>
