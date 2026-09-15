@@ -45,9 +45,12 @@ async function loadAiWorkspaces(){
 }
 function renderAiWorkspaces(){
  $('ai-workspaces-list').innerHTML=(aiWorkspaces||[]).map(w=>{
+  const used=w.used_this_month??0,limit=w.monthly_request_limit;
+  const isAlert=limit<=0?used>0:(used/limit)>=0.8;
   return '<div class="access-row" data-workspace="'+w.workspace_id+'">'
    +'<div class="company-name"><strong>'+escapeHtml(w.display_name||'Untitled workspace')+'</strong><small>'+escapeHtml(w.country||'')+'</small></div>'
    +'<label>Monthly AI limit<input class="ai-limit" type="number" min="0" step="1" value="'+w.monthly_request_limit+'"></label>'
+   +'<div class="ai-usage'+(isAlert?' ai-usage-alert':'')+'"><small>Usage this month</small><strong>'+(isAlert?'⚠ ':'')+used+' / '+limit+'</strong></div>'
    +'<label class="toggle-label"><span>AI enabled</span><input class="ai-enabled" type="checkbox" '+(w.enabled?'checked':'')+'><i></i></label>'
    +'<button class="save-ai-limit" data-id="'+w.workspace_id+'">Save</button></div>';
  }).join('')||'<p>No financial workspaces found.</p>';
