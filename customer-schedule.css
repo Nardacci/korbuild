@@ -1,0 +1,22 @@
+.calendar-toolbar{display:flex;align-items:center;gap:16px;justify-content:space-between;margin:18px 0}
+.calendar-toolbar select{border:1px solid var(--line);border-radius:10px;padding:0 12px;height:40px;font:inherit;font-size:12px;color:var(--ink);background:#fff}
+.calendar-toolbar .message{margin:0;flex:1}
+.calendar-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px}
+.fc{font-family:Inter,system-ui,sans-serif;font-size:12px}
+.fc .fc-toolbar-title{font-size:16px;font-weight:800;color:#18243a}
+.fc .fc-button{background:#f3f2ff;border:1px solid #dfdcff;color:#554bdb;font-weight:700;text-transform:capitalize;box-shadow:none}
+.fc .fc-button:hover{background:#e9e6ff}
+.fc .fc-button-primary:not(:disabled).fc-button-active{background:#635bff;border-color:#635bff;color:#fff}
+.fc-event{cursor:grab;border:0;padding:1px 2px}
+.fc-event.appointment-cancelado{opacity:.45;text-decoration:line-through}
+
+.detail-modal{position:fixed;inset:0;background:rgba(20,24,38,.48);display:none;align-items:center;justify-content:center;padding:20px;z-index:200}
+.detail-modal.open{display:flex}
+.detail-dialog{width:min(420px,100%);background:#fff;border-radius:16px;padding:22px;box-shadow:0 30px 80px rgba(0,0,0,.22)}
+.detail-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.detail-head h3{margin:0;font-size:15px}
+.detail-close{border:0;background:#f3f4f7;color:#667085;width:28px;height:28px;border-radius:50%;font-size:16px;cursor:pointer}
+.detail-body{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;margin:0}
+.detail-body dt{font-size:10px;font-weight:800;letter-spacing:.06em;color:#7b879b;text-transform:uppercase;align-self:start;padding-top:2px}
+.detail-body dd{margin:0;font-size:12px;color:#26354d;font-weight:600}
+.detail-actions{margin-top:18px;padding-top:16px;border-top:1px solid #edf0f5;display:flex;justify-content:flex-end}

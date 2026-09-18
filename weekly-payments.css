@@ -1,0 +1,21 @@
+.payments-toolbar{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.range-field{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#40506a}
+.range-field input{border:1px solid var(--line);border-radius:10px;padding:0 10px;height:40px;font:inherit;font-size:12px;color:var(--ink)}
+.week-range{font-size:12px;color:var(--muted);font-weight:600}
+.secondary-btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 15px;font-size:11px;font-weight:700;color:#536075;cursor:pointer}
+.secondary-btn:hover{background:#f6f7fa}
+.payments-table input[type=number]{width:90px;border:1px solid #cfd7e5;border-radius:8px;padding:6px 8px;font:inherit;font-size:12px;height:32px}
+.payments-table select{border:1px solid #cfd7e5;border-radius:8px;padding:0 8px;font:inherit;font-size:11px;height:32px}
+.payments-table td{vertical-align:middle}
+.pay-rate-missing{color:#a86200;font-size:10px;font-weight:700}
+.pay-money{font-variant-numeric:tabular-nums;font-weight:700;color:#18243a}
+.pay-money.net{color:#15724f}
+.pay-save-btn{border:0;border-radius:8px;padding:7px 11px;background:#635bff;color:#fff;font-size:10px;font-weight:700;cursor:pointer}
+.pay-save-btn:disabled{opacity:.5;cursor:not-allowed}
+.pay-recalc-btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 9px;font-size:10px;font-weight:700;color:#536075;cursor:pointer;margin-right:6px}
+.pay-row-actions{display:flex;align-items:center}
+.pay-status-tag{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:9px;font-weight:800}
+.pay-status-tag.pendente{background:#fff4df;color:#a86200}
+.pay-status-tag.pago{background:#edf9f2;color:#237344}
+.pay-status-tag.parcial{background:#eeecff;color:#5348dc}
+@media(max-width:900px){.payments-table{min-width:900px}}

@@ -1,0 +1,7 @@
+.form-card{display:grid;grid-template-columns:1fr;gap:0}
+.form-hint{margin:0;padding:11px 13px;border-radius:10px;background:#f3f2ff;color:#5b53d8;font-size:11px;font-weight:600;line-height:1.6}
+.form-hint code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#fff;padding:1px 5px;border-radius:5px;border:1px solid #e3e0ff}
+.reminder-preview{margin-top:24px;padding-top:24px;border-top:1px solid #edf0f5}
+.reminder-preview-head{font-size:10px;font-weight:800;letter-spacing:.12em;color:#7b879b;margin-bottom:10px}
+.reminder-preview-subject{font-weight:800;font-size:14px;color:#18243a;margin-bottom:8px}
+.reminder-preview-body{background:#f8f8fb;border:1px solid #edf0f5;border-radius:12px;padding:16px;font-size:12px;line-height:1.6;color:#344054;white-space:pre-wrap}

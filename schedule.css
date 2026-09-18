@@ -1,0 +1,13 @@
+.schedule-toolbar{flex-wrap:wrap}.range-field{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#536075}.range-field input{border:1px solid var(--line);border-radius:10px;padding:0 10px;height:40px;font:inherit;font-size:12px;color:var(--ink)}
+.type-chip{display:inline-flex;align-items:center;gap:7px;font-weight:700;font-size:12px;color:#18243a}.type-chip .dot{width:9px;height:9px;border-radius:50%;background:var(--chip-color,#635bff);flex:none}
+.schedule-status{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:999px;font-size:10px;font-weight:700}
+.schedule-status.pendente{background:#fff4df;color:#a86200}
+.schedule-status.aprovado{background:#edf9f2;color:#237344}
+.schedule-status.rejeitado{background:#fff0f0;color:#a13c48}
+.schedule-status.confirmado{background:#eeecff;color:#5348dc}
+.schedule-status .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.approve-btn{border:1px solid #cdeadb;background:#edf9f2;color:#237344}
+.approve-btn:hover{background:#e0f5e9}
+.reject-btn{border:1px solid #f4c9cf;background:#fff0f0;color:#a13c48}
+.reject-btn:hover{background:#ffe4e7}
+@media(max-width:800px){.range-field{width:100%}.range-field input{flex:1}}

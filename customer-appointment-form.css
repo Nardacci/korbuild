@@ -1,0 +1,5 @@
+.inline-row{display:flex;gap:8px;align-items:stretch}
+.inline-row select{flex:1}
+.inline-row .secondary-btn{white-space:nowrap;height:44px;padding:0 14px}
+.inline-panel{background:#f8f8fb;border:1px solid #edf0f5;border-radius:12px;padding:16px;margin:-8px 0 4px}
+.inline-panel .form-grid{gap:14px}

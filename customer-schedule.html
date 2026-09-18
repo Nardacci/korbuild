@@ -1,0 +1,30 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>KORbuild · Customer Calendar</title><link rel="stylesheet" href="home.css?v=26"><link rel="stylesheet" href="teams.css?v=1.2.3"><link rel="stylesheet" href="customer-schedule.css?v=1.0.0"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script><script src="app-config.js?v=1.2.2"></script></head><body class="app-body"><div class="app-shell"><aside class="sidebar"><div class="side-brand"><div class="mini-mark">K</div><div>KOR<span>build</span></div></div><nav></nav></aside><main class="main-content"><header class="topbar page-topbar"><div class="topbar-page-context page-identity"><strong>Customer Calendar</strong><small>Drag an appointment to a new time to reschedule it.</small></div><div class="user-menu-wrap"><button id="user-menu-btn" class="user-menu-btn" aria-expanded="false"><span class="user-copy"><strong id="user-name">Owner</strong><small id="user-email"></small></span><span class="avatar" id="user-avatar">O</span><span class="chevron">⌄</span></button><div id="user-menu" class="user-menu hidden"><div class="menu-header"><span class="avatar large" id="menu-avatar">O</span><div><b id="menu-full-name">Owner</b><small id="menu-full-email"></small></div></div><div class="menu-divider"></div><a class="menu-item" href="home.html">⌂ <span>Dashboard</span></a><a class="menu-item" href="setup.html">⚙ <span>Workspace Setup</span></a><button id="menu-logout" class="menu-item danger">↪ <span>Sign out</span></button></div></div></header>
+
+<section class="calendar-toolbar">
+  <select id="colaborador-filter"><option value="ALL">All collaborators</option></select>
+  <div id="message" class="message hidden"></div>
+  <a href="customer-appointment-form.html" class="primary-btn toolbar-primary">+ New Appointment</a>
+</section>
+
+<section class="calendar-card">
+  <div id="calendar"></div>
+</section>
+
+<div id="detail-modal" class="detail-modal hidden">
+  <div class="detail-dialog">
+    <div class="detail-head"><h3 id="detail-title">Appointment</h3><button id="detail-close" class="detail-close" type="button">×</button></div>
+    <dl class="detail-body">
+      <dt>Client</dt><dd id="detail-client">—</dd>
+      <dt>Service</dt><dd id="detail-service">—</dd>
+      <dt>Collaborator</dt><dd id="detail-colaborador">—</dd>
+      <dt>When</dt><dd id="detail-when">—</dd>
+      <dt>Status</dt><dd id="detail-status">—</dd>
+      <dt>Notes</dt><dd id="detail-notes">—</dd>
+    </dl>
+    <div class="detail-actions">
+      <button id="detail-cancel-appointment" class="small-btn danger" type="button">Cancel Appointment</button>
+    </div>
+  </div>
+</div>
+
+</main><div class="app-version">KORbuild V1.2.2 · Development environment</div></div><script src="supabase-config.js?v=1.3.0"></script><script src="i18n.js?v=1.3.0"></script><script src="customer-schedule.js?v=1.0.0"></script></body></html>
