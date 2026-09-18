@@ -38,6 +38,14 @@ const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const MERCADOPAGO_ACCESS_TOKEN = Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
 const APP_BASE_URL = Deno.env.get("APP_BASE_URL") || "https://nardacci.github.io/korbuild";
+// Mercado Pago will not reliably call a webhook URL that's only configured
+// manually in their panel (confirmed in practice: a real setup-fee
+// Preference created without this field never triggered mercadopago-webhook
+// -- payment_events showed notification_url: null on the created
+// preference). Both the Preference and the Preapproval APIs accept this
+// field directly on creation, so it's set explicitly on every request
+// instead of relying on the panel-level default.
+const NOTIFICATION_URL = `${SUPABASE_URL}/functions/v1/mercadopago-webhook`;
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -144,6 +152,7 @@ Deno.serve(async (req) => {
           }],
           external_reference: empresaId,
           metadata: { kind: "setup_fee", empresa_id: empresaId },
+          notification_url: NOTIFICATION_URL,
           payer: user.email ? { email: user.email } : undefined,
           back_urls: {
             success: `${APP_BASE_URL}/billing.html`,
@@ -201,6 +210,7 @@ Deno.serve(async (req) => {
         reason: "KORbuild - assinatura mensal",
         external_reference: empresaId,
         payer_email: user.email,
+        notification_url: NOTIFICATION_URL,
         back_url: `${APP_BASE_URL}/billing.html`,
         auto_recurring: {
           frequency: 1,
