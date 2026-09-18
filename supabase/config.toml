@@ -1,0 +1,8 @@
+project_id = "nowbohxeqwlddbfnukva"
+
+[functions.mercadopago-webhook]
+# Mercado Pago calls this with no Supabase user JWT -- auth is MP's own
+# x-signature/x-request-id scheme, validated against
+# MERCADOPAGO_WEBHOOK_SECRET. Same reasoning as KORbuild Finances'
+# mp-webhook function.
+verify_jwt = false

@@ -40,6 +40,11 @@
       suffix='/ month';
       button='Subscribe when trial ends →';
       context='Your setup fee is waived. Your first monthly payment is due when your trial ends.';
+    } else if(access?.status==='PAST_DUE'){
+      amount=commercial?.monthly_price;
+      suffix='/ month';
+      button='Update payment →';
+      context='Your last monthly payment could not be processed. Pay now to keep your KORbuild access active.';
     }
 
     currentOffer={amount,suffix,button,context,phase};
@@ -75,6 +80,17 @@
     else if(phase==='POST_SETUP'){card.classList.add('active');$('status-icon').textContent='✓';$('status-eyebrow').textContent='SETUP COMPLETE';$('status-title').textContent='Your workspace is active';$('status-message').textContent='Your monthly subscription begins after the 30-day setup period.';}
     else if(phase==='MONTHLY_PAYMENT'){card.classList.add('blocked');$('status-icon').textContent='🔒';$('status-eyebrow').textContent='MONTHLY SUBSCRIPTION';$('status-title').textContent='Your first monthly payment is due';$('status-message').textContent='Your setup fee was waived. Start your monthly subscription to continue.';metric.textContent='—';label.textContent='payment required';}
     else if(access?.status==='ACTIVE'||phase==='ACTIVE'){card.classList.add('active');$('status-icon').textContent='✓';$('status-eyebrow').textContent='SUBSCRIPTION ACTIVE';$('status-title').textContent='Your KORbuild subscription is active';$('status-message').textContent='Your workspace has full access to KORbuild.';metric.textContent='✓';label.textContent='active';}
+    else if(access?.status==='PAST_DUE'){
+      const inGrace=access?.access==='ALLOWED';
+      card.classList.add(inGrace?'warning':'blocked');
+      $('status-icon').textContent='!';
+      $('status-eyebrow').textContent=inGrace?'PAYMENT FAILED':'ACCESS PAUSED';
+      $('status-title').textContent=inGrace?'Your last payment failed':'Your KORbuild access is paused';
+      $('status-message').textContent=inGrace
+        ? 'Update your payment within '+days+' '+(days===1?'day':'days')+' to avoid losing access.'
+        : 'Your subscription payment could not be completed. Update your payment to restore access.';
+      if(!inGrace){metric.textContent='—';label.textContent='payment required';}
+    }
     else if(access?.access==='BLOCKED'){card.classList.add('blocked');$('status-icon').textContent='🔒';$('status-eyebrow').textContent='ACCESS PAUSED';$('status-title').textContent='Your KORbuild access is paused';$('status-message').textContent='Complete payment to reactivate your workspace.';}
     else {$('status-eyebrow').textContent='SUBSCRIPTION STATUS';$('status-title').textContent='We could not determine your subscription status';$('status-message').textContent='Please refresh the page or contact support.';}
     setOffer(access);
@@ -105,11 +121,35 @@
 
     commercial=price||{};
     renderStatus(access);
-    $('subscribe-btn').addEventListener('click',openPaymentInstructions);
+    $('subscribe-btn').addEventListener('click',startMercadoPagoCheckout);
+    $('manual-pix-btn').addEventListener('click',openPaymentInstructions);
     $('payment-close').addEventListener('click',closePaymentInstructions);
     $('payment-modal').addEventListener('click',e=>{if(e.target.id==='payment-modal')closePaymentInstructions();});
     $('copy-payment-key').addEventListener('click',copyPaymentKey);
     document.addEventListener('keydown',e=>{if(e.key==='Escape')closePaymentInstructions();});
+  async function startMercadoPagoCheckout(){
+    if(!currentOffer)return;
+    const btn=$('subscribe-btn');
+    const original=btn.textContent;
+    btn.disabled=true;btn.textContent='Redirecting to Mercado Pago...';
+    try{
+      const {data:{session}}=await client.auth.getSession();
+      if(!session?.access_token)throw new Error('Your session expired. Please sign in again.');
+      const res=await fetch(cfg.url+'/functions/v1/mercadopago-checkout',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token,'apikey':cfg.publishableKey}
+      });
+      const body=await res.json().catch(()=>null);
+      if(!res.ok||!body?.init_point){
+        throw new Error(body?.error==='already_subscribed'?'You already have an active subscription.':(body?.error||('Mercado Pago checkout failed (HTTP '+res.status+').')));
+      }
+      window.location.href=body.init_point;
+    }catch(error){
+      console.error('Mercado Pago checkout failed',error);
+      alert('We could not start the Mercado Pago checkout. '+(error?.message||'Please try again, or use the manual PIX option below.'));
+      btn.disabled=false;btn.textContent=original;
+    }
+  }
   async function openPaymentInstructions(){
     if(!currentOffer)return;
     if(!paymentInstructions){
