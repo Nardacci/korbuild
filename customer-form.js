@@ -5,12 +5,13 @@ const $=id=>document.getElementById(id);
 const state={empresaId:null,editingId:new URLSearchParams(location.search).get('id')};
 function closeMenu(){$('user-menu')?.classList.add('hidden');$('user-menu-btn')?.setAttribute('aria-expanded','false');}
 function msg(text,type='success'){const e=$('message');e.textContent=text;e.className=`message ${type}`;e.classList.remove('hidden');}
+const t=s=>window.KORbuildI18n?window.KORbuildI18n.t(s):s;
 
 async function loadProfile(){
   const {data:{session},error}=await db.auth.getSession();
   if(error||!session?.user){location.href='index.html';return false;}
   const {data:profile,error:profileError}=await db.from('usuarios').select('id,name,empresa_id,empresas(name)').eq('id',session.user.id).maybeSingle();
-  if(profileError||!profile?.empresa_id){msg(profileError?.message||'Unable to load workspace profile.','error');return false;}
+  if(profileError||!profile?.empresa_id){msg(profileError?.message||t('Unable to load workspace profile.'),'error');return false;}
   state.empresaId=profile.empresa_id;
   const company=profile.empresas?.name||'KORbuild Demo';
   const name=profile.name?.trim()&&profile.name!=='Owner'?profile.name:session.user.user_metadata?.full_name||`${company} Owner`;
@@ -45,10 +46,10 @@ async function save(event){
       ({error}=await db.rpc('criar_cliente',{p_empresa_id:state.empresaId,p_nome:nome,p_email:email,p_telefone:telefone,p_endereco:endereco}));
     }
     if(error)throw error;
-    msg(state.editingId?'Client updated successfully.':'Client added successfully.');
+    msg(state.editingId?t('Client updated successfully.'):t('Client added successfully.'));
     setTimeout(()=>location.href='customers.html',600);
   }catch(error){
-    msg(`We couldn't save this client. ${error.message||'Please try again.'}`,'error');
+    msg(`${t("We couldn't save this client.")} ${error.message||t('Please try again.')}`,'error');
     btn.disabled=false;btn.textContent=state.editingId?'Save Changes':'Save Client';
   }
 }

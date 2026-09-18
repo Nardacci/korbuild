@@ -6,13 +6,14 @@ const state={empresaId:null,services:[]};
 function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
 function closeMenu(){$('user-menu')?.classList.add('hidden');$('user-menu-btn')?.setAttribute('aria-expanded','false');}
 function msg(text,type='success'){const e=$('message');e.textContent=text;e.className=`message ${type}`;e.classList.remove('hidden');}
+const t=s=>window.KORbuildI18n?window.KORbuildI18n.t(s):s;
 function addMinutes(hhmm,minutes){const [h,m]=hhmm.split(':').map(Number);const total=h*60+m+minutes;const nh=Math.floor(((total%1440)+1440)%1440/60),nm=((total%60)+60)%60;return String(nh).padStart(2,'0')+':'+String(nm).padStart(2,'0');}
 
 async function loadProfile(){
   const {data:{session},error}=await db.auth.getSession();
   if(error||!session?.user){location.href='index.html';return false;}
   const {data:profile,error:profileError}=await db.from('usuarios').select('id,name,empresa_id,empresas(name)').eq('id',session.user.id).maybeSingle();
-  if(profileError||!profile?.empresa_id){msg(profileError?.message||'Unable to load workspace profile.','error');return false;}
+  if(profileError||!profile?.empresa_id){msg(profileError?.message||t('Unable to load workspace profile.'),'error');return false;}
   state.empresaId=profile.empresa_id;
   const company=profile.empresas?.name||'KORbuild Demo';
   const name=profile.name?.trim()&&profile.name!=='Owner'?profile.name:session.user.user_metadata?.full_name||`${company} Owner`;
@@ -70,13 +71,13 @@ async function resolveClienteId(){
     const nome=$('new-client-nome').value.trim();
     const email=$('new-client-email').value.trim();
     const telefone=$('new-client-telefone').value.trim()||null;
-    if(!nome||!email)throw new Error('New client name and email are required.');
+    if(!nome||!email)throw new Error(t('New client name and email are required.'));
     const {data,error}=await db.rpc('criar_cliente',{p_empresa_id:state.empresaId,p_nome:nome,p_email:email,p_telefone:telefone});
     if(error)throw error;
     return data;
   }
   const id=$('cliente-id').value;
-  if(!id)throw new Error('Select a client or create a new one.');
+  if(!id)throw new Error(t('Select a client or create a new one.'));
   return id;
 }
 
@@ -85,15 +86,15 @@ async function resolveServicoId(){
     const nome=$('new-service-nome').value.trim();
     const duracao=Number($('new-service-duracao').value);
     const preco=Number($('new-service-preco').value);
-    if(!nome)throw new Error('New service name is required.');
-    if(!Number.isFinite(duracao)||duracao<=0)throw new Error('New service duration must be greater than zero.');
-    if(!Number.isFinite(preco)||preco<0)throw new Error('New service price must be zero or greater.');
+    if(!nome)throw new Error(t('New service name is required.'));
+    if(!Number.isFinite(duracao)||duracao<=0)throw new Error(t('New service duration must be greater than zero.'));
+    if(!Number.isFinite(preco)||preco<0)throw new Error(t('New service price must be zero or greater.'));
     const {data,error}=await db.rpc('criar_servico',{p_empresa_id:state.empresaId,p_nome:nome,p_duracao_padrao_minutos:duracao,p_preco_padrao:preco});
     if(error)throw error;
     return data;
   }
   const id=$('servico-id').value;
-  if(!id)throw new Error('Select a service or create a new one.');
+  if(!id)throw new Error(t('Select a service or create a new one.'));
   return id;
 }
 
@@ -114,10 +115,10 @@ async function save(event){
       p_data:data,p_hora_inicio:horaInicio,p_hora_fim:horaFim,p_observacoes:observacoes
     });
     if(error)throw error;
-    msg('Appointment booked successfully.');
+    msg(t('Appointment booked successfully.'));
     setTimeout(()=>location.href='customer-schedule.html',600);
   }catch(error){
-    msg(`We couldn't save this appointment. ${error.message||'Please try again.'}`,'error');
+    msg(`${t("We couldn't save this appointment.")} ${error.message||t('Please try again.')}`,'error');
     btn.disabled=false;btn.textContent='Save Appointment';
   }
 }
@@ -137,6 +138,6 @@ async function init(){
     await loadOptions();
     applyQueryPrefill();
     recomputeEndTime();
-  }catch(e){msg(`Unable to load form options. ${e.message||''}`,'error');}
+  }catch(e){msg(`${t("Unable to load form options.")} ${e.message||''}`,'error');}
 }
 init();

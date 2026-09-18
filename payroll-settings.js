@@ -5,12 +5,13 @@ const $=id=>document.getElementById(id);
 const state={empresaId:null};
 function closeMenu(){$('user-menu')?.classList.add('hidden');$('user-menu-btn')?.setAttribute('aria-expanded','false');}
 function msg(text,type='success'){const e=$('message');e.textContent=text;e.className=`message ${type}`;e.classList.remove('hidden');}
+const t=s=>window.KORbuildI18n?window.KORbuildI18n.t(s):s;
 
 async function loadProfile(){
   const {data:{session},error}=await db.auth.getSession();
   if(error||!session?.user){location.href='index.html';return false;}
   const {data:profile,error:profileError}=await db.from('usuarios').select('id,name,empresa_id,empresas(name)').eq('id',session.user.id).maybeSingle();
-  if(profileError||!profile?.empresa_id){msg(profileError?.message||'Unable to load workspace profile.','error');return false;}
+  if(profileError||!profile?.empresa_id){msg(profileError?.message||t('Unable to load workspace profile.'),'error');return false;}
   state.empresaId=profile.empresa_id;
   const company=profile.empresas?.name||'KORbuild Demo';
   const name=profile.name?.trim()&&profile.name!=='Owner'?profile.name:session.user.user_metadata?.full_name||`${company} Owner`;
@@ -49,7 +50,7 @@ async function save(event){
     if(error)throw error;
     msg('Payroll settings updated successfully.');
   }catch(error){
-    msg(`We couldn't save these settings. ${error.message||'Please try again.'}`,'error');
+    msg(`${t("We couldn't save these settings.")} ${error.message||t('Please try again.')}`,'error');
   }finally{
     btn.disabled=false;btn.textContent='Save Settings';
   }
@@ -60,5 +61,5 @@ document.addEventListener('click',e=>{if(!e.target.closest('.user-menu-wrap'))cl
 $('menu-logout')?.addEventListener('click',async()=>{await db.auth.signOut();location.href='index.html';});
 $('payroll-settings-form').addEventListener('submit',save);
 
-async function init(){if(!(await loadProfile()))return;try{await loadSettings();}catch(e){msg(`Unable to load payroll settings. ${e.message||''}`,'error');}}
+async function init(){if(!(await loadProfile()))return;try{await loadSettings();}catch(e){msg(`${t("Unable to load payroll settings.")} ${e.message||''}`,'error');}}
 init();

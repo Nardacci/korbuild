@@ -7,12 +7,13 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const fmtDate=v=>v?new Date(v).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
 function closeMenu(){$('user-menu')?.classList.add('hidden');$('user-menu-btn')?.setAttribute('aria-expanded','false');}
 function msg(text,type='success'){const e=$('message');e.textContent=text;e.className=`message ${type}`;e.classList.remove('hidden');}
+const t=s=>window.KORbuildI18n?window.KORbuildI18n.t(s):s;
 
 async function loadProfile(){
   const {data:{session},error}=await db.auth.getSession();
   if(error||!session?.user){location.href='index.html';return false;}
   const {data:profile,error:profileError}=await db.from('usuarios').select('id,name,empresa_id,empresas(name)').eq('id',session.user.id).maybeSingle();
-  if(profileError||!profile?.empresa_id){msg(profileError?.message||'Unable to load workspace profile.','error');return false;}
+  if(profileError||!profile?.empresa_id){msg(profileError?.message||t('Unable to load workspace profile.'),'error');return false;}
   state.empresaId=profile.empresa_id;
   const company=profile.empresas?.name||'KORbuild Demo';
   const name=profile.name?.trim()&&profile.name!=='Owner'?profile.name:session.user.user_metadata?.full_name||`${company} Owner`;
@@ -48,5 +49,5 @@ document.addEventListener('click',e=>{if(!e.target.closest('.user-menu-wrap'))cl
 $('menu-logout')?.addEventListener('click',async()=>{await db.auth.signOut();location.href='index.html';});
 $('search').addEventListener('input',render);
 
-async function init(){if(!(await loadProfile()))return;try{await loadClients();}catch(e){console.error(e);msg(`Unable to load clients. ${e.message||''}`,'error');}}
+async function init(){if(!(await loadProfile()))return;try{await loadClients();}catch(e){console.error(e);msg(`${t("Unable to load clients.")} ${e.message||''}`,'error');}}
 init();

@@ -8,6 +8,7 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 function closeMenu(){$('user-menu')?.classList.add('hidden');$('user-menu-btn')?.setAttribute('aria-expanded','false');}
 function msg(text,type='success'){const e=$('message');e.textContent=text;e.className=`message ${type}`;e.classList.remove('hidden');}
 function clearMsg(){$('message')?.classList.add('hidden');}
+const t=s=>window.KORbuildI18n?window.KORbuildI18n.t(s):s;
 
 function colorFor(colaboradorId){
   let hash=0;
@@ -19,7 +20,7 @@ async function loadProfile(){
   const {data:{session},error}=await db.auth.getSession();
   if(error||!session?.user){location.href='index.html';return false;}
   const {data:profile,error:profileError}=await db.from('usuarios').select('id,name,empresa_id,empresas(name)').eq('id',session.user.id).maybeSingle();
-  if(profileError||!profile?.empresa_id){msg(profileError?.message||'Unable to load workspace profile.','error');return false;}
+  if(profileError||!profile?.empresa_id){msg(profileError?.message||t('Unable to load workspace profile.'),'error');return false;}
   state.empresaId=profile.empresa_id;
   const company=profile.empresas?.name||'KORbuild Demo';
   const name=profile.name?.trim()&&profile.name!=='Owner'?profile.name:session.user.user_metadata?.full_name||`${company} Owner`;
@@ -46,7 +47,7 @@ async function fetchEvents(fetchInfo,successCallback,failureCallback){
     p_colaborador_id:colaboradorFilter==='ALL'?null:colaboradorFilter,
     p_status:null
   });
-  if(error){failureCallback(error);msg(`Unable to load appointments. ${error.message}`,'error');return;}
+  if(error){failureCallback(error);msg(`${t("Unable to load appointments.")} ${error.message}`,'error');return;}
   const events=(data||[]).map(row=>({
     id:row.id,
     title:`${row.cliente_nome} · ${row.servico_nome}`,
@@ -70,10 +71,10 @@ async function handleReschedule(info){
   });
   if(error){
     info.revert();
-    msg(`Couldn't move this appointment. ${error.message}`,'error');
+    msg(`${t("Couldn't move this appointment.")} ${error.message}`,'error');
     return;
   }
-  msg('Appointment moved successfully.');
+  msg(t('Appointment moved successfully.'));
   state.calendar.refetchEvents();
 }
 
@@ -94,11 +95,11 @@ function openDetail(event){
 function closeDetail(){$('detail-modal').classList.remove('open');}
 
 async function cancelAppointment(id){
-  if(!confirm('Cancel this appointment?'))return;
+  if(!confirm(t('Cancel this appointment?')))return;
   const {error}=await db.rpc('cancelar_agendamento',{p_agendamento_id:id});
-  if(error){msg(`Unable to cancel this appointment. ${error.message}`,'error');return;}
+  if(error){msg(`${t("Unable to cancel this appointment.")} ${error.message}`,'error');return;}
   closeDetail();
-  msg('Appointment cancelled.');
+  msg(t('Appointment cancelled.'));
   state.calendar.refetchEvents();
 }
 
@@ -143,6 +144,6 @@ async function init(){
   try{
     await loadColaboradores();
     initCalendar();
-  }catch(e){console.error(e);msg(`Unable to load the calendar. ${e.message||''}`,'error');}
+  }catch(e){console.error(e);msg(`${t("Unable to load the calendar.")} ${e.message||''}`,'error');}
 }
 init();

@@ -11,6 +11,12 @@ function addDays(dateStr,days){const d=new Date(dateStr+'T00:00:00');d.setDate(d
 function msg(text,type='success'){const e=$('message');e.textContent=text;e.className=`message ${type}`;e.classList.remove('hidden');}
 function clearMsg(){$('message')?.classList.add('hidden');}
 function closeMenu(){$('user-menu')?.classList.add('hidden');$('user-menu-btn')?.setAttribute('aria-expanded','false');}
+const t=s=>window.KORbuildI18n?window.KORbuildI18n.t(s):s;
+const PAY_STATUS_LABEL={
+  'en-US':{pendente:'Pending',parcial:'Partial',pago:'Paid'},
+  'pt-BR':{pendente:'Pendente',parcial:'Parcial',pago:'Pago'}
+};
+function payStatusLabel(status){const lang=window.KORbuildI18n?window.KORbuildI18n.language:'en-US';return (PAY_STATUS_LABEL[lang]||PAY_STATUS_LABEL['en-US'])[status]||status;}
 
 function defaultWeekStart(targetDay){
   const d=new Date();d.setHours(0,0,0,0);
@@ -23,7 +29,7 @@ async function loadProfile(){
   const {data:{session},error}=await db.auth.getSession();
   if(error||!session?.user){location.href='index.html';return false;}
   const {data:profile,error:profileError}=await db.from('usuarios').select('id,name,empresa_id,empresas(name)').eq('id',session.user.id).maybeSingle();
-  if(profileError||!profile?.empresa_id){msg(profileError?.message||'Unable to load workspace profile.','error');return false;}
+  if(profileError||!profile?.empresa_id){msg(profileError?.message||t('Unable to load workspace profile.'),'error');return false;}
   state.empresaId=profile.empresa_id;
   const company=profile.empresas?.name||'KORbuild Demo';
   const name=profile.name?.trim()&&profile.name!=='Owner'?profile.name:session.user.user_metadata?.full_name||`${company} Owner`;
@@ -124,16 +130,16 @@ function render(){
     }
     const {bruto,liquido}=rowTotals(r);
     return `<tr data-id="${r.colaboradorId}">
-      <td><div class="team-name">${esc(r.name)}</div>${r.registered?'<div class="pay-status-tag '+r.status+'">'+r.status+'</div>':''}</td>
+      <td><div class="team-name">${esc(r.name)}</div>${r.registered?'<div class="pay-status-tag '+r.status+'">'+esc(payStatusLabel(r.status))+'</div>':''}</td>
       <td><input type="number" min="0" step="0.25" class="pay-horas" value="${r.horas}"></td>
       <td class="pay-money">${money(r.valorHora)}</td>
       <td class="pay-money pay-bruto">${money(bruto)}</td>
       <td><input type="number" min="0" step="0.01" class="pay-adiantamento" value="${r.adiantamento}"></td>
       <td class="pay-money net pay-liquido">${money(liquido)}</td>
       <td><select class="pay-status">
-        <option value="pendente" ${r.status==='pendente'?'selected':''}>Pending</option>
-        <option value="parcial" ${r.status==='parcial'?'selected':''}>Partial</option>
-        <option value="pago" ${r.status==='pago'?'selected':''}>Paid</option>
+        <option value="pendente" ${r.status==='pendente'?'selected':''}>${esc(payStatusLabel('pendente'))}</option>
+        <option value="parcial" ${r.status==='parcial'?'selected':''}>${esc(payStatusLabel('parcial'))}</option>
+        <option value="pago" ${r.status==='pago'?'selected':''}>${esc(payStatusLabel('pago'))}</option>
       </select></td>
       <td><div class="pay-row-actions"><button type="button" class="pay-recalc-btn" data-action="recalc">↻</button><button type="button" class="pay-save-btn" data-action="save">${r.registered?'Update':'Register'}</button></div></td>
     </tr>`;
@@ -151,7 +157,7 @@ function readRowInputs(tr){
 async function recalc(colaboradorId){
   const weekStart=$('week-start').value;
   const {data,error}=await db.rpc('calcular_pagamento_semanal',{p_empresa_id:state.empresaId,p_colaborador_id:colaboradorId,p_semana_inicio:weekStart});
-  if(error){msg(`Unable to recalculate. ${error.message}`,'error');return;}
+  if(error){msg(`${t("Unable to recalculate.")} ${error.message}`,'error');return;}
   const preview=data?.[0];
   const row=state.rows.get(colaboradorId);
   if(row&&preview){
@@ -173,8 +179,8 @@ async function setRate(tr){
     p_valor_hora:value,
     p_vigente_de:$('week-start').value
   });
-  if(error){msg(`Unable to register the hourly rate. ${error.message}`,'error');return;}
-  msg('Hourly rate registered.');
+  if(error){msg(`${t("Unable to register the hourly rate.")} ${error.message}`,'error');return;}
+  msg(t('Hourly rate registered.'));
   await loadPayments();
 }
 
@@ -192,9 +198,9 @@ async function saveRow(colaboradorId){
     p_adiantamento:row.adiantamento,
     p_status_pagamento:row.status
   });
-  if(error){msg(`Unable to register this payment. ${error.message}`,'error');return;}
+  if(error){msg(`${t("Unable to register this payment.")} ${error.message}`,'error');return;}
   row.registered=true;
-  msg(`Payment registered for ${row.name}.`);
+  msg(`${t("Payment registered for")} ${row.name}.`);
   await loadPayments();
 }
 
@@ -232,6 +238,6 @@ async function init(){
     $('week-start').value=defaultWeekStart(state.weekStartDay);
     await loadColaboradores();
     await loadPayments();
-  }catch(e){console.error(e);msg(`Unable to load Weekly Payments. ${e.message||''}`,'error');}
+  }catch(e){console.error(e);msg(`${t("Unable to load Weekly Payments.")} ${e.message||''}`,'error');}
 }
 init();

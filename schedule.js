@@ -6,7 +6,12 @@ const state={empresaId:null,isAdmin:false,colaboradores:[],rows:[]};
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmtDate=s=>s?new Date(s+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
 const fmtTime=t=>t?t.slice(0,5):'';
-const STATUS_LABEL={pendente:'Pending',aprovado:'Approved',rejeitado:'Rejected',confirmado:'Confirmed'};
+const t=s=>window.KORbuildI18n?window.KORbuildI18n.t(s):s;
+const STATUS_LABEL={
+  'en-US':{pendente:'Pending',aprovado:'Approved',rejeitado:'Rejected',confirmado:'Confirmed'},
+  'pt-BR':{pendente:'Pendente',aprovado:'Aprovado',rejeitado:'Rejeitado',confirmado:'Confirmado'}
+};
+function statusLabel(status){const lang=window.KORbuildI18n?window.KORbuildI18n.language:'en-US';return (STATUS_LABEL[lang]||STATUS_LABEL['en-US'])[status]||status;}
 function closeMenu(){$('user-menu')?.classList.add('hidden');$('user-menu-btn')?.setAttribute('aria-expanded','false');}
 function msg(text,type='success'){const e=$('message');e.textContent=text;e.className=`message ${type}`;e.classList.remove('hidden');}
 function clearMsg(){$('message')?.classList.add('hidden');}
@@ -17,7 +22,7 @@ async function loadProfile(){
   const {data:{session},error}=await db.auth.getSession();
   if(error||!session?.user){location.href='index.html';return false;}
   const {data:profile,error:profileError}=await db.from('usuarios').select('id,name,empresa_id,empresas(name)').eq('id',session.user.id).maybeSingle();
-  if(profileError||!profile?.empresa_id){msg(profileError?.message||'Unable to load workspace profile.','error');return false;}
+  if(profileError||!profile?.empresa_id){msg(profileError?.message||t('Unable to load workspace profile.'),'error');return false;}
   state.empresaId=profile.empresa_id;
   const company=profile.empresas?.name||'KORbuild Demo';
   const name=profile.name?.trim()&&profile.name!=='Owner'?profile.name:session.user.user_metadata?.full_name||`${company} Owner`;
@@ -70,7 +75,7 @@ function render(){
       <td><span class="type-chip" style="--chip-color:${esc(r.tipo_cor||'#635bff')}"><span class="dot"></span>${esc(r.tipo_rotulo)}</span></td>
       <td>${period}</td>
       <td>${time}</td>
-      <td><span class="schedule-status ${r.status}"><span class="dot"></span>${STATUS_LABEL[r.status]||r.status}</span></td>
+      <td><span class="schedule-status ${r.status}"><span class="dot"></span>${statusLabel(r.status)}</span></td>
       <td><div class="row-actions">${canApprove?`<button class="small-btn approve-btn" data-action="approve" data-id="${r.id}">Approve</button><button class="small-btn reject-btn" data-action="reject" data-id="${r.id}">Reject</button>`:''}</div></td>
     </tr>`;
   }).join('');
@@ -80,8 +85,8 @@ function render(){
 async function decide(id,status){
   clearMsg();
   const {error}=await db.rpc('aprovar_escala',{p_escala_id:id,p_status:status});
-  if(error){msg(`Unable to update this entry. ${error.message}`,'error');return;}
-  msg(status==='aprovado'?'Entry approved.':'Entry rejected.');
+  if(error){msg(`${t("Unable to update this entry.")} ${error.message}`,'error');return;}
+  msg(status==='aprovado'?t('Entry approved.'):t('Entry rejected.'));
   await loadSchedule();
 }
 
@@ -108,6 +113,6 @@ async function init(){
   try{
     await loadColaboradores();
     await loadSchedule();
-  }catch(e){console.error(e);msg(`Unable to load Schedule. ${e.message||''}`,'error');}
+  }catch(e){console.error(e);msg(`${t("Unable to load Schedule.")} ${e.message||''}`,'error');}
 }
 init();
