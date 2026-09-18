@@ -394,7 +394,12 @@
     "Send hours before must be greater than zero.": "As horas de antecedência para envio devem ser maiores que zero.",
     "Email subject and body are required.": "Assunto e corpo do e-mail são obrigatórios.",
     "Reminder settings updated successfully.": "Configurações de lembrete atualizadas com sucesso.",
-    "Unable to load reminder settings.": "Não foi possível carregar as configurações de lembrete."
+    "Unable to load reminder settings.": "Não foi possível carregar as configurações de lembrete.",
+    "Collaborators": "Colaboradores",
+    "Bonus": "Bônus",
+    "Payment": "Pagamento",
+    "Bonus Settlement": "Fechamento de Bônus",
+    "Collaborator Movement": "Movimentação de Colaboradores"
   };
 
   const reverse = Object.fromEntries(Object.entries(DICT).map(([en, pt]) => [pt, en]));
