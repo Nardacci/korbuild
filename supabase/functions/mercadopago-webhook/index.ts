@@ -74,6 +74,13 @@ async function hmacSha256Hex(secret: string, message: string): Promise<string> {
 // Mercado Pago signature scheme (developers.mercadopago.com, "Webhooks -
 // Validação de origem"): x-signature is "ts=<unix>,v1=<hex hmac>"; the
 // manifest hashed is "id:<data.id lowercase>;request-id:<x-request-id>;ts:<ts>;".
+// Cross-checked against the official Go SDK's buildManifest() (github.com/
+// mercadopago/sdk-go/pkg/webhook) on 2026-09-18: same field order/separators,
+// same data.id-from-query-string + lowercase rule, x-request-id NOT
+// lowercased -- this implementation matches. Kept as-is per instructions;
+// only diagnostic logging was added below (temporary -- remove once the
+// 401 cause is found. Never logs MERCADOPAGO_WEBHOOK_SECRET itself; the
+// computed HMAC is safe to log since it's a one-way digest, not the key).
 async function verifySignature(req: Request, url: URL): Promise<boolean> {
   // Any parsing/crypto failure here means "could not verify" -- never let
   // an unexpected exception fall through as an uncaught 500 that might
@@ -81,20 +88,45 @@ async function verifySignature(req: Request, url: URL): Promise<boolean> {
   try {
     const signatureHeader = req.headers.get("x-signature");
     const requestId = req.headers.get("x-request-id");
-    if (!signatureHeader || !requestId) return false;
+    console.log("[mp-webhook][DIAG] raw headers", {
+      "x-signature": signatureHeader,
+      "x-request-id": requestId,
+      url: req.url,
+    });
+    if (!signatureHeader || !requestId) {
+      console.log("[mp-webhook][DIAG] rejected: missing x-signature or x-request-id header");
+      return false;
+    }
 
     const parts = Object.fromEntries(
       signatureHeader.split(",").map((p) => p.trim().split("=").map((s) => s.trim())),
     );
     const ts = parts["ts"];
     const v1 = parts["v1"];
-    if (!ts || !v1) return false;
+    console.log("[mp-webhook][DIAG] parsed x-signature", { ts, v1, allParts: parts });
+    if (!ts || !v1) {
+      console.log("[mp-webhook][DIAG] rejected: x-signature missing ts or v1 component");
+      return false;
+    }
 
-    const dataId = (url.searchParams.get("data.id") || url.searchParams.get("id") || "").toLowerCase();
+    const dataIdRaw = url.searchParams.get("data.id") || url.searchParams.get("id") || "";
+    const dataId = dataIdRaw.toLowerCase();
     const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`;
     const expected = await hmacSha256Hex(MERCADOPAGO_WEBHOOK_SECRET!, manifest);
-    return expected === v1;
-  } catch {
+    const matched = expected === v1;
+    console.log("[mp-webhook][DIAG] signature check", {
+      queryString: url.search,
+      dataIdRaw,
+      dataIdUsed: dataId,
+      manifest,
+      receivedV1: v1,
+      computedV1: expected,
+      matched,
+      webhookSecretConfiguredLength: MERCADOPAGO_WEBHOOK_SECRET ? MERCADOPAGO_WEBHOOK_SECRET.length : 0,
+    });
+    return matched;
+  } catch (error) {
+    console.log("[mp-webhook][DIAG] rejected: exception during verification", error instanceof Error ? error.message : String(error));
     return false;
   }
 }
@@ -110,16 +142,34 @@ async function fetchMp(path: string): Promise<{ ok: boolean; status: number; bod
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
+  // TEMPORARY DIAGNOSTIC -- remove once the 401 cause is confirmed. Never
+  // logs the secret values themselves, only whether each is present.
+  console.log("[mp-webhook][DIAG] request received", {
+    method: req.method,
+    url: req.url,
+    webhookSecretConfigured: !!MERCADOPAGO_WEBHOOK_SECRET,
+    accessTokenConfigured: !!MERCADOPAGO_ACCESS_TOKEN,
+  });
+
   // Explicit fail-closed checks: without both secrets configured, no
   // signature could ever legitimately verify and no MP API call could
   // succeed, so refuse deliberately (clean error) instead of letting an
   // unset secret reach fetch()/crypto.subtle and throw as an uncaught 500.
-  if (!MERCADOPAGO_WEBHOOK_SECRET) return json({ error: "webhook_not_configured" }, 401);
-  if (!MERCADOPAGO_ACCESS_TOKEN) return json({ error: "mercadopago_not_configured" }, 500);
+  if (!MERCADOPAGO_WEBHOOK_SECRET) {
+    console.log("[mp-webhook][DIAG] rejected before signature check: MERCADOPAGO_WEBHOOK_SECRET not configured");
+    return json({ error: "webhook_not_configured" }, 401);
+  }
+  if (!MERCADOPAGO_ACCESS_TOKEN) {
+    console.log("[mp-webhook][DIAG] rejected before signature check: MERCADOPAGO_ACCESS_TOKEN not configured");
+    return json({ error: "mercadopago_not_configured" }, 500);
+  }
 
   const url = new URL(req.url);
   const verified = await verifySignature(req, url);
-  if (!verified) return json({ error: "invalid_signature" }, 401);
+  if (!verified) {
+    console.log("[mp-webhook][DIAG] rejected: invalid_signature (see signature check log above for details)");
+    return json({ error: "invalid_signature" }, 401);
+  }
 
   const notification = await req.json().catch(() => null);
   if (!notification) return json({ error: "invalid_body" }, 400);
