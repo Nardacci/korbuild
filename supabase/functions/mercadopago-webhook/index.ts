@@ -154,14 +154,63 @@ async function fetchMp(path: string): Promise<{ ok: boolean; status: number; bod
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
+  const url = new URL(req.url);
+  // Read the body once, early -- a Request's body can only be consumed
+  // once, and merchant_order detection below needs to inspect it (some
+  // notifications carry topic/type only in the query string, e.g.
+  // "?id=X&topic=merchant_order", others -- and the "payment" topic --
+  // carry it in a JSON body like {type,data:{id}}). A merchant_order
+  // notification's body is often empty, which .catch(()=>null) handles
+  // the same as any other unparseable body.
+  const notification = await req.json().catch(() => null);
+  const topic: string = String(
+    url.searchParams.get("topic") || url.searchParams.get("type") ||
+    notification?.topic || notification?.type || "",
+  ).toLowerCase();
+
   // TEMPORARY DIAGNOSTIC -- remove once the 401 cause is confirmed. Never
   // logs the secret values themselves, only whether each is present.
   console.log("[mp-webhook][DIAG] request received", {
     method: req.method,
     url: req.url,
+    topic,
     webhookSecretConfigured: !!MERCADOPAGO_WEBHOOK_SECRET,
     accessTokenConfigured: !!MERCADOPAGO_ACCESS_TOKEN,
   });
+
+  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  // merchant_order is not a topic this integration acts on -- the only
+  // state-changing signal is the "payment" topic (setup fee confirmation,
+  // recurring charge approved/rejected) and "preapproval" (subscription
+  // activation), per Mercado Pago's own docs. Their docs only document/
+  // guarantee the x-signature manifest format for "payment" notifications;
+  // it's unconfirmed whether merchant_order follows the exact same scheme,
+  // which is exactly why every merchant_order notification observed so far
+  // was failing signature verification and coming back as a 401 -- a false
+  // alarm, since we were never going to act on it regardless of whether it
+  // was genuine. Accepting it at face value here (ack + 200, no signature
+  // check) is safe specifically because this branch never reads MP data,
+  // never touches public.subscriptions, and never calls the MP API -- a
+  // forged merchant_order notification can't cause anything to happen.
+  // This also stops Mercado Pago's automatic retries for a topic that was
+  // being rejected for no operational benefit. Signature validation for
+  // "payment" (and "preapproval") is untouched -- those still must verify.
+  if (topic === "merchant_order") {
+    const resourceIdRaw = String(url.searchParams.get("id") || notification?.resource || notification?.id || "");
+    console.log("[mp-webhook][DIAG] merchant_order notification ignored (not signature-verified, not acted on)", {
+      resourceIdRaw,
+      url: req.url,
+    });
+    await admin.from("payment_events").insert({
+      empresa_id: null,
+      provider_resource_type: "merchant_order",
+      provider_resource_id: resourceIdRaw || "unknown",
+      event_type: "merchant_order_ignored",
+      raw_payload: notification ?? { url: req.url },
+    });
+    return json({ received: true, ignored: "merchant_order", message: "merchant_order is not processed; waiting for the payment notification instead." });
+  }
 
   // Explicit fail-closed checks: without both secrets configured, no
   // signature could ever legitimately verify and no MP API call could
@@ -176,21 +225,17 @@ Deno.serve(async (req) => {
     return json({ error: "mercadopago_not_configured" }, 500);
   }
 
-  const url = new URL(req.url);
   const verified = await verifySignature(req, url);
   if (!verified) {
     console.log("[mp-webhook][DIAG] rejected: invalid_signature (see signature check log above for details)");
     return json({ error: "invalid_signature" }, 401);
   }
 
-  const notification = await req.json().catch(() => null);
   if (!notification) return json({ error: "invalid_body" }, 400);
 
-  const topic: string = notification.type || notification.topic || "";
   const resourceId: string = String(notification.data?.id || notification.id || url.searchParams.get("data.id") || "");
   if (!resourceId) return json({ error: "missing_resource_id" }, 400);
 
-  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   const now = new Date().toISOString();
 
   async function logEvent(
