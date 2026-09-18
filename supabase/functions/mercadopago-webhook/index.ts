@@ -131,12 +131,24 @@ async function verifySignature(req: Request, url: URL): Promise<boolean> {
   }
 }
 
+// Never lets a fetch()-level failure (DNS, connection refused, timeout, ...)
+// escape as an unhandled exception -- that's exactly what turned into an
+// uncaught 502 for Mercado Pago's own "Simulate notification" test payload
+// (a fixed, non-existent data.id="123456" that legitimately 404s against
+// the real API). A network exception here is reported the same way as an
+// ordinary non-2xx response: ok=false, status=0, so every caller's existing
+// `if (!ok || !body)` branch already covers it uniformly.
 async function fetchMp(path: string): Promise<{ ok: boolean; status: number; body: Record<string, unknown> | null }> {
-  const res = await fetch(`https://api.mercadopago.com${path}`, {
-    headers: { Authorization: `Bearer ${MERCADOPAGO_ACCESS_TOKEN}` },
-  });
-  const body = await res.json().catch(() => null);
-  return { ok: res.ok, status: res.status, body };
+  try {
+    const res = await fetch(`https://api.mercadopago.com${path}`, {
+      headers: { Authorization: `Bearer ${MERCADOPAGO_ACCESS_TOKEN}` },
+    });
+    const body = await res.json().catch(() => null);
+    return { ok: res.ok, status: res.status, body };
+  } catch (error) {
+    console.log("[mp-webhook] Mercado Pago API request failed", path, error instanceof Error ? error.message : String(error));
+    return { ok: false, status: 0, body: null };
+  }
 }
 
 Deno.serve(async (req) => {
@@ -201,8 +213,13 @@ Deno.serve(async (req) => {
   if (topic === "payment") {
     const { ok, status, body } = await fetchMp(`/v1/payments/${resourceId}`);
     if (!ok || !body) {
+      // Covers a genuine 404 (resource truly doesn't exist -- e.g. Mercado
+      // Pago's own "Simulate notification" test payload, which always sends
+      // a fixed, non-existent data.id), any other non-2xx response, and any
+      // network-level failure from fetchMp() -- all handled the same way:
+      // acknowledge gracefully, never crash.
       await logEvent(null, "payment", "payment_fetch_failed", body ?? { status }, `Mercado Pago responded ${status}`);
-      return json({ error: "mercadopago_fetch_failed" }, 502);
+      return json({ error: "payment_not_found", message: `Mercado Pago payment ${resourceId} could not be retrieved (status ${status}).` }, 404);
     }
 
     const paymentStatus = body.status as string; // approved | rejected | pending | ...
@@ -302,8 +319,11 @@ Deno.serve(async (req) => {
   if (topic === "preapproval" || topic === "subscription_preapproval") {
     const { ok, status, body } = await fetchMp(`/preapproval/${resourceId}`);
     if (!ok || !body) {
+      // Same reasoning as the payment branch above: 404/non-2xx/network
+      // failure are all just "couldn't confirm this resource" -- acknowledge
+      // gracefully, never crash.
       await logEvent(null, "preapproval", "preapproval_fetch_failed", body ?? { status }, `Mercado Pago responded ${status}`);
-      return json({ error: "mercadopago_fetch_failed" }, 502);
+      return json({ error: "preapproval_not_found", message: `Mercado Pago preapproval ${resourceId} could not be retrieved (status ${status}).` }, 404);
     }
 
     const externalReference = body.external_reference as string | undefined;
