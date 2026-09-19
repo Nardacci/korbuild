@@ -163,11 +163,17 @@ Deno.serve(async (req) => {
         }),
       });
     } catch (error) {
+      console.error("[mercadopago-checkout] preference request threw", error instanceof Error ? error.message : String(error));
       return json({ error: "mercadopago_request_failed", message: error instanceof Error ? error.message : String(error) }, 502);
     }
 
     const mpBody = await mpResponse.json().catch(() => null);
     if (!mpResponse.ok || !mpBody?.id || !mpBody?.init_point) {
+      // The response body itself never contains secrets (it's Mercado
+      // Pago's own error description, not our token) -- safe to log in
+      // full so it shows up in the Dashboard's Logs tab, not just
+      // payment_events (which requires a SQL query to inspect).
+      console.error("[mercadopago-checkout] preference creation failed", { status: mpResponse.status, body: mpBody });
       await admin.from("payment_events").insert({
         empresa_id: empresaId,
         provider_resource_type: "preference",
@@ -221,11 +227,20 @@ Deno.serve(async (req) => {
       }),
     });
   } catch (error) {
+    console.error("[mercadopago-checkout] preapproval request threw", error instanceof Error ? error.message : String(error));
     return json({ error: "mercadopago_request_failed", message: error instanceof Error ? error.message : String(error) }, 502);
   }
 
   const mpBody = await mpResponse.json().catch(() => null);
   if (!mpResponse.ok || !mpBody?.id || !mpBody?.init_point) {
+    // The response body itself never contains secrets (it's Mercado Pago's
+    // own error description, not our token) -- safe to log in full so it
+    // shows up in the Dashboard's Logs tab, not just payment_events (which
+    // requires a SQL query to inspect). A common one here in sandbox: "Both
+    // payer and collector must be real or test users" -- a TEST access
+    // token requires payer_email to belong to a registered Mercado Pago
+    // Test User, not an arbitrary real email.
+    console.error("[mercadopago-checkout] preapproval creation failed", { status: mpResponse.status, body: mpBody });
     await admin.from("payment_events").insert({
       empresa_id: empresaId,
       provider_resource_type: "preapproval",
