@@ -1,0 +1,31 @@
+.dashboard-switcher{display:flex;align-items:center;gap:8px;margin-right:14px}
+.dashboard-switcher select{border:1px solid var(--line);border-radius:9px;padding:8px 12px;font:600 12px Inter,system-ui,sans-serif;color:var(--ink);background:#fff;cursor:pointer}
+.dashboard-switcher select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.topbar-flex{display:flex;align-items:center;gap:10px}
+
+.range-toggle{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:#fff}
+.range-toggle button{border:0;background:none;padding:8px 14px;font:600 11px Inter,system-ui,sans-serif;color:#69778b;cursor:pointer}
+.range-toggle button.active{background:var(--accent);color:#fff}
+
+.analytics-toolbar{display:flex;align-items:center;justify-content:space-between;margin:22px 0 4px;flex-wrap:wrap;gap:12px}
+.analytics-toolbar h1{font-size:20px;margin:0;letter-spacing:-.02em}
+.analytics-toolbar p{margin:4px 0 0;color:var(--muted);font-size:11px}
+
+.analytics-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}
+.analytics-metric{background:#fff;border:1px solid var(--line);border-radius:14px;padding:15px;box-shadow:var(--shadow)}
+.analytics-metric small{font-size:9px;font-weight:800;letter-spacing:.1em;color:#66758a}
+.analytics-metric strong{display:block;font-size:22px;margin-top:6px}
+.analytics-metric span{display:block;font-size:10px;color:var(--muted);margin-top:4px}
+
+.analytics-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+.analytics-panel{background:#fff;border:1px solid var(--line);border-radius:15px;box-shadow:var(--shadow);padding:18px}
+.analytics-panel.full{grid-column:1/-1}
+.analytics-panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.analytics-panel-head small{font-size:9px;font-weight:800;letter-spacing:.12em;color:#66758a}
+.analytics-panel-head h3{font-size:13px;margin:4px 0 0}
+.chart-wrap{position:relative;height:260px}
+.chart-wrap.small{height:200px}
+.analytics-empty{text-align:center;color:var(--muted);font-size:11px;padding:60px 0}
+
+@media(max-width:900px){.analytics-grid{grid-template-columns:1fr}.analytics-summary{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.analytics-summary{grid-template-columns:1fr 1fr}.dashboard-switcher select{font-size:11px;padding:7px 9px}}
