@@ -142,8 +142,7 @@ function buildCalendarConfig(){
   const {start}=rangeForView();
   const base={
     startDate:start,
-    height:600,
-    heightSpec:'Fixed',
+    heightSpec:'BusinessHoursNoScroll',
     businessBeginsHour:6,
     businessEndsHour:21,
     eventMoveHandling:'Update',
