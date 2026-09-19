@@ -54,28 +54,60 @@
 //         subscriptions_status_check, no migration needed).
 //       - pending -> skipped, nothing actionable yet.
 //
-// With no payment_id/preapproval_id/empresa_id given: BATCH mode, two
-// independent sweeps (not wired to a schedule yet -- structurally ready
-// for one, same "service-role, no per-request auth, callable with an
-// empty body" shape as send-appointment-reminders):
+// With no payment_id/preapproval_id/empresa_id given: BATCH mode, wired to
+// a pg_cron schedule (every 15 minutes, see the migration that creates the
+// cron.job) the same GENERAL mechanism as the two other scheduled jobs
+// already live in this shared project (daily-ai-insights/
+// daily-exchange-rate-sync, KORbuild Finances) -- pg_cron calling
+// pg_net.http_post with an x-cron-secret header, not a Supabase JWT (pg_net
+// has none to send). Deliberately its OWN dedicated secret
+// (MERCADOPAGO_RECONCILE_CRON_SECRET / vault secret
+// mercadopago_reconcile_cron_secret), NOT the shared CRON_SECRET those two
+// jobs use: live-tested before writing this (via net.http_post against
+// both mercadopago-reconcile and compute-insights using vault's
+// 'cron_secret' value) and found the shared CRON_SECRET Edge Function
+// secret and the vault 'cron_secret' value are currently OUT OF SYNC --
+// even the already-"working" compute-insights cron got 401 with it. That's
+// a separate, pre-existing bug in the shared Finances cron secret, not
+// something this function should inherit or attempt to fix by reusing it.
+// Two independent sweeps:
 //   1. subscriptions with setup_status='PENDING' idle for more than
 //      `minutes` (default 15) -> setup-fee reconciliation by empresa_id.
-//   2. subscriptions with status='ACTIVE' and a provider_subscription_id
-//      on file -> re-check that exact preapproval to catch a
-//      paused/cancelled subscription Mercado Pago never notified about.
+//   2. subscriptions with status in ('ACTIVE','PAST_DUE') that have a
+//      provider_subscription_id, idle for more than `minutes` -> re-check
+//      that exact preapproval. Covers both directions: ACTIVE -> PAST_DUE
+//      (Mercado Pago paused/cancelled it and never notified) and PAST_DUE
+//      -> ACTIVE (the auto-retry Mercado Pago runs during the grace window
+//      eventually succeeded) -- get_workspace_access_status() already
+//      enforces the grace_ends_at cutoff independently either way, this
+//      sweep is just what keeps `status` itself from going stale.
+// A short-lived lock (public.try_acquire_job_lock(), acquired before any
+// work) guards batch mode specifically against two overlapping invocations
+// processing the same rows twice -- e.g. if a run ever took close to or
+// longer than the 15-minute schedule -- and therefore double-calling the
+// Mercado Pago API for no reason. Single-resource calls (payment_id/
+// preapproval_id/empresa_id) don't need it: they're not on an unattended
+// schedule.
 //
 // Safety: `dry_run` defaults to true for every path. A dry run reports
 // exactly what was found and what WOULD happen, without writing to
 // public.subscriptions or payment_events. Pass dry_run:false to commit.
 //
-// This is an internal ops tool, not exposed to end users -- call it with
-// any valid Supabase JWT as the Authorization bearer (it uses the
-// service_role key internally regardless of who calls it, same as any
-// trusted background job in this codebase). Never call it from billing.html.
+// This is an internal ops tool, not exposed to end users and not reachable
+// with a plain Supabase user JWT (verify_jwt is off -- see
+// supabase/config.toml -- since the cron caller has none to present):
+// every request must carry the same x-cron-secret header pg_cron sends.
+// Never call it from billing.html.
 //
 // Deploy: supabase functions deploy mercadopago-reconcile
 // Required secret (already configured, shared with mercadopago-checkout/webhook):
 //   MERCADOPAGO_ACCESS_TOKEN
+// Required secret (STOP -- do not set this yourself, the operator does --
+// this is a Secret-Store write, same category as the Mercado Pago token):
+//   supabase secrets set MERCADOPAGO_RECONCILE_CRON_SECRET=<random value>
+// The SAME value must also exist in Vault for the cron job's net.http_post
+// call to send it (see the cron-schedule migration for the exact SQL --
+// also a write the operator runs, not this session).
 // Auto-injected by the platform: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -83,8 +115,10 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const MERCADOPAGO_ACCESS_TOKEN = Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
+const CRON_SECRET = Deno.env.get("MERCADOPAGO_RECONCILE_CRON_SECRET");
 
 const GRACE_DAYS = 12; // same grace period as get_workspace_access_status()'s PAST_DUE block.
+const BATCH_LOCK_SECONDS = 300; // 5 minutes -- comfortably under the 15-minute schedule, so a crashed run self-clears well before the next tick.
 
 type MpResource = Record<string, unknown>;
 type SupabaseAdmin = ReturnType<typeof createClient>;
@@ -318,6 +352,14 @@ async function reconcileSubscriptionOne(
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
+
+  // verify_jwt is off for this function (pg_cron's http_post has no
+  // Supabase JWT to send), so this header is the ONLY gate -- fail closed
+  // if the secret isn't configured, same reasoning as
+  // mercadopago-webhook's own MERCADOPAGO_WEBHOOK_SECRET check.
+  if (!CRON_SECRET || req.headers.get("x-cron-secret") !== CRON_SECRET) {
+    return json({ error: "unauthorized" }, 401);
+  }
   if (!MERCADOPAGO_ACCESS_TOKEN) return json({ error: "mercadopago_not_configured" }, 500);
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -354,8 +396,25 @@ Deno.serve(async (req) => {
     return json(await reconcileSubscriptionOne(admin, { empresaId, dryRun }));
   }
 
-  // Batch mode: nothing given -- two independent sweeps, same shape a
-  // periodic cron can call with an empty (or {}) body.
+  // Batch mode: nothing given -- two independent sweeps, same shape pg_cron
+  // calls on a schedule with an empty (or {}) body.
+  //
+  // Lock first, before touching anything else: if another invocation is
+  // still mid-run (e.g. this one took close to or longer than the
+  // 15-minute schedule), skip entirely rather than re-fetch the same rows
+  // and double-call Mercado Pago for them. Not applied to dry runs -- a
+  // dry run never writes, so there's nothing an overlapping dry run could
+  // duplicate that matters, and it's useful to be able to inspect batch
+  // state on demand without fighting the lock a real run might be holding.
+  if (!dryRun) {
+    const { data: lockAcquired, error: lockError } = await admin.rpc("try_acquire_job_lock", {
+      p_job_name: "mercadopago-reconcile-batch",
+      p_lock_seconds: BATCH_LOCK_SECONDS,
+    });
+    if (lockError) return json({ error: "lock_check_failed", message: lockError.message }, 500);
+    if (!lockAcquired) return json({ skipped: true, reason: "another batch run is already in progress" });
+  }
+
   const minutes = Number(payload?.minutes) > 0 ? Number(payload.minutes) : 15;
   const cutoff = new Date(Date.now() - minutes * 60 * 1000).toISOString();
 
@@ -371,20 +430,25 @@ Deno.serve(async (req) => {
     setupResults.push(await reconcileSetupOne(admin, { empresaId: row.empresa_id, dryRun }));
   }
 
-  // Second sweep: companies already ACTIVE with a known preapproval --
-  // re-check it to catch a paused/cancelled subscription Mercado Pago
-  // never notified about. Not filtered by idle time (there's no
-  // "checked_at" column to filter on) -- fine for a manual call; a future
-  // cron wiring this up would want to add one, out of scope for now.
-  const { data: activeSubs, error: activeError } = await admin
+  // Second sweep: companies with a known preapproval whose local `status`
+  // might be stale, idle for more than `minutes` (same window as the setup
+  // sweep -- a row just reconciled a moment ago naturally drops out until
+  // it's genuinely due again). Covers both directions:
+  //   - ACTIVE -> catches Mercado Pago pausing/cancelling it without ever
+  //     notifying us.
+  //   - PAST_DUE -> catches recovery (Mercado Pago's own auto-retry during
+  //     the grace window succeeded and re-authorized it), which nothing
+  //     else in this codebase would ever detect otherwise.
+  const { data: knownSubs, error: knownError } = await admin
     .from("subscriptions")
     .select("empresa_id, provider_subscription_id")
-    .eq("status", "ACTIVE")
-    .not("provider_subscription_id", "is", null);
-  if (activeError) return json({ error: "active_lookup_failed", message: activeError.message }, 500);
+    .in("status", ["ACTIVE", "PAST_DUE"])
+    .not("provider_subscription_id", "is", null)
+    .lt("updated_at", cutoff);
+  if (knownError) return json({ error: "subscription_lookup_failed", message: knownError.message }, 500);
 
   const subscriptionResults: Record<string, unknown>[] = [];
-  for (const row of (activeSubs || []) as { empresa_id: string; provider_subscription_id: string }[]) {
+  for (const row of (knownSubs || []) as { empresa_id: string; provider_subscription_id: string }[]) {
     subscriptionResults.push(await reconcileSubscriptionOne(admin, { preapprovalId: row.provider_subscription_id, empresaId: row.empresa_id, dryRun }));
   }
 
@@ -392,6 +456,6 @@ Deno.serve(async (req) => {
     dry_run: dryRun,
     minutes,
     setup: { checked: (pendingSetups || []).length, results: setupResults },
-    subscription: { checked: (activeSubs || []).length, results: subscriptionResults },
+    subscription: { checked: (knownSubs || []).length, results: subscriptionResults },
   });
 });

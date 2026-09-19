@@ -6,3 +6,10 @@ project_id = "nowbohxeqwlddbfnukva"
 # MERCADOPAGO_WEBHOOK_SECRET. Same reasoning as KORbuild Finances'
 # mp-webhook function.
 verify_jwt = false
+
+[functions.mercadopago-reconcile]
+# pg_cron's http_post call has no Supabase user JWT -- auth is the
+# x-cron-secret header instead, validated against CRON_SECRET. Same
+# pattern as KORbuild Finances' compute-insights/mp-sync-exchange-rate,
+# the two jobs already live in this shared project's cron.job table.
+verify_jwt = false
