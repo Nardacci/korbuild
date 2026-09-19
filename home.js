@@ -17,9 +17,7 @@ function renderTrialStatus(data){
    card.style.display='none';
    return;
  }
- card.classList.remove('hidden');
- card.style.display='flex';
- const status=data.status||'TRIALING',days=Math.max(0,Number(data.days_remaining)||0);
+ const status=data.status||'TRIALING',phase=data.phase||'',days=Math.max(0,Number(data.days_remaining)||0);
  const icon=$('trial-status-icon'),eyebrow=$('trial-eyebrow'),title=$('trial-title'),message=$('trial-message'),count=$('trial-days'),label=$('trial-days-label'),action=$('trial-action');
  card.classList.remove('grace','blocked');
  if(status==='GRACE_PERIOD'){
@@ -36,14 +34,38 @@ function renderTrialStatus(data){
    setText('trial-message','Choose a plan to restore access to your workspace.');
    setText('trial-days','0');setText('trial-days-label','days remaining');
    if(action){action.textContent='Choose a plan →';action.href='billing.html'}
- }else{
+ }else if(phase==='POST_SETUP'){
+   // Setup fee already paid -- this is not a free trial anymore, so this
+   // copy must never say "trial" or "free" (was previously falling through
+   // to the generic trial copy below, which is exactly the bug this fixes).
+   // Days count kept in the same separate trial-days/trial-days-label
+   // fields the other branches use (not interpolated into the message),
+   // so it reuses the "day remaining"/"days remaining" strings already
+   // covered by i18n.js instead of needing a new dynamic-count entry.
+   icon.textContent='✓';
+   setText('trial-eyebrow','SETUP COMPLETE');
+   setText('trial-title','Your setup is complete.');
+   setText('trial-message','Your monthly subscription begins soon.');
+   setText('trial-days',days);setText('trial-days-label',days===1?'day remaining':'days remaining');
+   if(action){action.textContent='View billing →';action.href='billing.html'}
+ }else if(phase==='TRIAL'){
    icon.textContent='✦';
    setText('trial-eyebrow','YOUR 14-DAY FREE TRIAL');
    setText('trial-title','Your KORbuild trial is active.');
    setText('trial-message','Explore the platform and build your workspace with full access.');
    setText('trial-days',days);setText('trial-days-label',days===1?'day free':'days free');
    if(action){action.textContent='View plans →';action.href='billing.html'}
+ }else{
+   // Fail closed for any status/phase not explicitly recognized above
+   // (e.g. SETUP_REQUIRED, PAST_DUE, MONTHLY_PAYMENT/PAYMENT_REQUIRED)
+   // instead of defaulting to trial copy -- that fallback is exactly what
+   // caused this bug for POST_SETUP.
+   card.classList.add('hidden');
+   card.style.display='none';
+   return;
  }
+ card.classList.remove('hidden');
+ card.style.display='flex';
 }
 function setDemoBadgeVisible(visible){
  // Global fail-closed branding state: DEMO is a Trial indicator, never a static label.
