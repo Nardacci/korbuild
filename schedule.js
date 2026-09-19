@@ -109,7 +109,7 @@ async function init(){
   const range=defaultRange();
   $('range-start').value=range.start;$('range-end').value=range.end;
   if(!(await loadProfile()))return;
-  await db.rpc('garantir_tipos_escala_padrao',{p_empresa_id:state.empresaId}).catch(()=>{});
+  try{await db.rpc('garantir_tipos_escala_padrao',{p_empresa_id:state.empresaId});}catch(e){}
   try{
     await loadColaboradores();
     await loadSchedule();

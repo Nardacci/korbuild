@@ -23,7 +23,7 @@ async function loadProfile(){
 }
 
 async function loadOptions(){
-  await db.rpc('garantir_tipos_escala_padrao',{p_empresa_id:state.empresaId}).catch(()=>{});
+  try{await db.rpc('garantir_tipos_escala_padrao',{p_empresa_id:state.empresaId});}catch(e){}
   const [{data:colaboradores,error:ce},{data:tipos,error:te}]=await Promise.all([
     db.from('colaboradores').select('id,name').eq('empresa_id',state.empresaId).eq('active',true).order('name'),
     db.from('tipos_escala').select('id,codigo,rotulo,requer_aprovacao').eq('empresa_id',state.empresaId).order('rotulo')
