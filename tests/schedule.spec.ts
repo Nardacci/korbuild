@@ -130,19 +130,60 @@ test.describe('Customer Service: Appointments (calendar)', () => {
     await page.waitForURL(/customer-schedule\.html/, { timeout: 10_000 });
   });
 
-  test('drag the appointment to a new time', async ({ page }) => {
+  test('drag the appointment to a new time (same collaborator column)', async ({ page }) => {
+    // customer-schedule.html defaults to Day view (DayPilot Resources view,
+    // one column per active collaborator) showing today -- the appointment
+    // created above shows up immediately, no navigation needed.
     await page.goto('customer-schedule.html');
-    const event = page.locator('.fc-event', { hasText: clientName });
+    const event = page.locator('.calendar_default_event', { hasText: clientName });
     await expect(event).toHaveCount(1, { timeout: 15_000 });
     const box = await event.boundingBox();
     if (!box) throw new Error('Could not read the appointment event\'s bounding box.');
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.down();
-    // Several intermediate moves: FullCalendar's drag detection needs real
+    // Several intermediate moves: DayPilot's drag detection needs real
     // pointermove steps, not a single jump, to register as a drag instead
-    // of a click.
+    // of a click. Moving straight down stays in the same resource column
+    // (same collaborator) and only changes the time.
     for (let i = 1; i <= 5; i++) {
       await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2 + i * 40, { steps: 5 });
+    }
+    await page.mouse.up();
+    await expect(page.locator('#message')).toContainText('Appointment moved successfully', { timeout: 10_000 });
+  });
+
+  test('drag the appointment to a different collaborator column', async ({ page }) => {
+    // This is the actual point of the DayPilot resource-view migration:
+    // dragging sideways into a different column must reassign the
+    // appointment's colaborador_id (mover_agendamento's new
+    // p_novo_colaborador_id parameter), not just move it in time.
+    await page.goto('customer-schedule.html');
+    const event = page.locator('.calendar_default_event', { hasText: clientName });
+    await expect(event).toHaveCount(1, { timeout: 15_000 });
+    const box = await event.boundingBox();
+    if (!box) throw new Error('Could not read the appointment event\'s bounding box.');
+    const columnHeaders = page.locator('.calendar_default_colheader_inner');
+    const headerCount = await columnHeaders.count();
+    if (headerCount < 2) {
+      test.skip(true, 'Not enough active collaborator columns in this workspace to test a cross-column drag.');
+    }
+    // Find a column header horizontally different from the event's own
+    // column (its x-center) to drag onto.
+    const targetBox = await (async () => {
+      for (let i = 0; i < headerCount; i++) {
+        const b = await columnHeaders.nth(i).boundingBox();
+        if (b && Math.abs(b.x + b.width / 2 - (box.x + box.width / 2)) > box.width) return b;
+      }
+      return null;
+    })();
+    if (!targetBox) test.skip(true, 'Could not find a distinct target column to drag onto.');
+
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    const targetX = targetBox!.x + targetBox!.width / 2;
+    for (let i = 1; i <= 5; i++) {
+      const progress = i / 5;
+      await page.mouse.move(box.x + box.width / 2 + (targetX - (box.x + box.width / 2)) * progress, box.y + box.height / 2, { steps: 5 });
     }
     await page.mouse.up();
     await expect(page.locator('#message')).toContainText('Appointment moved successfully', { timeout: 10_000 });
@@ -151,7 +192,7 @@ test.describe('Customer Service: Appointments (calendar)', () => {
   test('cancel the appointment', async ({ page }) => {
     page.on('dialog', (dialog) => dialog.accept());
     await page.goto('customer-schedule.html');
-    const event = page.locator('.fc-event', { hasText: clientName });
+    const event = page.locator('.calendar_default_event', { hasText: clientName });
     await expect(event).toHaveCount(1, { timeout: 15_000 });
     await event.click();
     await expect(page.locator('#detail-modal')).toHaveClass(/open/, { timeout: 10_000 });
