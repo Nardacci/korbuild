@@ -100,7 +100,15 @@
       document.head.appendChild(link);
     }
 
-    const db = window.supabase.createClient(cfg.url, cfg.publishableKey, { auth: { persistSession: true, autoRefreshToken: true } });
+    // autoRefreshToken is deliberately OFF here: this client only reads the
+    // session once at load and is never touched again. Every page already
+    // creates its OWN long-lived client with autoRefreshToken:true; a
+    // second auto-refreshing client sharing the same localStorage session
+    // key can rotate the refresh token out from under the page's own
+    // client mid-request, turning a legitimate authenticated call into an
+    // RLS failure. persistSession stays on so getSession() can still read
+    // the session the page's own client already established.
+    const db = window.supabase.createClient(cfg.url, cfg.publishableKey, { auth: { persistSession: true, autoRefreshToken: false } });
     const { data: { session } } = await db.auth.getSession();
     if (!session?.user) return;
 
