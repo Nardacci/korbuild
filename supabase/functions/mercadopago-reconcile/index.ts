@@ -295,6 +295,17 @@ async function reconcileSubscriptionOne(
     dry_run: opts.dryRun,
   };
 
+  // Fetch the current local status so an unchanged subscription (still
+  // authorized and already ACTIVE, still paused and already PAST_DUE,
+  // etc.) is a genuine no-op instead of rewriting the row and logging a
+  // payment_events entry on every single batch tick forever.
+  const { data: currentSub } = await admin
+    .from("subscriptions")
+    .select("status")
+    .eq("empresa_id", lookup.empresaId)
+    .maybeSingle();
+  const currentStatus = currentSub?.status as string | undefined;
+
   const commit = async (updates: Record<string, unknown>, eventType: string, action: string) => {
     if (opts.dryRun) return { ...base, action: `would_${action}` };
     const { error: updateError } = await admin.from("subscriptions").update(updates).eq("empresa_id", lookup.empresaId);
@@ -312,6 +323,9 @@ async function reconcileSubscriptionOne(
   const now = new Date().toISOString();
 
   if (mpStatus === "authorized") {
+    if (currentStatus === "ACTIVE") {
+      return { ...base, action: "no_change", reason: "already ACTIVE and preapproval is still authorized" };
+    }
     const autoRecurring = (preapproval.auto_recurring as MpResource | undefined) || {};
     const startRaw = (autoRecurring.start_date as string) || (preapproval.date_created as string) || now;
     const start = new Date(startRaw);
@@ -333,6 +347,9 @@ async function reconcileSubscriptionOne(
   }
 
   if (mpStatus === "paused") {
+    if (currentStatus === "PAST_DUE") {
+      return { ...base, action: "no_change", reason: "already PAST_DUE and preapproval is still paused" };
+    }
     const graceEndsAt = new Date(Date.now() + GRACE_DAYS * 24 * 60 * 60 * 1000).toISOString();
     return await commit(
       { status: "PAST_DUE", grace_ends_at: graceEndsAt, updated_at: now },
@@ -342,6 +359,9 @@ async function reconcileSubscriptionOne(
   }
 
   if (mpStatus === "cancelled") {
+    if (currentStatus === "CANCELLED") {
+      return { ...base, action: "no_change", reason: "already CANCELLED" };
+    }
     return await commit({ status: "CANCELLED", updated_at: now }, "subscription_reconciled_manual", "cancelled");
   }
 
