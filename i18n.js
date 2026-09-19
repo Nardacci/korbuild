@@ -524,8 +524,18 @@
     apply
   };
 
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", apply);
-  else apply();
+  function startObserver() {
+    new MutationObserver(scheduleDynamicTranslation).observe(document.body, { childList: true, subtree: true, characterData: true });
+  }
 
-  new MutationObserver(scheduleDynamicTranslation).observe(document.body, { childList: true, subtree: true, characterData: true });
+  // On pages that load this script from <head>, document.body doesn't
+  // exist yet -- observing it immediately threw "parameter 1 is not of
+  // type 'Node'" on every such page load. Both apply() and the observer
+  // need to wait for the same readiness check.
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => { apply(); startObserver(); });
+  } else {
+    apply();
+    startObserver();
+  }
 })();
