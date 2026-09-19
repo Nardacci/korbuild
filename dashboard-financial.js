@@ -8,6 +8,25 @@ const money=v=>'$'+Number(v||0).toLocaleString('en-US',{minimumFractionDigits:2,
 
 function msg(text,type='error'){const e=$('message');e.textContent=text;e.className=`message ${type}`;e.classList.remove('hidden');}
 
+function isoDate(d){return d.toISOString().slice(0,10);}
+function defaultWeekStart(targetDay){
+  const d=new Date();d.setHours(0,0,0,0);
+  const delta=(d.getDay()-targetDay+7)%7;
+  d.setDate(d.getDate()-delta);
+  return isoDate(d);
+}
+
+async function loadAttentionRequired(){
+  const {data:config}=await db.rpc('obter_configuracoes_folha',{p_empresa_id:state.empresaId});
+  const dayStart=(config||[])[0]?.dia_inicio_semana??1;
+  const weekStart=defaultWeekStart(dayStart);
+  const {data:pending,error}=await db.from('pagamentos_semanais').select('valor_liquido').eq('empresa_id',state.empresaId).eq('semana_inicio',weekStart).eq('status_pagamento','pendente');
+  if(error){console.error('Attention Required (Payment) failed to load',error);return;}
+  const total=(pending||[]).reduce((a,r)=>a+Number(r.valor_liquido||0),0);
+  $('payments-pending-count').textContent=(pending||[]).length;
+  $('payments-pending-total').textContent=`${money(total)} total for this week`;
+}
+
 function mondayOf(dateStr){
   const d=new Date(dateStr+'T00:00:00');
   const day=d.getDay();
@@ -41,7 +60,7 @@ async function loadProfile(){
 
 async function loadData(){
   const [pr,ar]=await Promise.all([
-    db.from('pagamentos_semanais').select('semana_inicio,horas_trabalhadas,valor_liquido').eq('empresa_id',state.empresaId),
+    db.from('pagamentos_semanais').select('semana_inicio,horas_trabalhadas,valor_liquido,colaborador_id,colaboradores(name)').eq('empresa_id',state.empresaId),
     db.from('agendamentos_servico').select('data,status,servicos_catalogo(preco_padrao)').eq('empresa_id',state.empresaId)
   ]);
   if(pr.error)throw pr.error;if(ar.error)throw ar.error;
@@ -79,14 +98,24 @@ function renderPayrollCost(){
 }
 
 function renderHours(){
-  const byBucket=new Map();
-  state.payments.forEach(r=>{const k=bucketKey(r.semana_inicio);byBucket.set(k,(byBucket.get(k)||0)+Number(r.horas_trabalhadas||0));});
-  const buckets=sortedBuckets([...byBucket.keys()]);
+  // One bar per collaborator (not an aggregated total) -- each series is
+  // that person's hours per bucket, grouped side-by-side by Chart.js's
+  // default (non-stacked) bar behavior.
+  const series=new Map();
+  state.payments.forEach(r=>{
+    const name=r.colaboradores?.name||'Unknown';
+    const k=bucketKey(r.semana_inicio);
+    if(!series.has(name))series.set(name,new Map());
+    const m=series.get(name);
+    m.set(k,(m.get(k)||0)+Number(r.horas_trabalhadas||0));
+  });
+  const buckets=sortedBuckets(state.payments.map(r=>bucketKey(r.semana_inicio)));
+  const palette=[COLORS.blue,COLORS.accent,COLORS.orange,COLORS.accent2,COLORS.positive,COLORS.negative];
   destroyChart('hours');
   state.charts.hours=new Chart($('chart-hours'),{
     type:'bar',
-    data:{labels:buckets.map(bucketLabel),datasets:[{label:'Horas',data:buckets.map(k=>Math.round(byBucket.get(k))),backgroundColor:COLORS.blue}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}
+    data:{labels:buckets.map(bucketLabel),datasets:[...series.entries()].map(([name,m],i)=>({label:name,data:buckets.map(k=>Math.round(m.get(k)||0)),backgroundColor:palette[i%palette.length]}))},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:10,font:{size:9}}}},scales:{y:{beginAtZero:true}}}
   });
 }
 
@@ -148,5 +177,7 @@ async function init(){
   if(!(await loadProfile()))return;
   try{await loadData();renderAll();}
   catch(e){console.error(e);msg(`Unable to load dashboard data. ${e.message||''}`);}
+  try{await loadAttentionRequired();}
+  catch(e){console.error('Attention Required block failed to load',e);}
 }
 init();

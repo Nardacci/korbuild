@@ -177,7 +177,10 @@ function renderWorkspaceHealth(){
  const teamsCard=$('health-teams'),peopleCard=$('health-people');
  if(teamsCard)teamsCard.classList.toggle('hidden',activeTeams>0);
  if(peopleCard)peopleCard.classList.toggle('hidden',activePeople>0);
- section.classList.toggle('hidden',activeTeams>0&&activePeople>0);
+ // Onboarding nudge only -- once the workspace has at least one team OR
+ // one person, it's no longer "genuinely incomplete", so hide the whole
+ // block instead of leaving a single half-relevant card behind.
+ section.classList.toggle('hidden',activeTeams>0||activePeople>0);
 }
 function renderList(id,rows,type){
  const el=$(id);if(!rows.length){el.innerHTML='<div class="empty-row">No movements in this period.</div>';return}

@@ -1,0 +1,18 @@
+.kor-notif-wrap{position:relative;margin-right:8px}
+.kor-notif-btn{width:34px;height:34px;min-width:34px;padding:0;margin:0;border:1px solid #dfe4ec;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:16px;line-height:1;cursor:pointer;box-shadow:0 2px 8px rgba(28,42,64,.06);position:relative}
+.kor-notif-btn:hover{transform:translateY(-1px);box-shadow:0 5px 12px rgba(28,42,64,.12)}
+.kor-notif-btn:focus-visible{outline:2px solid var(--accent,#635bff);outline-offset:2px}
+.kor-notif-badge{position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;padding:0 4px;border-radius:9px;background:#e65656;color:#fff;font-size:9px;font-weight:800;display:grid;place-items:center;line-height:1;box-shadow:0 0 0 2px #fff}
+.kor-notif-badge.hidden{display:none}
+.kor-notif-panel{position:absolute;right:0;top:44px;width:320px;max-width:calc(100vw - 32px);background:#fff;border:1px solid #e4e7ee;border-radius:14px;box-shadow:0 15px 35px rgba(23,32,51,.12);padding:8px;z-index:40}
+.kor-notif-panel.hidden{display:none}
+.kor-notif-title{font-size:9px;font-weight:800;letter-spacing:.1em;color:#66758a;padding:8px 10px 6px}
+.kor-notif-list{max-height:320px;overflow-y:auto}
+.kor-notif-item{display:flex;gap:10px;align-items:flex-start;padding:10px;border-radius:10px;text-decoration:none;color:inherit}
+.kor-notif-item:hover{background:#f5f6fa}
+.kor-notif-icon{width:28px;height:28px;min-width:28px;border-radius:50%;display:grid;place-items:center;font-size:14px}
+.kor-notif-icon.warning{background:#fff6e5;color:#e89c1c}
+.kor-notif-icon.danger{background:#fff0f0;color:#d85c5c}
+.kor-notif-copy strong{display:block;font-size:11px;color:#24344a}
+.kor-notif-copy small{display:block;font-size:10px;color:#69778b;margin-top:2px}
+.kor-notif-empty{padding:24px 10px;text-align:center;font-size:11px;color:#69778b}

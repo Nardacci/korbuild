@@ -7,6 +7,21 @@ const COLORS={accent:'#635bff',accent2:'#8b5cf6',positive:'#3ca064',negative:'#c
 
 function msg(text,type='error'){const e=$('message');e.textContent=text;e.className=`message ${type}`;e.classList.remove('hidden');}
 
+function isoDate(d){return d.toISOString().slice(0,10);}
+
+async function loadAttentionRequired(){
+  const today=isoDate(new Date());
+  const in2Days=new Date();in2Days.setDate(in2Days.getDate()+2);
+  const [pendingRes,upcomingRes]=await Promise.all([
+    db.from('escalas').select('id',{count:'exact',head:true}).eq('empresa_id',state.empresaId).eq('status','pendente'),
+    // "Upcoming" excludes already-cancelled appointments -- a cancelled
+    // slot isn't something that still needs attention.
+    db.from('agendamentos_servico').select('id',{count:'exact',head:true}).eq('empresa_id',state.empresaId).gte('data',today).lte('data',isoDate(in2Days)).neq('status','cancelado')
+  ]);
+  if(!pendingRes.error)$('schedule-pending-count').textContent=pendingRes.count||0;
+  if(!upcomingRes.error)$('upcoming-appointments-count').textContent=upcomingRes.count||0;
+}
+
 function mondayOf(dateStr){
   const d=new Date(dateStr+'T00:00:00');
   const day=d.getDay();
@@ -164,5 +179,7 @@ async function init(){
   if(!(await loadProfile()))return;
   try{await loadData();renderAll();}
   catch(e){console.error(e);msg(`Unable to load dashboard data. ${e.message||''}`);}
+  try{await loadAttentionRequired();}
+  catch(e){console.error('Attention Required block failed to load',e);}
 }
 init();

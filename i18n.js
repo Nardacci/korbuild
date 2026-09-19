@@ -35,6 +35,11 @@
     "Collaborators still need attention": "Colaboradores que ainda precisam de atenção",
     "Review now →": "Revisar agora →",
     "Prepare a period to start weekly operations": "Prepare um período para iniciar as operações semanais",
+    "Pending Schedule approvals": "Aprovações de Schedule pendentes",
+    "Upcoming appointments": "Próximos agendamentos",
+    "Scheduled for today or the next 2 days": "Agendados para hoje ou os próximos 2 dias",
+    "Go to calendar →": "Ir para o calendário →",
+    "Pending weekly payments": "Pagamentos semanais pendentes",
     "Go to periods →": "Ir para períodos →",
     "WEEKLY SNAPSHOT": "RESUMO SEMANAL",
     "Eligible People": "Pessoas elegíveis",
@@ -143,6 +148,9 @@
     "Update your payment to restore access to your workspace.": "Atualize seu pagamento para restaurar o acesso ao seu workspace.",
     "payment required": "pagamento necessário",
     "Update payment →": "Atualizar pagamento →",
+    "NOTIFICATIONS": "NOTIFICAÇÕES",
+    "No alerts right now.": "Nenhum alerta no momento.",
+    "Your payment failed and access was paused.": "Seu pagamento falhou e o acesso foi pausado.",
     "TRIAL ENDED · GRACE PERIOD": "TESTE ENCERRADO · PERÍODO DE TOLERÂNCIA",
     "Your trial has ended, but KORbuild is still available.": "Seu teste terminou, mas o KORbuild continua disponível.",
     "Choose a plan to keep your workspace active without interruption.": "Escolha um plano para manter seu workspace ativo sem interrupções.",
@@ -441,6 +449,14 @@
     if (m) return `${m[1]} de ${m[2]} dias concluídos`;
     m = value.match(/^Week (\d+) · (.+?) → (.+)$/);
     if (m) return `Semana ${m[1]} · ${formatDate(m[2])} → ${formatDate(m[3])}`;
+    m = value.match(/^Your monthly subscription starts in (\d+) days?\.$/);
+    if (m) return Number(m[1]) === 1 ? "Sua assinatura mensal começa em 1 dia." : `Sua assinatura mensal começa em ${m[1]} dias.`;
+    m = value.match(/^Your subscription renews in (\d+) days?\.$/);
+    if (m) return Number(m[1]) === 1 ? "Sua assinatura renova em 1 dia." : `Sua assinatura renova em ${m[1]} dias.`;
+    m = value.match(/^Your last payment failed\. (\d+) days? left to update\.$/);
+    if (m) return Number(m[1]) === 1 ? "Seu último pagamento falhou. Resta 1 dia para atualizar." : `Seu último pagamento falhou. Restam ${m[1]} dias para atualizar.`;
+    m = value.match(/^(\$[\d,.]+) total for this week$/);
+    if (m) return `${m[1]} no total nesta semana`;
     return value;
   }
 
