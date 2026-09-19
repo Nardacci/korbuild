@@ -11,8 +11,13 @@ function renderTrialStatus(data){
  const card=$('trial-status-card');if(!card)return;
  if(!data){console.warn('Trial status returned no data');card.classList.add('hidden');card.style.display='none';return}
  // Trial is a commercial setting per company. When disabled, the dashboard must
- // show no trial countdown, warning or trial CTA at all.
- if(data.trial_enabled===false || data.phase==='NO_TRIAL' || data.status==='ACTIVE'){
+ // show no trial countdown, warning or trial CTA at all. status==='ACTIVE'
+ // is also hidden EXCEPT when it's a real confirmed Mercado Pago
+ // subscription (provider==='mercadopago') -- that case gets an explicit
+ // confirmation below instead of just disappearing, so paying customers get
+ // visible proof it worked. A manually-activated company (super admin
+ // override, provider still null) keeps the original hide-entirely behavior.
+ if(data.trial_enabled===false || data.phase==='NO_TRIAL' || (data.status==='ACTIVE' && data.provider!=='mercadopago')){
    card.classList.add('hidden');
    card.style.display='none';
    return;
@@ -20,7 +25,26 @@ function renderTrialStatus(data){
  const status=data.status||'TRIALING',phase=data.phase||'',days=Math.max(0,Number(data.days_remaining)||0);
  const icon=$('trial-status-icon'),eyebrow=$('trial-eyebrow'),title=$('trial-title'),message=$('trial-message'),count=$('trial-days'),label=$('trial-days-label'),action=$('trial-action');
  card.classList.remove('grace','blocked');
- if(status==='GRACE_PERIOD'){
+ if(status==='ACTIVE' && data.provider==='mercadopago'){
+   icon.textContent='✓';
+   setText('trial-eyebrow','SUBSCRIPTION ACTIVE');
+   setText('trial-title','Your monthly subscription is active.');
+   setText('trial-message','Your KORbuild workspace has full access.');
+   setText('trial-days','✓');setText('trial-days-label','active');
+   if(action){action.textContent='View billing →';action.href='billing.html'}
+ }else if(status==='PAST_DUE'){
+   // Recurring monthly charge failed (Mercado Pago). Same warning/blocked
+   // split as billing.js's own status card -- this component just didn't
+   // have this branch yet (was silently hidden by the fail-closed else
+   // below until now).
+   const inGrace=data.access==='ALLOWED';
+   card.classList.add(inGrace?'grace':'blocked');icon.textContent='!';
+   setText('trial-eyebrow',inGrace?'PAYMENT FAILED':'ACCESS PAUSED');
+   setText('trial-title',inGrace?'Your last payment failed.':'Your KORbuild access is paused.');
+   setText('trial-message',inGrace?'Update your payment to avoid losing access to your workspace.':'Update your payment to restore access to your workspace.');
+   setText('trial-days',inGrace?days:'0');setText('trial-days-label',inGrace?(days===1?'day remaining':'days remaining'):'payment required');
+   if(action){action.textContent='Update payment →';action.href='billing.html'}
+ }else if(status==='GRACE_PERIOD'){
    card.classList.add('grace');icon.textContent='!';
    setText('trial-eyebrow','TRIAL ENDED · GRACE PERIOD');
    setText('trial-title','Your trial has ended, but KORbuild is still available.');
@@ -57,9 +81,10 @@ function renderTrialStatus(data){
    if(action){action.textContent='View plans →';action.href='billing.html'}
  }else{
    // Fail closed for any status/phase not explicitly recognized above
-   // (e.g. SETUP_REQUIRED, PAST_DUE, MONTHLY_PAYMENT/PAYMENT_REQUIRED)
-   // instead of defaulting to trial copy -- that fallback is exactly what
-   // caused this bug for POST_SETUP.
+   // (e.g. SETUP_REQUIRED, MONTHLY_PAYMENT/PAYMENT_REQUIRED) instead of
+   // defaulting to trial copy -- that fallback is exactly what caused the
+   // original bug this function was fixed for (POST_SETUP wrongly showing
+   // trial copy).
    card.classList.add('hidden');
    card.style.display='none';
    return;

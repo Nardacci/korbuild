@@ -26,10 +26,15 @@
       button='Start monthly subscription →';
       context='Your setup fee is waived. Your first monthly payment activates continued access.';
     } else if(phase==='POST_SETUP' || phase==='SETUP_ACTIVE'){
+      // The button is a real, active call to action here -- clicking it
+      // calls mercadopago-checkout, which already treats setup_status=PAID
+      // as "create the monthly preapproval now" (previous copy, "Monthly
+      // subscription scheduled ✓", wrongly read as a passive status with
+      // nothing left to click).
       amount=commercial?.monthly_price;
       suffix='/ month';
-      button='Monthly subscription scheduled ✓';
-      context='Your setup is complete. Monthly billing starts on '+new Date(access.monthly_starts_at).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})+'.';
+      button='Subscribe now →';
+      context='Your setup is complete. You can start your monthly subscription now, or wait until '+new Date(access.monthly_starts_at).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})+', when it would normally begin.';
     } else if(phase==='ACTIVE'){
       amount=commercial?.monthly_price;
       suffix='/ month';

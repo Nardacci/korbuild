@@ -230,7 +230,7 @@ Deno.serve(async (req) => {
       empresa_id: empresaId,
       provider_resource_type: "preapproval",
       provider_resource_id: mpBody?.id ? String(mpBody.id) : "unknown",
-      event_type: "subscription_create_failed",
+      event_type: "subscription_checkout_create_failed",
       raw_payload: mpBody ?? { status: mpResponse.status },
       error_message: `Mercado Pago responded ${mpResponse.status}`,
     });
@@ -241,7 +241,7 @@ Deno.serve(async (req) => {
     empresa_id: empresaId,
     provider_resource_type: "preapproval",
     provider_resource_id: String(mpBody.id),
-    event_type: "subscription_created",
+    event_type: "subscription_checkout_created",
     raw_payload: mpBody,
   });
 
