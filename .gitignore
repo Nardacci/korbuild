@@ -4,3 +4,9 @@ supabase/.branches/
 .env
 .env.local
 .supabase-secrets/
+
+# Node / Playwright
+node_modules/
+playwright-report/
+test-results/
+tests/.auth/
