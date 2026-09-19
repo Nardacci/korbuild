@@ -13,3 +13,9 @@ verify_jwt = false
 # pattern as KORbuild Finances' compute-insights/mp-sync-exchange-rate,
 # the two jobs already live in this shared project's cron.job table.
 verify_jwt = false
+
+[functions.health-monitor]
+# Same reasoning as mercadopago-reconcile above -- pg_cron has no
+# Supabase user JWT, auth is a dedicated x-cron-secret header instead
+# (HEALTH_MONITOR_CRON_SECRET, checked inside the function itself).
+verify_jwt = false
