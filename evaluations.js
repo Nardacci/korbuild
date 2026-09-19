@@ -151,6 +151,8 @@ async function save(){
   const {error}=await db.from('lancamentos').update({total_score:score,penalty_value:Math.abs(Math.min(0,score)),updated_at:new Date().toISOString()}).eq('id',state.current.id);
   if(error)throw error;
   state.current.total_score=score;
+  const count=state.currentRows.reduce((a,r)=>a+Math.max(0,Number(r.quantity)||0),0);
+  state.occurrenceTotals[state.current.id]={count,score};
   msg('Evaluation saved successfully.');
   backToList(false);renderList();
  }catch(e){console.error(e);msg(e.message||'Unable to save evaluation.',true);}
