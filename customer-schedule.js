@@ -2,7 +2,7 @@ if(!window.KORBUILD_APP){const s=document.createElement('script');s.src='app-con
 const {url,publishableKey}=window.KORBUILD_SUPABASE;
 const db=window.supabase.createClient(url,publishableKey,{auth:{persistSession:true,autoRefreshToken:true}});
 const $=id=>document.getElementById(id);
-const state={empresaId:null,colaboradores:[],calendar:null};
+const state={empresaId:null,colaboradores:[],calendar:null,view:'day',date:DayPilot.Date.today()};
 const PALETTE=['#635bff','#2e7a57','#b36b13','#c44b59','#0e7490','#7c3aed','#be185d','#15803d'];
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function closeMenu(){$('user-menu')?.classList.add('hidden');$('user-menu-btn')?.setAttribute('aria-expanded','false');}
@@ -37,49 +37,76 @@ async function loadColaboradores(){
   $('colaborador-filter').innerHTML='<option value="ALL">All collaborators</option>'+state.colaboradores.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
 }
 
-async function fetchEvents(fetchInfo,successCallback,failureCallback){
+function visibleColaboradores(){
+  const filter=$('colaborador-filter').value;
+  if(filter==='ALL')return state.colaboradores;
+  return state.colaboradores.filter(c=>c.id===filter);
+}
+
+function rangeForView(){
+  if(state.view==='day')return {start:state.date, end:state.date.addDays(1)};
+  const weekStart=state.date.firstDayOfWeek();
+  return {start:weekStart, end:weekStart.addDays(7)};
+}
+
+function updateNavLabel(){
+  const {start,end}=rangeForView();
+  $('nav-label').textContent=state.view==='day'
+    ? start.toString('ddd, MMM d, yyyy')
+    : `${start.toString('MMM d')} → ${end.addDays(-1).toString('MMM d, yyyy')}`;
+}
+
+async function fetchEvents(){
   clearMsg();
+  const {start,end}=rangeForView();
   const colaboradorFilter=$('colaborador-filter').value;
   const {data,error}=await db.rpc('obter_agendamentos',{
     p_empresa_id:state.empresaId,
-    p_data_inicio:fetchInfo.startStr.slice(0,10),
-    p_data_fim:fetchInfo.endStr.slice(0,10),
+    p_data_inicio:start.toString('yyyy-MM-dd'),
+    p_data_fim:end.toString('yyyy-MM-dd'),
     p_colaborador_id:colaboradorFilter==='ALL'?null:colaboradorFilter,
     p_status:null
   });
-  if(error){failureCallback(error);msg(`${t("Unable to load appointments.")} ${error.message}`,'error');return;}
-  const events=(data||[]).map(row=>({
+  if(error){msg(`${t("Unable to load appointments.")} ${error.message}`,'error');return [];}
+  return (data||[]).map(row=>({
     id:row.id,
-    title:`${row.cliente_nome} · ${row.servico_nome}`,
+    text:`${row.cliente_nome} · ${row.servico_nome}`,
     start:`${row.data}T${row.hora_inicio}`,
     end:`${row.data}T${row.hora_fim}`,
-    backgroundColor:colorFor(row.colaborador_id),
-    borderColor:colorFor(row.colaborador_id),
-    classNames:[`appointment-${row.status}`],
-    extendedProps:row
+    resource:row.colaborador_id,
+    backColor:colorFor(row.colaborador_id),
+    cssClass:`appointment-${row.status}`,
+    tags:row
   }));
-  successCallback(events);
 }
 
-async function handleReschedule(info){
-  const row=info.event.extendedProps;
-  const newData=info.event.startStr.slice(0,10);
-  const newHoraInicio=info.event.startStr.slice(11,16);
-  const newHoraFim=info.event.endStr.slice(11,16);
+async function refetchAndRender(){
+  const events=await fetchEvents();
+  state.calendar.update({startDate:rangeForView().start, events});
+  updateNavLabel();
+}
+
+async function handleReschedule(args){
+  const row=args.e.data.tags;
+  const newDate=args.newStart.toString('yyyy-MM-dd');
+  const newHoraInicio=args.newStart.toString('HH:mm');
+  const newHoraFim=args.newEnd.toString('HH:mm');
+  const newColaboradorId=args.newResource||row.colaborador_id;
+  args.async=true;
   const {error}=await db.rpc('mover_agendamento',{
-    p_agendamento_id:row.id,p_nova_data:newData,p_novo_hora_inicio:newHoraInicio,p_novo_hora_fim:newHoraFim
+    p_agendamento_id:row.id,p_nova_data:newDate,p_novo_hora_inicio:newHoraInicio,p_novo_hora_fim:newHoraFim,p_novo_colaborador_id:newColaboradorId
   });
   if(error){
-    info.revert();
+    args.preventDefault();
     msg(`${t("Couldn't move this appointment.")} ${error.message}`,'error');
     return;
   }
   msg(t('Appointment moved successfully.'));
-  state.calendar.refetchEvents();
+  await refetchAndRender();
 }
 
-function openDetail(event){
-  const row=event.extendedProps;
+function openDetail(e){
+  const row=e.data.tags;
   $('detail-title').textContent=row.cliente_nome;
   $('detail-client').textContent=row.cliente_nome;
   $('detail-service').textContent=row.servico_nome;
@@ -100,50 +127,82 @@ async function cancelAppointment(id){
   if(error){msg(`${t("Unable to cancel this appointment.")} ${error.message}`,'error');return;}
   closeDetail();
   msg(t('Appointment cancelled.'));
-  state.calendar.refetchEvents();
+  await refetchAndRender();
 }
 
-function initCalendar(){
-  const el=$('calendar');
-  state.calendar=new FullCalendar.Calendar(el,{
-    initialView:'timeGridWeek',
-    headerToolbar:{left:'prev,next today',center:'title',right:'dayGridMonth,timeGridWeek,timeGridDay'},
-    height:'auto',
-    slotMinTime:'06:00:00',
-    slotMaxTime:'21:00:00',
-    nowIndicator:true,
-    editable:true,
-    eventStartEditable:true,
-    eventDurationEditable:true,
-    events:fetchEvents,
-    eventDrop:handleReschedule,
-    eventResize:handleReschedule,
-    eventClick:info=>openDetail(info.event),
-    dateClick:info=>{
-      const params=new URLSearchParams();
-      const colaboradorFilter=$('colaborador-filter').value;
-      if(colaboradorFilter!=='ALL')params.set('colaborador_id',colaboradorFilter);
-      params.set('data',info.dateStr.slice(0,10));
-      if(info.view.type.startsWith('timeGrid'))params.set('hora_inicio',info.dateStr.slice(11,16));
-      location.href='customer-appointment-form.html?'+params.toString();
+function goToNewAppointment(resourceId,start){
+  const params=new URLSearchParams();
+  if(resourceId)params.set('colaborador_id',resourceId);
+  params.set('data',start.toString('yyyy-MM-dd'));
+  if(state.view==='day')params.set('hora_inicio',start.toString('HH:mm'));
+  location.href='customer-appointment-form.html?'+params.toString();
+}
+
+function buildCalendarConfig(){
+  const {start}=rangeForView();
+  const base={
+    startDate:start,
+    height:600,
+    heightSpec:'Fixed',
+    businessBeginsHour:6,
+    businessEndsHour:21,
+    eventMoveHandling:'Update',
+    eventResizeHandling:'Disabled',
+    timeRangeSelectedHandling:'Enabled',
+    onEventMove:handleReschedule,
+    onEventClicked:args=>openDetail(args.e),
+    onTimeRangeSelected:args=>{
+      const resourceId=args.resource||null;
+      goToNewAppointment(resourceId,args.start);
+      state.calendar.clearSelection();
+    },
+    onBeforeEventRender:args=>{
+      if(args.data.cssClass)args.data.cssClass=args.data.cssClass;
     }
-  });
-  state.calendar.render();
+  };
+  if(state.view==='day'){
+    return {...base, viewType:'Resources', columns:visibleColaboradores().map(c=>({name:c.name,id:c.id}))};
+  }
+  return {...base, viewType:'Week', days:7};
+}
+
+async function setView(view){
+  state.view=view;
+  $('view-day').classList.toggle('active',view==='day');
+  $('view-week').classList.toggle('active',view==='week');
+  state.calendar.update(buildCalendarConfig());
+  await refetchAndRender();
+}
+
+function navigate(delta){
+  state.date=state.view==='day'?state.date.addDays(delta):state.date.addDays(delta*7);
+  state.calendar.update({startDate:rangeForView().start});
+  refetchAndRender();
 }
 
 $('user-menu-btn')?.addEventListener('click',e=>{e.stopPropagation();const menu=$('user-menu');const hidden=menu.classList.toggle('hidden');$('user-menu-btn').setAttribute('aria-expanded',String(!hidden));});
 document.addEventListener('click',e=>{if(!e.target.closest('.user-menu-wrap'))closeMenu();});
 $('menu-logout')?.addEventListener('click',async()=>{await db.auth.signOut();location.href='index.html';});
-$('colaborador-filter').addEventListener('change',()=>state.calendar?.refetchEvents());
+$('colaborador-filter').addEventListener('change',()=>{
+  if(state.view==='day')state.calendar.update({columns:visibleColaboradores().map(c=>({name:c.name,id:c.id}))});
+  refetchAndRender();
+});
 $('detail-close').addEventListener('click',closeDetail);
 $('detail-modal').addEventListener('click',e=>{if(e.target.id==='detail-modal')closeDetail();});
 $('detail-cancel-appointment').addEventListener('click',e=>cancelAppointment(e.target.dataset.id));
+$('view-day').addEventListener('click',()=>setView('day'));
+$('view-week').addEventListener('click',()=>setView('week'));
+$('nav-prev').addEventListener('click',()=>navigate(-1));
+$('nav-next').addEventListener('click',()=>navigate(1));
+$('nav-today').addEventListener('click',()=>{state.date=DayPilot.Date.today();state.calendar.update({startDate:rangeForView().start});refetchAndRender();});
 
 async function init(){
   if(!(await loadProfile()))return;
   try{
     await loadColaboradores();
-    initCalendar();
+    state.calendar=new DayPilot.Calendar('calendar', buildCalendarConfig());
+    state.calendar.init();
+    await refetchAndRender();
   }catch(e){console.error(e);msg(`${t("Unable to load the calendar.")} ${e.message||''}`,'error');}
 }
 init();

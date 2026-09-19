@@ -1,14 +1,13 @@
-.calendar-toolbar{display:flex;align-items:center;gap:16px;justify-content:space-between;margin:18px 0}
+.calendar-toolbar{display:flex;align-items:center;gap:16px;justify-content:flex-start;flex-wrap:wrap;margin:18px 0}
 .calendar-toolbar select{border:1px solid var(--line);border-radius:10px;padding:0 12px;height:40px;font:inherit;font-size:12px;color:var(--ink);background:#fff}
-.calendar-toolbar .message{margin:0;flex:1}
+.calendar-toolbar .message{margin:0;flex-basis:100%;order:5}
+.calendar-toolbar .toolbar-primary{margin-left:auto}
+.calendar-nav{display:flex;align-items:center;gap:8px}
+.calendar-nav .secondary-btn{padding:8px 12px;font-size:12px}
+.calendar-nav strong{font-size:13px;color:var(--ink);white-space:nowrap}
 .calendar-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px}
-.fc{font-family:Inter,system-ui,sans-serif;font-size:12px}
-.fc .fc-toolbar-title{font-size:16px;font-weight:800;color:#18243a}
-.fc .fc-button{background:#f3f2ff;border:1px solid #dfdcff;color:#554bdb;font-weight:700;text-transform:capitalize;box-shadow:none}
-.fc .fc-button:hover{background:#e9e6ff}
-.fc .fc-button-primary:not(:disabled).fc-button-active{background:#635bff;border-color:#635bff;color:#fff}
-.fc-event{cursor:grab;border:0;padding:1px 2px}
-.fc-event.appointment-cancelado{opacity:.45;text-decoration:line-through}
+#calendar{min-height:520px}
+.appointment-cancelado{opacity:.45;text-decoration:line-through}
 
 .detail-modal{position:fixed;inset:0;background:rgba(20,24,38,.48);display:none;align-items:center;justify-content:center;padding:20px;z-index:200}
 .detail-modal.open{display:flex}
