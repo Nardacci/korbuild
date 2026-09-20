@@ -1,0 +1,19 @@
+.range-field{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#40506a}
+.range-field input{border:1px solid var(--line);border-radius:10px;padding:0 10px;height:40px;font:inherit;font-size:12px;color:var(--ink)}
+.teams-toolbar select{border:1px solid var(--line);border-radius:10px;padding:0 12px;height:40px;font:inherit;font-size:12px;color:var(--ink);background:#fff;min-width:130px}
+.origin-tag{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:9px;font-weight:800}
+.origin-tag.despesa{background:#eeecff;color:#5348dc}
+.origin-tag.folha{background:#e9f4ff;color:#1c6fc9}
+.ap-status-tag{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:9px;font-weight:800}
+.ap-status-tag.provisionado,.ap-status-tag.pendente,.ap-status-tag.parcial{background:#fff4df;color:#a86200}
+.ap-status-tag.pago,.ap-status-tag.recebido{background:#edf9f2;color:#237344}
+.ap-status-tag.cancelado{background:#f2f3f6;color:#697386}
+.expense-recurring-toggle{margin-top:2px}
+#expense-frequencia-wrap.hidden{display:none}
+.categories-add-row{display:flex;gap:8px;margin-bottom:16px}
+.categories-add-row input{flex:1;border:1px solid #cfd7e5;border-radius:10px;padding:10px 12px;font:inherit;font-size:12px}
+.categories-table{width:100%;border-collapse:collapse;font-size:12px}
+.categories-table th{text-align:left;font-size:10px;font-weight:800;letter-spacing:.04em;color:#69778d;padding:0 10px 8px;border-bottom:1px solid var(--line)}
+.categories-table td{padding:9px 10px;border-bottom:1px solid #f2f4f8;color:#26354d}
+.categories-table tr:last-child td{border-bottom:0}
+.categories-table .small-btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 10px;font-size:10px;font-weight:700;color:#536075;cursor:pointer}
