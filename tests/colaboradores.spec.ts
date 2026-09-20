@@ -41,6 +41,24 @@ async function rowActionButton(page: Page, bodyId: string, rowName: string, acti
   return row.locator(`button[data-action="${action}"]`);
 }
 
+// Nav reorg 2026-09-20: the old "Collaborators" group (People/Teams/Work
+// Units) was replaced by "Records", which also absorbed Clients/Services
+// out of the (now paused/unrendered) Schedule > Customer Service group.
+test('sidebar nav: Records group replaces Collaborators and absorbs Clients/Services', async ({ page }) => {
+  await page.goto('people.html');
+  await expect(page.locator('#collaborators-toggle')).toHaveCount(0);
+  await expect(page.locator('#schedule-toggle')).toHaveCount(0);
+  await expect(page.locator('#customer-service-toggle')).toHaveCount(0);
+
+  const recordsItems = page.locator('#records-items');
+  if (!(await recordsItems.isVisible())) await page.locator('#records-toggle').click();
+  await expect(recordsItems.locator('a[href="people.html"]')).toBeVisible();
+  await expect(recordsItems.locator('a[href="teams.html"]')).toBeVisible();
+  await expect(recordsItems.locator('a[href="work-units.html"]')).toBeVisible();
+  await expect(recordsItems.locator('a[href="customers.html"]')).toBeVisible();
+  await expect(recordsItems.locator('a[href="services.html"]')).toBeVisible();
+});
+
 test('create Work Unit', async ({ page }) => {
   await page.goto('work-units-form.html');
   await page.fill('#unit-name', workUnitName);
