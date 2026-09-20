@@ -149,6 +149,12 @@ async function init(){
     await loadConfig();
     await loadColaboradores();
     await loadLoans();
+    // Only enabled once state.currency/weekStartDay are actually loaded --
+    // opening the modal earlier would pre-fill "First deduction week" from
+    // the still-default weekStartDay (1) instead of the company's real
+    // setting (caught by tests/payment.spec.ts's Loans suite, which clicks
+    // faster than the config fetch on a fresh page load).
+    $('add-loan').disabled=false;
   }catch(e){console.error(e);msg(`${t('Unable to load Loans.')} ${e.message||''}`,'error');}
 }
 init();
