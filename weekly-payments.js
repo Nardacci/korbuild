@@ -2,9 +2,12 @@ if(!window.KORBUILD_APP){const s=document.createElement('script');s.src='app-con
 const {url,publishableKey}=window.KORBUILD_SUPABASE;
 const db=window.supabase.createClient(url,publishableKey,{auth:{persistSession:true,autoRefreshToken:true}});
 const $=id=>document.getElementById(id);
-const state={empresaId:null,weekStartDay:1,colaboradores:[],rows:new Map()};
+const state={empresaId:null,weekStartDay:1,weekStart:null,weekEnd:null,colaboradores:[],rows:new Map(),missingRateCount:0};
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const money=v=>'$'+Number(v||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+// KORbuild's own Payment module is always BRL (unlike Billing, which can be
+// USD/EUR) -- Brazilian currency formatting regardless of the interface
+// language toggle, same convention as billing.js's fmtBRL().
+const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0));
 const fmtDate=s=>s?new Date(s+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
 function isoDate(d){return d.toISOString().slice(0,10);}
 function addDays(dateStr,days){const d=new Date(dateStr+'T00:00:00');d.setDate(d.getDate()+days);return isoDate(d);}
@@ -52,59 +55,21 @@ async function loadColaboradores(){
   state.colaboradores=data||[];
 }
 
-function weekEnd(){return addDays($('week-start').value,6);}
-
-async function loadPayments(){
-  clearMsg();
-  const weekStart=$('week-start').value;
-  const weekEndDate=weekEnd();
-  $('week-range').textContent=`${fmtDate(weekStart)} → ${fmtDate(weekEndDate)}`;
-  state.rows=new Map();
-
-  const {data:existing,error:existingError}=await db.rpc('obter_pagamentos_semanais',{p_empresa_id:state.empresaId,p_semana_inicio:weekStart,p_semana_fim:weekEndDate});
-  if(existingError)throw existingError;
-  const existingMap=new Map((existing||[]).filter(p=>p.semana_inicio===weekStart).map(p=>[p.colaborador_id,p]));
-
-  const previewTargets=state.colaboradores.filter(c=>!existingMap.has(c.id));
-  const previews=await Promise.allSettled(previewTargets.map(c=>
-    db.rpc('calcular_pagamento_semanal',{p_empresa_id:state.empresaId,p_colaborador_id:c.id,p_semana_inicio:weekStart})
-  ));
-
-  state.colaboradores.forEach(c=>{
-    const existingRow=existingMap.get(c.id);
-    if(existingRow){
-      state.rows.set(c.id,{
-        colaboradorId:c.id,name:c.name,
-        horas:Number(existingRow.horas_trabalhadas),
-        valorHora:Number(existingRow.valor_hora_aplicado),
-        adiantamento:Number(existingRow.adiantamento),
-        status:existingRow.status_pagamento,
-        registered:true,rateMissing:false,error:null
-      });
-      return;
-    }
-    const idx=previewTargets.indexOf(c);
-    const result=previews[idx];
-    if(result?.status==='fulfilled'&&!result.value.error&&result.value.data?.[0]){
-      const p=result.value.data[0];
-      state.rows.set(c.id,{
-        colaboradorId:c.id,name:c.name,
-        horas:Number(p.horas_trabalhadas),
-        valorHora:Number(p.valor_hora_aplicado),
-        adiantamento:0,status:'pendente',
-        registered:false,rateMissing:false,error:null
-      });
-    }else{
-      const errorMessage=result?.value?.error?.message||result?.reason?.message||'No hourly rate registered';
-      state.rows.set(c.id,{
-        colaboradorId:c.id,name:c.name,
-        horas:0,valorHora:0,adiantamento:0,status:'pendente',
-        registered:false,rateMissing:true,error:errorMessage
-      });
-    }
-  });
-
-  render();
+// Which of the active colaboradores actually have an hourly rate effective
+// for this specific week -- a single bulk read against historico_valor_hora
+// mirroring the same date-window logic calcular_pagamento_semanal() and
+// registrar_pagamento() already use internally, so eligibility here always
+// agrees with what those RPCs would do.
+async function loadEffectiveRates(weekStart){
+  const {data,error}=await db.from('historico_valor_hora')
+    .select('colaborador_id,valor_hora')
+    .eq('empresa_id',state.empresaId)
+    .lte('vigente_de',weekStart)
+    .or(`vigente_ate.is.null,vigente_ate.gte.${weekStart}`);
+  if(error)throw error;
+  const map=new Map();
+  (data||[]).forEach(r=>map.set(r.colaborador_id,Number(r.valor_hora)));
+  return map;
 }
 
 function rowTotals(row){
@@ -113,27 +78,89 @@ function rowTotals(row){
   return {bruto,liquido};
 }
 
+async function loadPayments(){
+  clearMsg();
+  state.weekStart=defaultWeekStart(state.weekStartDay);
+  state.weekEnd=addDays(state.weekStart,6);
+  $('week-range').textContent=`${t('Week of')} ${fmtDate(state.weekStart)} → ${fmtDate(state.weekEnd)}`;
+  state.rows=new Map();
+
+  const ratesMap=await loadEffectiveRates(state.weekStart);
+  const eligible=state.colaboradores.filter(c=>ratesMap.has(c.id));
+  const missing=state.colaboradores.filter(c=>!ratesMap.has(c.id));
+  state.missingRateCount=missing.length;
+  renderMissingRateBanner();
+
+  const {data:existing,error:existingError}=await db.rpc('obter_pagamentos_semanais',{p_empresa_id:state.empresaId,p_semana_inicio:state.weekStart,p_semana_fim:state.weekEnd});
+  if(existingError)throw existingError;
+  const existingMap=new Map((existing||[]).filter(p=>p.semana_inicio===state.weekStart).map(p=>[p.colaborador_id,p]));
+
+  // Eligible people with no row yet for this week get one created now --
+  // this is the whole point of the redesign: opening the screen is what
+  // makes the week ready, instead of a manual "open/close week" step.
+  const toCreate=eligible.filter(c=>!existingMap.has(c.id));
+  const created=await Promise.allSettled(toCreate.map(async c=>{
+    let horas=0,valorHora=ratesMap.get(c.id);
+    try{
+      const {data,error}=await db.rpc('calcular_pagamento_semanal',{p_empresa_id:state.empresaId,p_colaborador_id:c.id,p_semana_inicio:state.weekStart});
+      if(!error&&data?.[0]){horas=Number(data[0].horas_trabalhadas);valorHora=Number(data[0].valor_hora_aplicado);}
+    }catch{/* schedule preview is best-effort -- still register the row below with horas=0 for manual entry */}
+    const {error:regError}=await db.rpc('registrar_pagamento',{
+      p_empresa_id:state.empresaId,p_colaborador_id:c.id,
+      p_semana_inicio:state.weekStart,p_semana_fim:state.weekEnd,
+      p_horas_trabalhadas:horas,p_valor_hora_aplicado:valorHora,
+      p_adiantamento:0,p_status_pagamento:'pendente'
+    });
+    if(regError)throw regError;
+    return {colaboradorId:c.id,name:c.name,horas,valorHora};
+  }));
+
+  let creationErrors=0;
+  created.forEach((result,i)=>{
+    if(result.status==='fulfilled'){
+      const r=result.value;
+      state.rows.set(r.colaboradorId,{colaboradorId:r.colaboradorId,name:r.name,horas:r.horas,valorHora:r.valorHora,adiantamento:0,status:'pendente',registered:true});
+    }else{
+      creationErrors++;
+      console.error('Unable to create payment row for',toCreate[i]?.name,result.reason);
+    }
+  });
+  if(creationErrors)msg(t("Unable to create this week's payment rows."),'error');
+
+  eligible.forEach(c=>{
+    const existingRow=existingMap.get(c.id);
+    if(!existingRow)return; // already handled above (created or failed)
+    state.rows.set(c.id,{
+      colaboradorId:c.id,name:c.name,
+      horas:Number(existingRow.horas_trabalhadas),
+      valorHora:Number(existingRow.valor_hora_aplicado),
+      adiantamento:Number(existingRow.adiantamento),
+      status:existingRow.status_pagamento,
+      registered:true
+    });
+  });
+
+  render();
+}
+
+function renderMissingRateBanner(){
+  const banner=$('missing-rate-banner');
+  if(!state.missingRateCount){banner.classList.add('hidden');return;}
+  $('missing-rate-text').textContent=`${state.missingRateCount} ${state.missingRateCount===1?'person':'people'} without an hourly rate registered`;
+  banner.classList.remove('hidden');
+}
+
 function render(){
-  const rows=[...state.rows.values()];
+  const rows=state.colaboradores.filter(c=>state.rows.has(c.id)).map(c=>state.rows.get(c.id));
   $('summary-people').textContent=rows.length;
-  $('summary-missing').textContent=rows.filter(r=>r.rateMissing).length;
   $('summary-net').textContent=money(rows.reduce((sum,r)=>sum+rowTotals(r).liquido,0));
   $('empty-state').classList.toggle('hidden',rows.length!==0);
 
   $('payments-body').innerHTML=rows.map(r=>{
-    if(r.rateMissing){
-      return `<tr data-id="${r.colaboradorId}">
-        <td><div class="team-name">${esc(r.name)}</div><div class="pay-rate-missing">No hourly rate registered</div></td>
-        <td colspan="5" class="pay-rate-missing">Register an hourly rate for this person before calculating a payment.</td>
-        <td><div class="pay-row-actions"><input type="number" min="0" step="0.01" class="pay-new-rate" placeholder="$/hr" style="width:70px"><button type="button" class="pay-save-btn" data-action="set-rate">Set rate</button></div></td>
-      </tr>`;
-    }
-    const {bruto,liquido}=rowTotals(r);
+    const {liquido}=rowTotals(r);
     return `<tr data-id="${r.colaboradorId}">
-      <td><div class="team-name">${esc(r.name)}</div>${r.registered?'<div class="pay-status-tag '+r.status+'">'+esc(payStatusLabel(r.status))+'</div>':''}</td>
+      <td><div class="team-name">${esc(r.name)}</div><div class="pay-rate-hint">${money(r.valorHora)}/hr</div><div class="pay-status-tag ${r.status}">${esc(payStatusLabel(r.status))}</div></td>
       <td><input type="number" min="0" step="0.25" class="pay-horas" value="${r.horas}"></td>
-      <td class="pay-money">${money(r.valorHora)}</td>
-      <td class="pay-money pay-bruto">${money(bruto)}</td>
       <td><input type="number" min="0" step="0.01" class="pay-adiantamento" value="${r.adiantamento}"></td>
       <td class="pay-money net pay-liquido">${money(liquido)}</td>
       <td><select class="pay-status">
@@ -141,7 +168,7 @@ function render(){
         <option value="parcial" ${r.status==='parcial'?'selected':''}>${esc(payStatusLabel('parcial'))}</option>
         <option value="pago" ${r.status==='pago'?'selected':''}>${esc(payStatusLabel('pago'))}</option>
       </select></td>
-      <td><div class="pay-row-actions"><button type="button" class="pay-recalc-btn" data-action="recalc">↻</button><button type="button" class="pay-save-btn" data-action="save">${r.registered?'Update':'Register'}</button></div></td>
+      <td><div class="pay-row-actions"><button type="button" class="pay-recalc-btn" data-action="recalc">↻</button><button type="button" class="pay-save-btn" data-action="save">${t('Update')}</button></div></td>
     </tr>`;
   }).join('');
 }
@@ -155,45 +182,25 @@ function readRowInputs(tr){
 }
 
 async function recalc(colaboradorId){
-  const weekStart=$('week-start').value;
-  const {data,error}=await db.rpc('calcular_pagamento_semanal',{p_empresa_id:state.empresaId,p_colaborador_id:colaboradorId,p_semana_inicio:weekStart});
+  const {data,error}=await db.rpc('calcular_pagamento_semanal',{p_empresa_id:state.empresaId,p_colaborador_id:colaboradorId,p_semana_inicio:state.weekStart});
   if(error){msg(`${t("Unable to recalculate.")} ${error.message}`,'error');return;}
   const preview=data?.[0];
   const row=state.rows.get(colaboradorId);
   if(row&&preview){
     row.horas=Number(preview.horas_trabalhadas);
     row.valorHora=Number(preview.valor_hora_aplicado);
-    row.rateMissing=false;
   }
   render();
 }
 
-async function setRate(tr){
-  const colaboradorId=tr.dataset.id;
-  const input=tr.querySelector('.pay-new-rate');
-  const value=Number(input?.value);
-  if(!Number.isFinite(value)||value<0){msg('Enter a valid hourly rate.','error');return;}
-  const {error}=await db.rpc('registrar_valor_hora',{
-    p_empresa_id:state.empresaId,
-    p_colaborador_id:colaboradorId,
-    p_valor_hora:value,
-    p_vigente_de:$('week-start').value
-  });
-  if(error){msg(`${t("Unable to register the hourly rate.")} ${error.message}`,'error');return;}
-  msg(t('Hourly rate registered.'));
-  await loadPayments();
-}
-
 async function saveRow(colaboradorId){
-  const weekStart=$('week-start').value;
-  const weekEndDate=weekEnd();
   const row=state.rows.get(colaboradorId);
   if(!row)return;
   const {error}=await db.rpc('registrar_pagamento',{
     p_empresa_id:state.empresaId,
     p_colaborador_id:colaboradorId,
-    p_semana_inicio:weekStart,
-    p_semana_fim:weekEndDate,
+    p_semana_inicio:state.weekStart,
+    p_semana_fim:state.weekEnd,
     p_horas_trabalhadas:row.horas,
     p_adiantamento:row.adiantamento,
     p_status_pagamento:row.status
@@ -207,8 +214,7 @@ async function saveRow(colaboradorId){
 $('payments-body').addEventListener('input',e=>{
   const tr=e.target.closest('tr[data-id]');if(!tr)return;
   readRowInputs(tr);
-  const {bruto,liquido}=rowTotals(state.rows.get(tr.dataset.id));
-  tr.querySelector('.pay-bruto')&&(tr.querySelector('.pay-bruto').textContent=money(bruto));
+  const {liquido}=rowTotals(state.rows.get(tr.dataset.id));
   tr.querySelector('.pay-liquido')&&(tr.querySelector('.pay-liquido').textContent=money(liquido));
   $('summary-net').textContent=money([...state.rows.values()].reduce((sum,r)=>sum+rowTotals(r).liquido,0));
 });
@@ -222,20 +228,17 @@ $('payments-body').addEventListener('click',e=>{
   readRowInputs(tr);
   if(btn.dataset.action==='recalc')recalc(tr.dataset.id);
   if(btn.dataset.action==='save')saveRow(tr.dataset.id);
-  if(btn.dataset.action==='set-rate')setRate(tr);
 });
 
 $('user-menu-btn')?.addEventListener('click',e=>{e.stopPropagation();const menu=$('user-menu');const hidden=menu.classList.toggle('hidden');$('user-menu-btn').setAttribute('aria-expanded',String(!hidden));});
 document.addEventListener('click',e=>{if(!e.target.closest('.user-menu-wrap'))closeMenu();});
 $('menu-logout')?.addEventListener('click',async()=>{await db.auth.signOut();location.href='index.html';});
-$('week-start').addEventListener('change',()=>loadPayments().catch(e=>msg(e.message,'error')));
 $('reload-btn').addEventListener('click',()=>loadPayments().catch(e=>msg(e.message,'error')));
 
 async function init(){
   if(!(await loadProfile()))return;
   try{
     await loadConfig();
-    $('week-start').value=defaultWeekStart(state.weekStartDay);
     await loadColaboradores();
     await loadPayments();
   }catch(e){console.error(e);msg(`${t("Unable to load Weekly Payments.")} ${e.message||''}`,'error');}
