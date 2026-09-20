@@ -2,7 +2,7 @@ if(!window.KORBUILD_APP){const s=document.createElement('script');s.src='app-con
 const {url,publishableKey}=window.KORBUILD_SUPABASE;
 const db=window.supabase.createClient(url,publishableKey,{auth:{persistSession:true,autoRefreshToken:true}});
 const $=id=>document.getElementById(id);
-const state={empresaId:null,currency:'BRL',categorias:[],rows:[]};
+const state={empresaId:null,currency:'BRL',categorias:[],rows:[],despesaById:new Map(),currentDetail:null};
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=v=>new Intl.NumberFormat(state.currency==='BRL'?'pt-BR':'en-US',{style:'currency',currency:state.currency}).format(Number(v||0));
 const fmtDate=s=>s?new Date(s+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
@@ -10,6 +10,7 @@ function isoDate(d){return d.toISOString().slice(0,10);}
 function firstDayOfMonth(){const d=new Date();return isoDate(new Date(d.getFullYear(),d.getMonth(),1));}
 function lastDayOfMonth(){const d=new Date();return isoDate(new Date(d.getFullYear(),d.getMonth()+1,0));}
 function msg(text,type='success'){const e=$('message');e.textContent=text;e.className=`message ${type}`;e.classList.remove('hidden');}
+function detailMsg(text,type='success'){const e=$('detail-message');e.textContent=text;e.className=`message ${type}`;e.classList.remove('hidden');}
 function expenseMsg(text,type='success'){const e=$('expense-message');e.textContent=text;e.className=`message ${type}`;e.classList.remove('hidden');}
 function categoriesMsg(text,type='success'){const e=$('categories-message');e.textContent=text;e.className=`message ${type}`;e.classList.remove('hidden');}
 function closeMenu(){$('user-menu')?.classList.add('hidden');$('user-menu-btn')?.setAttribute('aria-expanded','false');}
@@ -57,48 +58,111 @@ async function loadCategorias(){
 
   const active=state.categorias.filter(c=>c.ativo);
   $('expense-categoria').innerHTML='<option value="">'+t('No category')+'</option>'+active.map(c=>`<option value="${c.id}">${esc(c.nome)}</option>`).join('');
-  $('filter-categoria').innerHTML='<option value="ALL">'+t('All categories')+'</option>'+state.categorias.map(c=>`<option value="${c.id}">${esc(c.nome)}${c.ativo?'':' ('+categoryActiveLabel(false)+')'}</option>`).join('');
 }
 
+// Fetches the full period (all statuses -- filtering by status now only
+// happens inside the detail drill-down) plus the despesas' own categoria_id,
+// since obter_contas_a_pagar_consolidado folds despesas and payroll into one
+// shape and doesn't carry categoria_id along.
 async function loadConsolidated(){
   const dataInicio=$('filter-data-inicio').value||null;
   const dataFim=$('filter-data-fim').value||null;
-  const statusFilter=$('filter-status').value;
-  const categoriaFilter=$('filter-categoria').value;
 
-  const {data,error}=await db.rpc('obter_contas_a_pagar_consolidado',{
-    p_empresa_id:state.empresaId,
-    p_data_inicio:dataInicio,
-    p_data_fim:dataFim,
-    p_status:statusFilter==='ALL'?null:statusFilter
-  });
-  if(error)throw error;
+  const [{data:consolidated,error:consError},{data:despesas,error:despError}]=await Promise.all([
+    db.rpc('obter_contas_a_pagar_consolidado',{p_empresa_id:state.empresaId,p_data_inicio:dataInicio,p_data_fim:dataFim,p_status:null}),
+    db.rpc('obter_despesas',{p_empresa_id:state.empresaId,p_data_inicio:dataInicio,p_data_fim:dataFim})
+  ]);
+  if(consError)throw consError;
+  if(despError)throw despError;
 
-  // The consolidated RPC doesn't return categoria_id (it folds two very
-  // different sources into one shape) -- category filtering only makes
-  // sense for despesas, so it's applied client-side against a parallel
-  // lookup fetched only when a specific category is selected.
-  if(categoriaFilter!=='ALL'){
-    const {data:despesaIds}=await db.rpc('obter_despesas',{p_empresa_id:state.empresaId,p_categoria_id:categoriaFilter});
-    const idSet=new Set((despesaIds||[]).map(d=>d.id));
-    state.rows=(data||[]).filter(r=>r.origem==='folha'?false:idSet.has(r.referencia_id));
-  }else{
-    state.rows=data||[];
-  }
+  state.rows=consolidated||[];
+  state.despesaById=new Map((despesas||[]).map(d=>[d.id,d]));
 
-  render();
+  renderSummary();
+  if(state.currentDetail)renderDetail();
 }
 
-function render(){
+// Groups the consolidated period into "Payroll" (all origem='folha' items,
+// summed together) plus one group per despesa categoria (uncategorized
+// despesas fall into their own "Uncategorized" bucket) -- this is the
+// grouped, manager-facing view; the old item-by-item list now only shows up
+// after drilling into one of these groups.
+function computeGroups(){
+  const groups=new Map();
+  for(const r of state.rows){
+    let key,kind,label;
+    if(r.origem==='folha'){
+      key='payroll';kind='payroll';label=originLabel('folha');
+    }else{
+      const d=state.despesaById.get(r.referencia_id);
+      const categoriaId=d?.categoria_id||null;
+      key=categoriaId||'uncategorized';
+      kind='categoria';
+      label=categoriaId?(d.categoria_nome||''):t('Uncategorized');
+    }
+    if(!groups.has(key))groups.set(key,{key,kind,label,pending:0,paid:0,count:0});
+    const g=groups.get(key);
+    g.count++;
+    if(r.status==='provisionado'||r.status==='pendente'||r.status==='parcial')g.pending+=Number(r.valor);
+    else if(r.status==='pago')g.paid+=Number(r.valor);
+  }
+  return [...groups.values()].sort((a,b)=>{
+    if(a.kind!==b.kind)return a.kind==='payroll'?-1:1;
+    return a.label.localeCompare(b.label);
+  });
+}
+
+function renderSummary(){
   const rows=state.rows;
   const pending=rows.filter(r=>r.status==='provisionado'||r.status==='pendente'||r.status==='parcial');
   const paid=rows.filter(r=>r.status==='pago');
   $('summary-pending-count').textContent=pending.length;
   $('summary-pending-total').textContent=pending.length?money(pending.reduce((sum,r)=>sum+Number(r.valor),0)):'—';
   $('summary-paid-total').textContent=paid.length?money(paid.reduce((sum,r)=>sum+Number(r.valor),0)):'—';
-  $('empty-state').classList.toggle('hidden',rows.length!==0);
 
-  $('ap-body').innerHTML=rows.map(r=>{
+  const groups=computeGroups();
+  $('empty-state').classList.toggle('hidden',groups.length!==0);
+  $('ap-groups-body').innerHTML=groups.map(g=>`<tr class="ap-group-row" data-kind="${g.kind}" data-key="${g.key}" data-label="${esc(g.label)}">
+    <td><div class="team-name">${esc(g.label)}</div></td>
+    <td class="pay-money">${g.pending?money(g.pending):'—'}</td>
+    <td class="pay-money">${g.paid?money(g.paid):'—'}</td>
+    <td>${g.count}</td>
+    <td><button type="button" class="small-btn" data-action="view-group">${t('View')}</button></td>
+  </tr>`).join('');
+}
+
+function groupKeyOf(row){
+  if(row.origem==='folha')return 'payroll';
+  const d=state.despesaById.get(row.referencia_id);
+  return (d?.categoria_id)||'uncategorized';
+}
+
+function openDetail(kind,key,label){
+  state.currentDetail={kind,key,label};
+  $('detail-heading').textContent=label;
+  const dataInicio=$('filter-data-inicio').value;
+  const dataFim=$('filter-data-fim').value;
+  $('detail-subheading').textContent=`${fmtDate(dataInicio)} → ${fmtDate(dataFim)}`;
+  $('detail-filter-status').value='ALL';
+  $('summary-view').classList.add('hidden');
+  $('detail-view').classList.remove('hidden');
+  renderDetail();
+}
+
+function closeDetail(){
+  state.currentDetail=null;
+  $('detail-view').classList.add('hidden');
+  $('summary-view').classList.remove('hidden');
+}
+
+function renderDetail(){
+  if(!state.currentDetail)return;
+  const statusFilter=$('detail-filter-status').value;
+  let rows=state.rows.filter(r=>groupKeyOf(r)===state.currentDetail.key);
+  if(statusFilter!=='ALL')rows=rows.filter(r=>r.status===statusFilter);
+
+  $('detail-empty-state').classList.toggle('hidden',rows.length!==0);
+  $('ap-detail-body').innerHTML=rows.map(r=>{
     const canMarkPaid=r.origem==='despesa'&&r.status==='provisionado';
     return `<tr data-id="${r.referencia_id}" data-origem="${r.origem}">
       <td><div class="team-name">${esc(r.descricao)}</div></td>
@@ -151,8 +215,8 @@ async function createExpense(event){
 
 async function markPaid(despesaId){
   const {error}=await db.rpc('marcar_despesa_paga',{p_despesa_id:despesaId,p_data_pagamento:isoDate(new Date())});
-  if(error){msg(`${t('Unable to mark this expense as paid.')} ${error.message}`,'error');return;}
-  msg(t('Expense marked as paid.'));
+  if(error){detailMsg(`${t('Unable to mark this expense as paid.')} ${error.message}`,'error');return;}
+  detailMsg(t('Expense marked as paid.'));
   await loadConsolidated();
 }
 
@@ -210,14 +274,19 @@ $('categories-body').addEventListener('click',e=>{
 
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeExpenseModal();closeCategoriesModal();}});
 
-$('ap-body').addEventListener('click',e=>{
+$('ap-groups-body').addEventListener('click',e=>{
+  const row=e.target.closest('tr[data-kind]');if(!row)return;
+  openDetail(row.dataset.kind,row.dataset.key,row.dataset.label);
+});
+$('back-to-summary').addEventListener('click',closeDetail);
+$('detail-filter-status').addEventListener('change',renderDetail);
+
+$('ap-detail-body').addEventListener('click',e=>{
   const btn=e.target.closest('button[data-action="mark-paid"]');if(!btn)return;
   markPaid(btn.closest('tr').dataset.id);
 });
 $('filter-data-inicio').addEventListener('change',()=>loadConsolidated().catch(e=>msg(e.message,'error')));
 $('filter-data-fim').addEventListener('change',()=>loadConsolidated().catch(e=>msg(e.message,'error')));
-$('filter-status').addEventListener('change',()=>loadConsolidated().catch(e=>msg(e.message,'error')));
-$('filter-categoria').addEventListener('change',()=>loadConsolidated().catch(e=>msg(e.message,'error')));
 
 $('user-menu-btn')?.addEventListener('click',e=>{e.stopPropagation();const menu=$('user-menu');const hidden=menu.classList.toggle('hidden');$('user-menu-btn').setAttribute('aria-expanded',String(!hidden));});
 document.addEventListener('click',e=>{if(!e.target.closest('.user-menu-wrap'))closeMenu();});

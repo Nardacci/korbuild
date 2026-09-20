@@ -551,7 +551,14 @@
     "CLIENT": "CLIENTE",
     "Create a receivable, or adjust the date range above.": "Crie um recebimento, ou ajuste o período acima.",
     "New Receivable": "Novo Recebimento",
-    "Create Receivable": "Criar Recebimento"
+    "Create Receivable": "Criar Recebimento",
+    "GROUP": "GRUPO",
+    "ITEMS": "ITENS",
+    "View": "Ver",
+    "Uncategorized": "Sem categoria",
+    "Back to Accounts Payable": "Voltar para Contas a Pagar",
+    "No items for this status": "Nenhum item para este status",
+    "Try a different status filter.": "Tente um filtro de status diferente."
   };
 
   const reverse = Object.fromEntries(Object.entries(DICT).map(([en, pt]) => [pt, en]));

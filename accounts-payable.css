@@ -17,3 +17,11 @@
 .categories-table td{padding:9px 10px;border-bottom:1px solid #f2f4f8;color:#26354d}
 .categories-table tr:last-child td{border-bottom:0}
 .categories-table .small-btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 10px;font-size:10px;font-weight:700;color:#536075;cursor:pointer}
+.pay-money{font-variant-numeric:tabular-nums;font-weight:700;color:#18243a}
+.ap-group-row{cursor:pointer}
+.ap-group-row:hover{background:#f7f8fc}
+.back-btn{border:0;background:none;color:#59667a;font:700 12px Inter,system-ui,sans-serif;padding:0;margin:0 0 10px;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+.back-btn:hover{color:var(--accent)}
+.detail-heading-block{display:flex;flex-direction:column;gap:2px}
+.detail-heading-block strong{font-size:15px;color:var(--ink)}
+.detail-heading-block small{font-size:11px;color:var(--muted)}
