@@ -2,7 +2,14 @@ if(!window.KORBUILD_APP){const s=document.createElement('script');s.src='app-con
 const {url,publishableKey}=window.KORBUILD_SUPABASE;
 const db=window.supabase.createClient(url,publishableKey,{auth:{persistSession:true,autoRefreshToken:true}});
 const $=id=>document.getElementById(id);
-const state={empresaId:null};
+// diaInicioSemana: no longer surfaced in the UI (see git history 2026-09-20
+// -- Payment's week now comes from configuracoes_operacionais.
+// period_start_day/period_end_day, the same source Bonus uses, not this
+// field). Still round-tripped silently on save because atualizar_
+// configuracao_folha()'s p_dia_inicio_semana has no SQL default and the
+// column/RPC parameter were intentionally left in place -- this just
+// keeps whatever value is already stored instead of resetting it.
+const state={empresaId:null,diaInicioSemana:1};
 function closeMenu(){$('user-menu')?.classList.add('hidden');$('user-menu-btn')?.setAttribute('aria-expanded','false');}
 function msg(text,type='success'){const e=$('message');e.textContent=text;e.className=`message ${type}`;e.classList.remove('hidden');}
 const t=s=>window.KORbuildI18n?window.KORbuildI18n.t(s):s;
@@ -26,7 +33,7 @@ async function loadSettings(){
   if(error)throw error;
   const config=(data||[])[0];
   if(config){
-    $('dia-inicio-semana').value=String(config.dia_inicio_semana);
+    state.diaInicioSemana=config.dia_inicio_semana;
     $('horas-padrao-semana').value=config.horas_padrao_semana;
     $('multiplicador-hora-extra').value=config.multiplicador_hora_extra;
     $('currency').value=config.currency||'BRL';
@@ -35,7 +42,6 @@ async function loadSettings(){
 
 async function save(event){
   event.preventDefault();
-  const diaInicio=Number($('dia-inicio-semana').value);
   const horasPadrao=Number($('horas-padrao-semana').value);
   const multiplicador=Number($('multiplicador-hora-extra').value);
   const currency=$('currency').value;
@@ -45,7 +51,7 @@ async function save(event){
   try{
     const {error}=await db.rpc('atualizar_configuracao_folha',{
       p_empresa_id:state.empresaId,
-      p_dia_inicio_semana:diaInicio,
+      p_dia_inicio_semana:state.diaInicioSemana,
       p_horas_padrao_semana:horasPadrao,
       p_multiplicador_hora_extra:multiplicador,
       p_currency:currency

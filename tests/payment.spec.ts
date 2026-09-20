@@ -136,26 +136,33 @@ test.describe('prerequisites: an active Work Unit, Team and Person', () => {
   });
 });
 
+// "Week start day" was removed from this form 2026-09-20 -- it stopped
+// doing anything the moment Payment's week math moved to configuracoes_
+// operacionais.period_start_day/period_end_day (the same source Bonus
+// uses), and left on-screen would have misled anyone into thinking it
+// still controlled the pay week. dia_inicio_semana itself, and
+// atualizar_configuracao_folha's p_dia_inicio_semana parameter, are still
+// there (payroll-settings.js just round-trips whatever value is already
+// stored, silently, since the RPC parameter has no SQL default) -- this
+// suite no longer needs to touch it at all.
 test.describe('Payroll Settings: edit without breaking existing config', () => {
-  let originalSettings: { day: string; hours: string; multiplier: string; currency: string };
+  let originalSettings: { hours: string; multiplier: string; currency: string };
 
   test('read current settings', async ({ page }) => {
     await gotoPayrollSettings(page);
+    await expect(page.locator('#dia-inicio-semana')).toHaveCount(0); // confirms the dead field is actually gone, not just hidden
     originalSettings = {
-      day: await page.locator('#dia-inicio-semana').inputValue(),
       hours: await page.locator('#horas-padrao-semana').inputValue(),
       multiplier: await page.locator('#multiplicador-hora-extra').inputValue(),
       currency: await page.locator('#currency').inputValue(),
     };
     console.log('[payroll-settings] original:', originalSettings);
-    expect(originalSettings.day).not.toBe('');
+    expect(originalSettings.hours).not.toBe('');
   });
 
   test('change settings (including currency) and verify it persisted', async ({ page }) => {
     await gotoPayrollSettings(page);
-    const newDay = originalSettings.day === '1' ? '2' : '1';
     const newCurrency = originalSettings.currency === 'USD' ? 'EUR' : 'USD';
-    await page.selectOption('#dia-inicio-semana', newDay);
     await page.fill('#horas-padrao-semana', '40');
     await page.fill('#multiplicador-hora-extra', '2');
     await page.selectOption('#currency', newCurrency);
@@ -163,7 +170,6 @@ test.describe('Payroll Settings: edit without breaking existing config', () => {
     await expect(page.locator('#message')).toContainText('Payroll settings updated successfully', { timeout: 10_000 });
 
     await gotoPayrollSettings(page);
-    await expect(page.locator('#dia-inicio-semana')).toHaveValue(newDay, { timeout: 10_000 });
     await expect(page.locator('#horas-padrao-semana')).toHaveValue('40');
     await expect(page.locator('#multiplicador-hora-extra')).toHaveValue('2');
     await expect(page.locator('#currency')).toHaveValue(newCurrency);
@@ -171,7 +177,6 @@ test.describe('Payroll Settings: edit without breaking existing config', () => {
 
   test('restore the original settings', async ({ page }) => {
     await gotoPayrollSettings(page);
-    await page.selectOption('#dia-inicio-semana', originalSettings.day);
     await page.fill('#horas-padrao-semana', originalSettings.hours);
     await page.fill('#multiplicador-hora-extra', originalSettings.multiplier);
     await page.selectOption('#currency', originalSettings.currency);
@@ -179,7 +184,6 @@ test.describe('Payroll Settings: edit without breaking existing config', () => {
     await expect(page.locator('#message')).toContainText('Payroll settings updated successfully', { timeout: 10_000 });
 
     await gotoPayrollSettings(page);
-    await expect(page.locator('#dia-inicio-semana')).toHaveValue(originalSettings.day, { timeout: 10_000 });
     await expect(page.locator('#horas-padrao-semana')).toHaveValue(originalSettings.hours);
     await expect(page.locator('#multiplicador-hora-extra')).toHaveValue(originalSettings.multiplier);
     await expect(page.locator('#currency')).toHaveValue(originalSettings.currency);
