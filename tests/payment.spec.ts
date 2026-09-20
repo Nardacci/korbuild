@@ -243,10 +243,16 @@ test.describe('Loans: installment prefill and deduction marking', () => {
     await row.locator('button[data-action="save"]').click();
     await expect(page.locator('#message')).toContainText('Payment registered for', { timeout: 10_000 });
 
+    // Scope to this person via the collaborator filter -- TESTBOT_ loans
+    // from earlier suite runs are never cleaned up (see tests/README.md),
+    // so an unscoped "1 / 2" text search can match more than one row.
     await page.goto('loans.html');
+    await page.selectOption('#colaborador-filter', { label: loanPersonName });
     const installment1 = page.locator('#loans-body tr', { hasText: '1 / 2' });
-    await expect(installment1.locator('.loan-status-tag')).toHaveText('Deducted', { timeout: 10_000 });
+    await expect(installment1).toHaveCount(1, { timeout: 10_000 });
+    await expect(installment1.locator('.loan-status-tag')).toHaveText('Deducted');
     const installment2 = page.locator('#loans-body tr', { hasText: '2 / 2' });
-    await expect(installment2.locator('.loan-status-tag')).toHaveText('Pending', { timeout: 10_000 });
+    await expect(installment2).toHaveCount(1, { timeout: 10_000 });
+    await expect(installment2.locator('.loan-status-tag')).toHaveText('Pending');
   });
 });
