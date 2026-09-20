@@ -132,15 +132,11 @@
     $('user-email').textContent=session.user.email||'';
     const name=session.user.user_metadata?.full_name||session.user.email?.split('@')[0]||'Owner';
     $('user-name').textContent=name;$('user-avatar').textContent=name.charAt(0).toUpperCase();
-    const [priceResult, accessResult, rateResult] = await Promise.all([
+    const [priceResult, accessResult] = await Promise.all([
       client.rpc('get_company_commercial_price'),
       window.KORBUILD_ACCESS_READY
         ? window.KORBUILD_ACCESS_READY
-        : client.rpc('get_workspace_access_status'),
-      // Best-effort only: a missing/failed rate hides the BRL preview line
-      // (see updateBrlPreview) but never blocks the page -- the price in
-      // the company's own currency is still shown either way.
-      client.rpc('obter_cotacao_atual').catch(()=>({data:null}))
+        : client.rpc('get_workspace_access_status')
     ]);
 
     const price = priceResult?.data ?? priceResult;
@@ -154,7 +150,21 @@
     if(priceError)throw priceError;
     if(accessError)throw accessError;
 
-    exchangeRate=rateResult?.data||null;
+    // Best-effort only, deliberately OUTSIDE the Promise.all/throw path above:
+    // a missing/failed rate just hides the BRL preview line (see
+    // updateBrlPreview) -- it must never be able to block the price/access
+    // render that the rest of this page depends on. The PostgREST builder
+    // .rpc() returns is thenable (usable with await) but is not a full
+    // Promise -- it has no .catch() method, so chaining .catch() on it
+    // directly throws "is not a function" instead of catching anything.
+    try{
+      const rateResult=await client.rpc('obter_cotacao_atual');
+      exchangeRate=rateResult?.data||null;
+    }catch(rateError){
+      console.warn('Exchange rate fetch failed (non-blocking)',rateError);
+      exchangeRate=null;
+    }
+
     commercial=price||{};
     renderStatus(access);
     $('subscribe-btn').addEventListener('click',startMercadoPagoCheckout);
