@@ -19,3 +19,10 @@ verify_jwt = false
 # Supabase user JWT, auth is a dedicated x-cron-secret header instead
 # (HEALTH_MONITOR_CRON_SECRET, checked inside the function itself).
 verify_jwt = false
+
+[functions.fetch-exchange-rate]
+# Same reasoning as mercadopago-reconcile/health-monitor above -- pg_cron
+# has no Supabase user JWT, auth is a dedicated x-cron-secret header
+# instead (FETCH_EXCHANGE_RATE_CRON_SECRET, checked inside the function
+# itself).
+verify_jwt = false

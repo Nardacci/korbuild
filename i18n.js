@@ -444,7 +444,10 @@
     "Bonus": "Bônus",
     "Payment": "Pagamento",
     "Bonus Settlement": "Fechamento de Bônus",
-    "Collaborator Movement": "Movimentação de Colaboradores"
+    "Collaborator Movement": "Movimentação de Colaboradores",
+    "You will be charged": "Você será cobrado em",
+    "(today's exchange rate).": "(cotação de hoje).",
+    "Contact KORbuild for the exact amount": "Contate a KORbuild para o valor exato"
   };
 
   const reverse = Object.fromEntries(Object.entries(DICT).map(([en, pt]) => [pt, en]));

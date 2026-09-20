@@ -13,10 +13,25 @@
 //     Mercado Pago's Preapproval (Assinaturas) API, amount =
 //     commercial_pricing_settings.monthly_price (no per-company
 //     adjustment column exists for the monthly price today).
-// Both charges are always in BRL, regardless of commercial_pricing_settings
-// .currency (which stays an informational/display field only) -- same
-// design decision already made and documented for KORbuild Finances'
-// own Mercado Pago integration.
+// Both charges are always sent to Mercado Pago in BRL (that's the only
+// currency it settles in) -- but commercial_pricing_settings.currency is
+// NOT purely informational: if it isn't already BRL, the amount is
+// converted using the most recent cached rate in public.exchange_rates
+// (see convertToBrl() below) before being sent. This fixes a real billing
+// bug found 2026-09-19: a $2,500 USD setup fee was being sent to Mercado
+// Pago as unit_price:2500, currency_id:'BRL' -- charging R$2,500 instead
+// of the correct BRL-converted amount. If no rate is cached yet for that
+// currency, checkout now fails closed (error: exchange_rate_not_configured)
+// rather than risk repeating that mistake.
+//
+// IMPORTANT: this conversion only affects the amount at the moment a NEW
+// charge is created (a new setup-fee Preference, or a new monthly
+// Preapproval). A Mercado Pago Preapproval fixes its transaction_amount
+// in BRL at creation time and does NOT re-price itself on later monthly
+// charges if the exchange rate moves afterward -- there is no periodic
+// reajuste of an already-active subscription here. That would be a
+// separate project (re-creating/updating the Preapproval on a schedule),
+// intentionally not implemented as part of this fix.
 //
 // This function only READS commercial data and calls the Mercado Pago
 // API; it does not write to public.subscriptions. Confirmation of setup
@@ -58,6 +73,53 @@ function json(body: unknown, status = 200): Response {
     status,
     headers: { "Content-Type": "application/json", ...CORS_HEADERS },
   });
+}
+
+interface ConversionResult {
+  amountBrl: number;
+  conversion: {
+    original_amount: number;
+    original_currency: string;
+    exchange_rate: number;
+    rate_date: string;
+    converted_amount_brl: number;
+  } | null;
+}
+
+// deno-lint-ignore no-explicit-any
+async function convertToBrl(admin: any, amount: number, currency: string): Promise<ConversionResult | { error: string; currency_pair: string }> {
+  const normalized = currency.toUpperCase();
+  if (normalized === "BRL") {
+    return { amountBrl: amount, conversion: null };
+  }
+
+  const pair = `${normalized}/BRL`;
+  const { data: rateRow } = await admin
+    .from("exchange_rates")
+    .select("rate, rate_date")
+    .eq("currency_pair", pair)
+    .order("rate_date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!rateRow) {
+    // Fail closed: never send an amount in the wrong currency to Mercado
+    // Pago because a rate hasn't been fetched yet. This is exactly the bug
+    // being fixed here, just moved from "silent" to "loud".
+    return { error: "exchange_rate_not_configured", currency_pair: pair };
+  }
+
+  const amountBrl = Math.round(amount * Number(rateRow.rate) * 100) / 100;
+  return {
+    amountBrl,
+    conversion: {
+      original_amount: amount,
+      original_currency: normalized,
+      exchange_rate: Number(rateRow.rate),
+      rate_date: rateRow.rate_date,
+      converted_amount_brl: amountBrl,
+    },
+  };
 }
 
 Deno.serve(async (req) => {
@@ -115,7 +177,7 @@ Deno.serve(async (req) => {
 
   const { data: pricing } = await admin
     .from("commercial_pricing_settings")
-    .select("base_setup_fee, monthly_price")
+    .select("base_setup_fee, monthly_price, currency")
     .eq("id", true)
     .maybeSingle();
   if (!pricing) return json({ error: "pricing_not_configured" }, 500);
@@ -126,6 +188,7 @@ Deno.serve(async (req) => {
     .eq("empresa_id", empresaId)
     .maybeSingle();
 
+  const pricingCurrency = String(pricing.currency || "BRL");
   const setupAdjustmentPercent = Number(terms?.setup_adjustment_percent || 0);
   const setupFee = pricing.base_setup_fee == null
     ? 0
@@ -135,6 +198,13 @@ Deno.serve(async (req) => {
   const setupRequired = setupFee > 0 && !["PAID", "WAIVED"].includes(setupStatus);
 
   if (setupRequired) {
+    const setupConversion = await convertToBrl(admin, setupFee, pricingCurrency);
+    if ("error" in setupConversion) {
+      console.error("[mercadopago-checkout] setup fee conversion failed", setupConversion);
+      return json(setupConversion, 500);
+    }
+    const setupFeeBrl = setupConversion.amountBrl;
+
     let mpResponse: Response;
     try {
       mpResponse = await fetch("https://api.mercadopago.com/checkout/preferences", {
@@ -147,7 +217,7 @@ Deno.serve(async (req) => {
           items: [{
             title: "KORbuild - Setup fee",
             quantity: 1,
-            unit_price: setupFee,
+            unit_price: setupFeeBrl,
             currency_id: "BRL",
           }],
           external_reference: empresaId,
@@ -179,7 +249,7 @@ Deno.serve(async (req) => {
         provider_resource_type: "preference",
         provider_resource_id: mpBody?.id ? String(mpBody.id) : "unknown",
         event_type: "setup_checkout_create_failed",
-        raw_payload: mpBody ?? { status: mpResponse.status },
+        raw_payload: { ...(mpBody ?? { status: mpResponse.status }), _conversion: setupConversion.conversion },
         error_message: `Mercado Pago responded ${mpResponse.status}`,
       });
       return json({ error: "mercadopago_create_failed", status: mpResponse.status, details: mpBody }, 502);
@@ -190,10 +260,10 @@ Deno.serve(async (req) => {
       provider_resource_type: "preference",
       provider_resource_id: String(mpBody.id),
       event_type: "setup_checkout_created",
-      raw_payload: mpBody,
+      raw_payload: { ...mpBody, _conversion: setupConversion.conversion },
     });
 
-    return json({ type: "setup", init_point: mpBody.init_point, amount: setupFee, currency: "BRL" });
+    return json({ type: "setup", init_point: mpBody.init_point, amount: setupFeeBrl, currency: "BRL", conversion: setupConversion.conversion });
   }
 
   // Monthly subscription flow -------------------------------------------
@@ -203,6 +273,13 @@ Deno.serve(async (req) => {
     // first (commercial-admin.html, "Standard pricing" panel).
     return json({ error: "monthly_price_not_configured" }, 500);
   }
+
+  const monthlyConversion = await convertToBrl(admin, monthlyPrice, pricingCurrency);
+  if ("error" in monthlyConversion) {
+    console.error("[mercadopago-checkout] monthly price conversion failed", monthlyConversion);
+    return json(monthlyConversion, 500);
+  }
+  const monthlyPriceBrl = monthlyConversion.amountBrl;
 
   let mpResponse: Response;
   try {
@@ -221,7 +298,7 @@ Deno.serve(async (req) => {
         auto_recurring: {
           frequency: 1,
           frequency_type: "months",
-          transaction_amount: monthlyPrice,
+          transaction_amount: monthlyPriceBrl,
           currency_id: "BRL",
         },
       }),
@@ -246,7 +323,7 @@ Deno.serve(async (req) => {
       provider_resource_type: "preapproval",
       provider_resource_id: mpBody?.id ? String(mpBody.id) : "unknown",
       event_type: "subscription_checkout_create_failed",
-      raw_payload: mpBody ?? { status: mpResponse.status },
+      raw_payload: { ...(mpBody ?? { status: mpResponse.status }), _conversion: monthlyConversion.conversion },
       error_message: `Mercado Pago responded ${mpResponse.status}`,
     });
     return json({ error: "mercadopago_create_failed", status: mpResponse.status, details: mpBody }, 502);
@@ -257,8 +334,8 @@ Deno.serve(async (req) => {
     provider_resource_type: "preapproval",
     provider_resource_id: String(mpBody.id),
     event_type: "subscription_checkout_created",
-    raw_payload: mpBody,
+    raw_payload: { ...mpBody, _conversion: monthlyConversion.conversion },
   });
 
-  return json({ type: "monthly", init_point: mpBody.init_point, amount: monthlyPrice, currency: "BRL" });
+  return json({ type: "monthly", init_point: mpBody.init_point, amount: monthlyPriceBrl, currency: "BRL", conversion: monthlyConversion.conversion });
 });

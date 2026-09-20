@@ -2,8 +2,32 @@
   const cfg=window.KORBUILD_SUPABASE;if(!cfg||!window.supabase)return;
   const client=window.supabase.createClient(cfg.url,cfg.publishableKey,{auth:{persistSession:true,autoRefreshToken:true}});
   const $=id=>document.getElementById(id);
-  let commercial=null;let currentOffer=null;let paymentInstructions=null;
+  let commercial=null;let currentOffer=null;let paymentInstructions=null;let exchangeRate=null;
   const fmt=v=>new Intl.NumberFormat('en-US',{style:'currency',currency:commercial?.currency||'USD'}).format(Number(v||0));
+  const fmtBRL=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0));
+  // Informational only, mirrors mercadopago-checkout's own convertToBrl() --
+  // shown so the customer sees the real BRL amount before clicking pay, but
+  // the SERVER always recomputes and charges based on its own latest cached
+  // rate (this is never trusted as the source of truth for the charge).
+  function updateBrlPreview(amount){
+    const currency=(commercial?.currency||'USD').toUpperCase();
+    if(currency==='BRL'||!exchangeRate?.found||!amount){
+      $('price-brl')?.classList.add('hidden');
+      return;
+    }
+    const brl=Number(amount)*Number(exchangeRate.rate);
+    $('price-brl-amount').textContent=fmtBRL(brl);
+    $('price-brl')?.classList.remove('hidden');
+  }
+  function updateMonthlyFollowupBrlPreview(amount){
+    const currency=(commercial?.currency||'USD').toUpperCase();
+    const el=$('monthly-followup-price-brl');
+    if(!el)return;
+    if(currency==='BRL'||!exchangeRate?.found||!amount){el.classList.add('hidden');return;}
+    const brl=Number(amount)*Number(exchangeRate.rate);
+    $('monthly-followup-price-brl-amount').textContent=fmtBRL(brl);
+    el.classList.remove('hidden');
+  }
 
   function setOffer(access){
     const phase=String(access?.phase||access?.status||'UNKNOWN').toUpperCase();
@@ -56,6 +80,7 @@
     $('price').textContent=amount!=null?fmt(amount):'Contact us';
     $('price-suffix').textContent=suffix;
     $('payment-context').textContent=context;
+    updateBrlPreview(amount);
 
     // Always make the complete commercial journey explicit when setup is pending:
     // pay setup now, then the standard monthly subscription starts 30 days later.
@@ -64,6 +89,7 @@
       if(setupRequired){
         monthlyFollowup.classList.remove('hidden');
         $('monthly-followup-price').textContent=fmt(commercial?.monthly_price);
+        updateMonthlyFollowupBrlPreview(commercial?.monthly_price);
       } else {
         monthlyFollowup.classList.add('hidden');
       }
@@ -106,11 +132,15 @@
     $('user-email').textContent=session.user.email||'';
     const name=session.user.user_metadata?.full_name||session.user.email?.split('@')[0]||'Owner';
     $('user-name').textContent=name;$('user-avatar').textContent=name.charAt(0).toUpperCase();
-    const [priceResult, accessResult] = await Promise.all([
+    const [priceResult, accessResult, rateResult] = await Promise.all([
       client.rpc('get_company_commercial_price'),
       window.KORBUILD_ACCESS_READY
         ? window.KORBUILD_ACCESS_READY
-        : client.rpc('get_workspace_access_status')
+        : client.rpc('get_workspace_access_status'),
+      // Best-effort only: a missing/failed rate hides the BRL preview line
+      // (see updateBrlPreview) but never blocks the page -- the price in
+      // the company's own currency is still shown either way.
+      client.rpc('obter_cotacao_atual').catch(()=>({data:null}))
     ]);
 
     const price = priceResult?.data ?? priceResult;
@@ -124,6 +154,7 @@
     if(priceError)throw priceError;
     if(accessError)throw accessError;
 
+    exchangeRate=rateResult?.data||null;
     commercial=price||{};
     renderStatus(access);
     $('subscribe-btn').addEventListener('click',startMercadoPagoCheckout);
@@ -163,7 +194,18 @@
       paymentInstructions=r.data||{};
     }
     const p=paymentInstructions;
-    $('payment-modal-amount').textContent=fmt(currentOffer.amount);
+    // PIX only settles in BRL -- showing the USD/EUR list price here would
+    // tell the customer to transfer the wrong number. Same conversion the
+    // Mercado Pago checkout applies server-side, shown here since this
+    // manual flow has no server round-trip to do it for us.
+    const currency=(commercial?.currency||'USD').toUpperCase();
+    if(currency==='BRL'){
+      $('payment-modal-amount').textContent=fmt(currentOffer.amount);
+    } else if(exchangeRate?.found){
+      $('payment-modal-amount').textContent=fmtBRL(Number(currentOffer.amount)*Number(exchangeRate.rate))+' ('+fmt(currentOffer.amount)+')';
+    } else {
+      $('payment-modal-amount').textContent='Contact KORbuild for the exact amount';
+    }
     $('payment-modal-intro').textContent=currentOffer.suffix.includes('setup')
       ? 'This is your one-time setup payment. Your monthly subscription begins 30 days later.'
       : 'This payment keeps your KORbuild workspace active.';
