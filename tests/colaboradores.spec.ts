@@ -50,8 +50,14 @@ test('sidebar nav: Records group replaces Collaborators and absorbs Clients/Serv
   await expect(page.locator('#schedule-toggle')).toHaveCount(0);
   await expect(page.locator('#customer-service-toggle')).toHaveCount(0);
 
+  // supabase-config.js builds the nav asynchronously -- wait for the
+  // toggle to actually exist before reading its aria-expanded attribute,
+  // instead of racing recordsItems.isVisible() against that render (which
+  // would read "not visible yet" as "collapsed" and click it CLOSED).
+  const recordsToggle = page.locator('#records-toggle');
+  await expect(recordsToggle).toBeVisible({ timeout: 10_000 });
+  if ((await recordsToggle.getAttribute('aria-expanded')) !== 'true') await recordsToggle.click();
   const recordsItems = page.locator('#records-items');
-  if (!(await recordsItems.isVisible())) await page.locator('#records-toggle').click();
   await expect(recordsItems.locator('a[href="people.html"]')).toBeVisible();
   await expect(recordsItems.locator('a[href="teams.html"]')).toBeVisible();
   await expect(recordsItems.locator('a[href="work-units.html"]')).toBeVisible();
