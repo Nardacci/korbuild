@@ -1,0 +1,15 @@
+.teams-toolbar select{border:1px solid var(--line);border-radius:10px;padding:0 12px;height:40px;font:inherit;font-size:12px;color:var(--ink);background:#fff;min-width:150px}
+.loan-status-tag{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:9px;font-weight:800}
+.loan-status-tag.pendente{background:#fff4df;color:#a86200}
+.loan-status-tag.descontado{background:#edf9f2;color:#237344}
+.loan-group-start td{border-top:2px solid var(--line)}
+.loan-modal{position:fixed;inset:0;background:rgba(23,24,35,.48);display:grid;place-items:center;padding:20px;z-index:100}
+.loan-modal.hidden{display:none}
+.loan-dialog{width:min(460px,100%);background:#fff;border-radius:16px;padding:28px;position:relative;box-shadow:0 25px 80px rgba(0,0,0,.2)}
+.loan-modal-close{position:absolute;right:15px;top:12px;border:0;background:transparent;font-size:26px;color:#8991a3;cursor:pointer}
+.loan-dialog h2{margin:0 0 18px;font-size:20px}
+#loan-form{display:grid;gap:14px}
+#loan-form label{display:grid;gap:6px;font-size:11px;font-weight:800;color:#26354d}
+#loan-form input,#loan-form select,#loan-form textarea{width:100%;border:1px solid #cfd7e5;border-radius:10px;padding:10px 12px;font:inherit;font-size:12px;color:#12203a;box-sizing:border-box}
+#loan-form textarea{resize:vertical}
+.loan-modal-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:4px}

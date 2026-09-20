@@ -1,0 +1,41 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>KORbuild · Loans</title><link rel="stylesheet" href="home.css?v=26"><link rel="stylesheet" href="teams.css?v=1.2.3"><link rel="stylesheet" href="loans.css?v=1.0.0"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app-config.js?v=1.2.2"></script></head><body class="app-body"><div class="app-shell"><aside class="sidebar"><div class="side-brand"><div class="mini-mark">K</div><div>KOR<span>build</span></div></div><nav></nav></aside><main class="main-content"><header class="topbar page-topbar"><div class="topbar-page-context page-identity"><strong>Loans</strong><small>Installment loans that automatically deduct from future weekly payments.</small></div><div class="user-menu-wrap"><button id="user-menu-btn" class="user-menu-btn" aria-expanded="false"><span class="user-copy"><strong id="user-name">Owner</strong><small id="user-email"></small></span><span class="avatar" id="user-avatar">O</span><span class="chevron">⌄</span></button><div id="user-menu" class="user-menu hidden"><div class="menu-header"><span class="avatar large" id="menu-avatar">O</span><div><b id="menu-full-name">Owner</b><small id="menu-full-email"></small></div></div><div class="menu-divider"></div><a class="menu-item" href="home.html">⌂ <span>Dashboard</span></a><a class="menu-item" href="payroll-settings.html">⚙ <span>Payroll Settings</span></a><button id="menu-logout" class="menu-item danger">↪ <span>Sign out</span></button></div></div></header>
+
+<section class="teams-summary">
+  <article><small>ACTIVE LOANS</small><strong id="summary-active">0</strong><span>Loans with at least one pending installment</span></article>
+  <article><small>PENDING</small><strong id="summary-pending">0</strong><span>Installments not yet deducted</span></article>
+  <article><small>TOTAL PENDING</small><strong id="summary-total-pending">—</strong><span>Sum of pending installments</span></article>
+</section>
+
+<section class="teams-panel">
+  <div class="teams-toolbar">
+    <select id="colaborador-filter"><option value="ALL">All people</option></select>
+    <select id="status-filter"><option value="ALL">All status</option><option value="pendente">Pending</option><option value="descontado">Deducted</option></select>
+    <button id="add-loan" class="primary-btn toolbar-primary">+ New Loan</button>
+  </div>
+  <div id="message" class="message hidden"></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>PERSON</th><th>GRANTED</th><th>TOTAL</th><th>INSTALLMENT</th><th>WEEK</th><th>AMOUNT</th><th>STATUS</th></tr></thead>
+      <tbody id="loans-body"></tbody>
+    </table>
+    <div id="empty-state" class="empty-state hidden"><div>¤</div><h3>No loans yet</h3><p>Create a loan to split an advance into weekly installments.</p></div>
+  </div>
+</section>
+
+<div id="loan-modal" class="loan-modal hidden">
+  <div class="loan-dialog">
+    <button id="loan-modal-close" class="loan-modal-close" type="button">×</button>
+    <h2>New Loan</h2>
+    <form id="loan-form">
+      <label>Person<span class="required">*</span><select id="loan-colaborador" required><option value="">Select a person</option></select></label>
+      <label>Total amount<span class="required">*</span><input id="loan-valor-total" type="number" min="0.01" step="0.01" required placeholder="e.g. 300.00"></label>
+      <label>Number of installments<span class="required">*</span><input id="loan-numero-parcelas" type="number" min="1" step="1" value="1" required></label>
+      <label>First deduction week<span class="required">*</span><input id="loan-semana-inicio" type="date" required></label>
+      <label>Notes <span class="optional">Optional</span><textarea id="loan-observacoes" rows="2" maxlength="300" placeholder="e.g. Emergency advance"></textarea></label>
+      <div id="loan-message" class="message hidden"></div>
+      <div class="loan-modal-actions"><button type="button" id="loan-cancel" class="secondary-btn">Cancel</button><button type="submit" id="loan-save" class="primary-btn">Create Loan</button></div>
+    </form>
+  </div>
+</div>
+
+</main><div class="app-version">KORbuild V1.2.2 · Development environment</div></div><script src="supabase-config.js?v=1.3.1"></script><script src="notification-bell.js?v=1.0.0"></script><script src="i18n.js?v=1.6.0"></script><script src="loans.js?v=1.0.0"></script></body></html>

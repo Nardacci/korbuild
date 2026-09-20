@@ -2,12 +2,13 @@ if(!window.KORBUILD_APP){const s=document.createElement('script');s.src='app-con
 const {url,publishableKey}=window.KORBUILD_SUPABASE;
 const db=window.supabase.createClient(url,publishableKey,{auth:{persistSession:true,autoRefreshToken:true}});
 const $=id=>document.getElementById(id);
-const state={empresaId:null,weekStartDay:1,weekStart:null,weekEnd:null,colaboradores:[],rows:new Map(),missingRateCount:0};
+const state={empresaId:null,weekStartDay:1,currency:'BRL',weekStart:null,weekEnd:null,colaboradores:[],rows:new Map(),missingRateCount:0};
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-// KORbuild's own Payment module is always BRL (unlike Billing, which can be
-// USD/EUR) -- Brazilian currency formatting regardless of the interface
-// language toggle, same convention as billing.js's fmtBRL().
-const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0));
+// The company's own configuracoes_folha.currency, not the interface
+// language -- Payment is a real payroll record, so its currency must
+// always show a currency code (never a bare number), matching whatever
+// the company configured in Payroll Settings.
+const money=v=>new Intl.NumberFormat(state.currency==='BRL'?'pt-BR':'en-US',{style:'currency',currency:state.currency}).format(Number(v||0));
 const fmtDate=s=>s?new Date(s+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
 function isoDate(d){return d.toISOString().slice(0,10);}
 function addDays(dateStr,days){const d=new Date(dateStr+'T00:00:00');d.setDate(d.getDate()+days);return isoDate(d);}
@@ -47,6 +48,7 @@ async function loadConfig(){
   if(error)throw error;
   const config=(data||[])[0];
   state.weekStartDay=config?config.dia_inicio_semana:1;
+  state.currency=config?.currency||'BRL';
 }
 
 async function loadColaboradores(){
@@ -72,6 +74,18 @@ async function loadEffectiveRates(weekStart){
   return map;
 }
 
+// Sum of that week's still-pending loan installments, per collaborator --
+// used only to pre-fill "Loan" on a freshly auto-created row (see loans.js
+// for how installments are created; registrar_pagamento() marks them
+// descontado once folded into a payment here).
+async function loadPendingLoanInstallments(weekStart){
+  const {data,error}=await db.rpc('obter_parcelas_da_semana',{p_empresa_id:state.empresaId,p_semana_inicio:weekStart});
+  if(error)throw error;
+  const map=new Map();
+  (data||[]).forEach(r=>map.set(r.colaborador_id,Number(r.valor_parcelas)));
+  return map;
+}
+
 function rowTotals(row){
   const bruto=row.horas*row.valorHora;
   const liquido=bruto-row.adiantamento;
@@ -90,6 +104,7 @@ async function loadPayments(){
   const missing=state.colaboradores.filter(c=>!ratesMap.has(c.id));
   state.missingRateCount=missing.length;
   renderMissingRateBanner();
+  const loansMap=await loadPendingLoanInstallments(state.weekStart);
 
   const {data:existing,error:existingError}=await db.rpc('obter_pagamentos_semanais',{p_empresa_id:state.empresaId,p_semana_inicio:state.weekStart,p_semana_fim:state.weekEnd});
   if(existingError)throw existingError;
@@ -105,21 +120,22 @@ async function loadPayments(){
       const {data,error}=await db.rpc('calcular_pagamento_semanal',{p_empresa_id:state.empresaId,p_colaborador_id:c.id,p_semana_inicio:state.weekStart});
       if(!error&&data?.[0]){horas=Number(data[0].horas_trabalhadas);valorHora=Number(data[0].valor_hora_aplicado);}
     }catch{/* schedule preview is best-effort -- still register the row below with horas=0 for manual entry */}
+    const adiantamento=loansMap.get(c.id)||0;
     const {error:regError}=await db.rpc('registrar_pagamento',{
       p_empresa_id:state.empresaId,p_colaborador_id:c.id,
       p_semana_inicio:state.weekStart,p_semana_fim:state.weekEnd,
       p_horas_trabalhadas:horas,p_valor_hora_aplicado:valorHora,
-      p_adiantamento:0,p_status_pagamento:'pendente'
+      p_adiantamento:adiantamento,p_status_pagamento:'pendente'
     });
     if(regError)throw regError;
-    return {colaboradorId:c.id,name:c.name,horas,valorHora};
+    return {colaboradorId:c.id,name:c.name,horas,valorHora,adiantamento};
   }));
 
   let creationErrors=0;
   created.forEach((result,i)=>{
     if(result.status==='fulfilled'){
       const r=result.value;
-      state.rows.set(r.colaboradorId,{colaboradorId:r.colaboradorId,name:r.name,horas:r.horas,valorHora:r.valorHora,adiantamento:0,status:'pendente',registered:true});
+      state.rows.set(r.colaboradorId,{colaboradorId:r.colaboradorId,name:r.name,horas:r.horas,valorHora:r.valorHora,adiantamento:r.adiantamento,status:'pendente',registered:true});
     }else{
       creationErrors++;
       console.error('Unable to create payment row for',toCreate[i]?.name,result.reason);

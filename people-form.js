@@ -1,15 +1,15 @@
 if(!window.KORBUILD_APP){const s=document.createElement('script');s.src='app-config.js?v=1.2';document.head.appendChild(s);}
 const { url, publishableKey } = window.KORBUILD_SUPABASE;
 const db = window.supabase.createClient(url, publishableKey, { auth: { persistSession: true, autoRefreshToken: true } });
-const $=id=>document.getElementById(id); const state={empresaId:null,editingId:new URLSearchParams(location.search).get('id'),teams:[]};
+const $=id=>document.getElementById(id); const state={empresaId:null,editingId:new URLSearchParams(location.search).get('id'),teams:[],currency:'BRL'};
 function closeMenu(){$('user-menu')?.classList.add('hidden');$('user-menu-btn')?.setAttribute('aria-expanded','false');}
 function showMessage(text,type='success'){const el=$('message');el.textContent=text;el.className=`message ${type}`;el.classList.remove('hidden');}
 function escapeHtml(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
 const t=s=>window.KORbuildI18n?window.KORbuildI18n.t(s):s;
-// KORbuild's own Payment module is always BRL, unlike Billing (which can be
-// USD/EUR) -- always Brazilian currency formatting here regardless of the
-// interface language toggle, same convention as billing.js's fmtBRL().
-const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0));
+// The company's own configuracoes_folha.currency (set in Payroll
+// Settings) -- Payment is a real payroll record, so it must always show a
+// currency code, never a bare number, and never assume BRL.
+const money=v=>new Intl.NumberFormat(state.currency==='BRL'?'pt-BR':'en-US',{style:'currency',currency:state.currency}).format(Number(v||0));
 function fmtDate(v){return v?new Date(v+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';}
 function todayIso(){return new Date().toISOString().slice(0,10);}
 // calcular_pagamento_semanal()/registrar_pagamento() only treat a rate as
@@ -33,6 +33,12 @@ async function loadPerson(){if(!state.editingId)return;const{data,error}=await d
 async function loadRateHistory(){
   if(!state.editingId)return;
   $('rate-card').classList.remove('hidden');
+  const {data:config}=await db.rpc('obter_configuracoes_folha',{p_empresa_id:state.empresaId});
+  const cfg=(config||[])[0];
+  state.currency=cfg?.currency||'BRL';
+  $('rate-currency-label').textContent=state.currency;
+  $('rate-new-date').value=defaultWeekStart(cfg?.dia_inicio_semana??1);
+
   const {data,error}=await db.rpc('obter_historico_valor_hora',{p_colaborador_id:state.editingId});
   if(error){showMessage(`${t('Unable to load rate history.')} ${error.message}`,'error');return;}
   const history=data||[]; // already ordered vigente_de desc by the RPC
@@ -46,9 +52,6 @@ async function loadRateHistory(){
     $('rate-current-since').textContent='';
   }
   $('rate-history-body').innerHTML=history.length?history.map(h=>`<tr><td>${fmtDate(h.vigente_de)}</td><td>${h.vigente_ate?fmtDate(h.vigente_ate):t('Ongoing')}</td><td>${money(h.valor_hora)}</td></tr>`).join(''):`<tr><td colspan="3" class="rate-history-empty">${t('No rate history yet.')}</td></tr>`;
-  const {data:config}=await db.rpc('obter_configuracoes_folha',{p_empresa_id:state.empresaId});
-  const weekStartDay=(config||[])[0]?.dia_inicio_semana??1;
-  $('rate-new-date').value=defaultWeekStart(weekStartDay);
 }
 
 async function saveRate(){

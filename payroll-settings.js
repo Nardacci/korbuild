@@ -29,6 +29,7 @@ async function loadSettings(){
     $('dia-inicio-semana').value=String(config.dia_inicio_semana);
     $('horas-padrao-semana').value=config.horas_padrao_semana;
     $('multiplicador-hora-extra').value=config.multiplicador_hora_extra;
+    $('currency').value=config.currency||'BRL';
   }
 }
 
@@ -37,6 +38,7 @@ async function save(event){
   const diaInicio=Number($('dia-inicio-semana').value);
   const horasPadrao=Number($('horas-padrao-semana').value);
   const multiplicador=Number($('multiplicador-hora-extra').value);
+  const currency=$('currency').value;
   if(!Number.isFinite(horasPadrao)||horasPadrao<=0){msg('Standard hours per week must be greater than zero.','error');return;}
   if(!Number.isFinite(multiplicador)||multiplicador<1){msg('Overtime multiplier must be 1 or greater.','error');return;}
   const btn=$('save-btn');btn.disabled=true;btn.textContent='Saving...';
@@ -45,7 +47,8 @@ async function save(event){
       p_empresa_id:state.empresaId,
       p_dia_inicio_semana:diaInicio,
       p_horas_padrao_semana:horasPadrao,
-      p_multiplicador_hora_extra:multiplicador
+      p_multiplicador_hora_extra:multiplicador,
+      p_currency:currency
     });
     if(error)throw error;
     msg('Payroll settings updated successfully.');
