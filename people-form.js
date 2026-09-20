@@ -12,6 +12,18 @@ const t=s=>window.KORbuildI18n?window.KORbuildI18n.t(s):s;
 const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0));
 function fmtDate(v){return v?new Date(v+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';}
 function todayIso(){return new Date().toISOString().slice(0,10);}
+// calcular_pagamento_semanal()/registrar_pagamento() only treat a rate as
+// effective for a week when vigente_de <= that week's start date -- so
+// defaulting this field to TODAY would frequently miss the week already in
+// progress (any day today isn't the configured week-start day). Default to
+// the current week's start instead, so a rate set today is picked up by
+// Payment immediately, matching weekly-payments.js's own defaultWeekStart().
+function defaultWeekStart(targetDay){
+  const d=new Date();d.setHours(0,0,0,0);
+  const delta=(d.getDay()-targetDay+7)%7;
+  d.setDate(d.getDate()-delta);
+  return d.toISOString().slice(0,10);
+}
 async function loadProfile(){const{data:{session},error}=await db.auth.getSession();if(error||!session?.user){location.href='index.html';return false;}const{data:profile,error:profileError}=await db.from('usuarios').select('id,name,empresa_id,active,empresas(name)').eq('id',session.user.id).maybeSingle();if(profileError||!profile?.empresa_id){showMessage(profileError?.message||'Unable to load workspace profile.','error');return false;}state.empresaId=profile.empresa_id;const company=profile.empresas?.name||'KORbuild Demo';$('side-company').textContent=company;const profileName=profile.name?.trim();const name=profileName&&profileName!=='Owner'?profileName:session.user.user_metadata?.full_name||`${company} Owner`;const initial=name.trim().charAt(0).toUpperCase()||'O';$('user-name').textContent=name;$('user-email').textContent=session.user.email||'';$('user-avatar').textContent=initial;$('menu-avatar').textContent=initial;$('menu-full-name').textContent=name;$('menu-full-email').textContent=session.user.email||'';return true;}
 async function loadTeams(){const{data,error}=await db.from('equipes').select('id,name,active').eq('empresa_id',state.empresaId).eq('active',true).order('name',{ascending:true});if(error){showMessage(`Unable to load teams. ${error.message}`,'error');return false;}state.teams=data||[];const select=$('person-team');select.innerHTML='<option value="">Select a team</option>'+state.teams.map(t=>`<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('');if(!state.teams.length){select.disabled=true;$('save-person').disabled=true;showMessage('Create at least one active team before adding a person.','error');return false;}select.disabled=false;return true;}
 async function loadPerson(){if(!state.editingId)return;const{data,error}=await db.from('colaboradores').select('id,name,specialty,active,equipe_id').eq('id',state.editingId).eq('empresa_id',state.empresaId).maybeSingle();if(error||!data){showMessage(error?.message||'Person not found.','error');return;}$('person-id').value=data.id;$('person-name').value=data.name||'';$('person-specialty').value=data.specialty||'';$('person-active').checked=data.active;$('person-team').value=data.equipe_id||'';$('form-eyebrow').textContent='EDIT PERSON';$('form-title').textContent='Edit person';$('page-title').textContent='Edit Person';$('save-person').textContent='Save Changes';}
@@ -34,7 +46,9 @@ async function loadRateHistory(){
     $('rate-current-since').textContent='';
   }
   $('rate-history-body').innerHTML=history.length?history.map(h=>`<tr><td>${fmtDate(h.vigente_de)}</td><td>${h.vigente_ate?fmtDate(h.vigente_ate):t('Ongoing')}</td><td>${money(h.valor_hora)}</td></tr>`).join(''):`<tr><td colspan="3" class="rate-history-empty">${t('No rate history yet.')}</td></tr>`;
-  $('rate-new-date').value=today;
+  const {data:config}=await db.rpc('obter_configuracoes_folha',{p_empresa_id:state.empresaId});
+  const weekStartDay=(config||[])[0]?.dia_inicio_semana??1;
+  $('rate-new-date').value=defaultWeekStart(weekStartDay);
 }
 
 async function saveRate(){
