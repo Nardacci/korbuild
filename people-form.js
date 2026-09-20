@@ -17,10 +17,14 @@ function todayIso(){return new Date().toISOString().slice(0,10);}
 // defaulting this field to TODAY would frequently miss the week already in
 // progress (any day today isn't the configured week-start day). Default to
 // the current week's start instead, so a rate set today is picked up by
-// Payment immediately, matching weekly-payments.js's own defaultWeekStart().
-function defaultWeekStart(targetDay){
+// Payment immediately. Sourced from configuracoes_operacionais.
+// period_start_day -- the SAME setting Bonus's periods.js uses for its own
+// weekly periods (Monday by default) -- not configuracoes_folha.dia_
+// inicio_semana, a separate, independently-editable Payroll Settings field
+// that used to (wrongly) drive this and could disagree with Bonus.
+function currentWeekStart(startDay){
   const d=new Date();d.setHours(0,0,0,0);
-  const delta=(d.getDay()-targetDay+7)%7;
+  const delta=(d.getDay()-startDay+7)%7;
   d.setDate(d.getDate()-delta);
   return d.toISOString().slice(0,10);
 }
@@ -37,7 +41,9 @@ async function loadRateHistory(){
   const cfg=(config||[])[0];
   state.currency=cfg?.currency||'BRL';
   $('rate-currency-label').textContent=state.currency;
-  $('rate-new-date').value=defaultWeekStart(cfg?.dia_inicio_semana??1);
+
+  const {data:opConfig}=await db.from('configuracoes_operacionais').select('period_start_day').eq('empresa_id',state.empresaId).order('created_at',{ascending:false}).limit(1).maybeSingle();
+  $('rate-new-date').value=currentWeekStart(opConfig?.period_start_day??1);
 
   const {data,error}=await db.rpc('obter_historico_valor_hora',{p_colaborador_id:state.editingId});
   if(error){showMessage(`${t('Unable to load rate history.')} ${error.message}`,'error');return;}

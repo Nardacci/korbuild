@@ -2,7 +2,7 @@ if(!window.KORBUILD_APP){const s=document.createElement('script');s.src='app-con
 const {url,publishableKey}=window.KORBUILD_SUPABASE;
 const db=window.supabase.createClient(url,publishableKey,{auth:{persistSession:true,autoRefreshToken:true}});
 const $=id=>document.getElementById(id);
-const state={empresaId:null,weekStartDay:1,currency:'BRL',weekStart:null,weekEnd:null,colaboradores:[],rows:new Map(),missingRateCount:0};
+const state={empresaId:null,periodStartDay:1,periodEndDay:6,currency:'BRL',weekStart:null,weekEnd:null,colaboradores:[],rows:new Map(),missingRateCount:0};
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 // The company's own configuracoes_folha.currency, not the interface
 // language -- Payment is a real payroll record, so its currency must
@@ -22,11 +22,20 @@ const PAY_STATUS_LABEL={
 };
 function payStatusLabel(status){const lang=window.KORbuildI18n?window.KORbuildI18n.language:'en-US';return (PAY_STATUS_LABEL[lang]||PAY_STATUS_LABEL['en-US'])[status]||status;}
 
-function defaultWeekStart(targetDay){
+// Same rule Bonus's periods.js uses for a period's week (Monday->Saturday
+// by default, Sunday never counting): configuracoes_operacionais.
+// period_start_day/period_end_day, NOT configuracoes_folha.dia_inicio_
+// semana (a separate, independently-editable Payroll Settings field that
+// used to (wrongly) drive this and always assumed a plain 7-day window).
+function currentWeekStart(startDay){
   const d=new Date();d.setHours(0,0,0,0);
-  const delta=(d.getDay()-targetDay+7)%7;
+  const delta=(d.getDay()-startDay+7)%7;
   d.setDate(d.getDate()-delta);
   return isoDate(d);
+}
+function currentWeekEnd(weekStart,startDay,endDay){
+  const delta=(endDay-startDay+7)%7;
+  return addDays(weekStart,delta);
 }
 
 async function loadProfile(){
@@ -47,8 +56,12 @@ async function loadConfig(){
   const {data,error}=await db.rpc('obter_configuracoes_folha',{p_empresa_id:state.empresaId});
   if(error)throw error;
   const config=(data||[])[0];
-  state.weekStartDay=config?config.dia_inicio_semana:1;
   state.currency=config?.currency||'BRL';
+
+  const {data:opConfig,error:opError}=await db.from('configuracoes_operacionais').select('period_start_day,period_end_day').eq('empresa_id',state.empresaId).order('created_at',{ascending:false}).limit(1).maybeSingle();
+  if(opError)throw opError;
+  state.periodStartDay=opConfig?.period_start_day??1;
+  state.periodEndDay=opConfig?.period_end_day??6;
 }
 
 async function loadColaboradores(){
@@ -94,8 +107,8 @@ function rowTotals(row){
 
 async function loadPayments(){
   clearMsg();
-  state.weekStart=defaultWeekStart(state.weekStartDay);
-  state.weekEnd=addDays(state.weekStart,6);
+  state.weekStart=currentWeekStart(state.periodStartDay);
+  state.weekEnd=currentWeekEnd(state.weekStart,state.periodStartDay,state.periodEndDay);
   $('week-range').textContent=`${t('Week of')} ${fmtDate(state.weekStart)} → ${fmtDate(state.weekEnd)}`;
   state.rows=new Map();
 

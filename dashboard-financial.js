@@ -9,17 +9,21 @@ const money=v=>'$'+Number(v||0).toLocaleString('en-US',{minimumFractionDigits:2,
 function msg(text,type='error'){const e=$('message');e.textContent=text;e.className=`message ${type}`;e.classList.remove('hidden');}
 
 function isoDate(d){return d.toISOString().slice(0,10);}
-function defaultWeekStart(targetDay){
+// Same rule Bonus's periods.js uses for a period's week (Monday by
+// default): configuracoes_operacionais.period_start_day, NOT
+// configuracoes_folha.dia_inicio_semana (a separate, independently-
+// editable Payroll Settings field that used to (wrongly) drive this and
+// could disagree with the semana_inicio values Payment itself now stores).
+function currentWeekStart(startDay){
   const d=new Date();d.setHours(0,0,0,0);
-  const delta=(d.getDay()-targetDay+7)%7;
+  const delta=(d.getDay()-startDay+7)%7;
   d.setDate(d.getDate()-delta);
   return isoDate(d);
 }
 
 async function loadAttentionRequired(){
-  const {data:config}=await db.rpc('obter_configuracoes_folha',{p_empresa_id:state.empresaId});
-  const dayStart=(config||[])[0]?.dia_inicio_semana??1;
-  const weekStart=defaultWeekStart(dayStart);
+  const {data:opConfig}=await db.from('configuracoes_operacionais').select('period_start_day').eq('empresa_id',state.empresaId).order('created_at',{ascending:false}).limit(1).maybeSingle();
+  const weekStart=currentWeekStart(opConfig?.period_start_day??1);
   const {data:pending,error}=await db.from('pagamentos_semanais').select('valor_liquido').eq('empresa_id',state.empresaId).eq('semana_inicio',weekStart).eq('status_pagamento','pendente');
   if(error){console.error('Attention Required (Payment) failed to load',error);return;}
   const total=(pending||[]).reduce((a,r)=>a+Number(r.valor_liquido||0),0);

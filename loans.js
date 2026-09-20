@@ -2,7 +2,7 @@ if(!window.KORBUILD_APP){const s=document.createElement('script');s.src='app-con
 const {url,publishableKey}=window.KORBUILD_SUPABASE;
 const db=window.supabase.createClient(url,publishableKey,{auth:{persistSession:true,autoRefreshToken:true}});
 const $=id=>document.getElementById(id);
-const state={empresaId:null,currency:'BRL',weekStartDay:1,colaboradores:[],loans:[]};
+const state={empresaId:null,currency:'BRL',periodStartDay:1,colaboradores:[],loans:[]};
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=v=>new Intl.NumberFormat(state.currency==='BRL'?'pt-BR':'en-US',{style:'currency',currency:state.currency}).format(Number(v||0));
 const fmtDate=s=>s?new Date(s+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
@@ -17,9 +17,13 @@ const STATUS_LABEL={
 };
 function statusLabel(status){const lang=window.KORbuildI18n?window.KORbuildI18n.language:'en-US';return (STATUS_LABEL[lang]||STATUS_LABEL['en-US'])[status]||status;}
 
-function defaultWeekStart(targetDay){
+// Same rule Bonus's periods.js uses for a period's week (Monday by
+// default): configuracoes_operacionais.period_start_day, NOT
+// configuracoes_folha.dia_inicio_semana (a separate, independently-
+// editable Payroll Settings field that used to (wrongly) drive this).
+function currentWeekStart(startDay){
   const d=new Date();d.setHours(0,0,0,0);
-  const delta=(d.getDay()-targetDay+7)%7;
+  const delta=(d.getDay()-startDay+7)%7;
   d.setDate(d.getDate()-delta);
   return isoDate(d);
 }
@@ -43,7 +47,10 @@ async function loadConfig(){
   if(error)throw error;
   const config=(data||[])[0];
   state.currency=config?.currency||'BRL';
-  state.weekStartDay=config?config.dia_inicio_semana:1;
+
+  const {data:opConfig,error:opError}=await db.from('configuracoes_operacionais').select('period_start_day').eq('empresa_id',state.empresaId).order('created_at',{ascending:false}).limit(1).maybeSingle();
+  if(opError)throw opError;
+  state.periodStartDay=opConfig?.period_start_day??1;
 }
 
 async function loadColaboradores(){
@@ -98,7 +105,7 @@ function openLoanModal(){
   $('loan-form').reset();
   $('loan-message').classList.add('hidden');
   $('loan-numero-parcelas').value='1';
-  $('loan-semana-inicio').value=defaultWeekStart(state.weekStartDay);
+  $('loan-semana-inicio').value=currentWeekStart(state.periodStartDay);
   $('loan-modal').classList.remove('hidden');
 }
 function closeLoanModal(){$('loan-modal').classList.add('hidden');}
@@ -149,11 +156,11 @@ async function init(){
     await loadConfig();
     await loadColaboradores();
     await loadLoans();
-    // Only enabled once state.currency/weekStartDay are actually loaded --
-    // opening the modal earlier would pre-fill "First deduction week" from
-    // the still-default weekStartDay (1) instead of the company's real
-    // setting (caught by tests/payment.spec.ts's Loans suite, which clicks
-    // faster than the config fetch on a fresh page load).
+    // Only enabled once state.currency/periodStartDay are actually loaded
+    // -- opening the modal earlier would pre-fill "First deduction week"
+    // from the still-default periodStartDay (1) instead of the company's
+    // real setting (caught by tests/payment.spec.ts's Loans suite, which
+    // clicks faster than the config fetch on a fresh page load).
     $('add-loan').disabled=false;
   }catch(e){console.error(e);msg(`${t('Unable to load Loans.')} ${e.message||''}`,'error');}
 }

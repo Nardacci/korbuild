@@ -36,6 +36,69 @@ async function gotoPayrollSettings(page: Page): Promise<void> {
   ]);
 }
 
+// Fixed 2026-09-20: Payment's "current week" used to be computed from
+// configuracoes_folha.dia_inicio_semana (a separate, freely-editable
+// Payroll Settings field, defaulting to Monday but changeable to any day)
+// and always assumed a plain 7-day span. Bonus's periods.js instead
+// treats a week as a FIXED 6-day span (Monday through Saturday by
+// default, Sunday never counting) driven by configuracoes_operacionais.
+// period_start_day/period_end_day. Whenever dia_inicio_semana had drifted
+// from period_start_day (exactly what happened in production: dia_inicio_
+// semana was Tuesday while period_start_day stayed Monday), Payment
+// showed a Tuesday-to-Monday window instead of Monday-to-Saturday.
+//
+// This test does not read any fixed expected date (today changes on every
+// run) -- it recomputes Bonus's own formula independently, inside the
+// browser, from the same configuracoes_operacionais row the app itself
+// reads, and asserts weekly-payments.html's displayed window is
+// byte-for-byte that string.
+test.describe("Payment's current week matches Bonus's period rule", () => {
+  test('weekly-payments.html shows the same Monday-Saturday window Bonus would compute for today', async ({ page }) => {
+    await page.goto('weekly-payments.html');
+    await expect(page.locator('#week-range')).not.toHaveText('Week of —', { timeout: 15_000 });
+
+    const expected = await page.evaluate(async () => {
+      const cfg = (window as any).KORBUILD_SUPABASE;
+      const supabase = (window as any).supabase;
+      const db = supabase.createClient(cfg.url, cfg.publishableKey, { auth: { persistSession: true } });
+      const { data: { session } } = await db.auth.getSession();
+      const { data: profile } = await db.from('usuarios').select('empresa_id').eq('id', session.user.id).maybeSingle();
+      const { data: opConfig } = await db
+        .from('configuracoes_operacionais')
+        .select('period_start_day,period_end_day')
+        .eq('empresa_id', profile.empresa_id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const startDay = opConfig?.period_start_day ?? 1;
+      const endDay = opConfig?.period_end_day ?? 6;
+
+      const isoDate = (d: Date) => d.toISOString().slice(0, 10);
+      const fmtDate = (s: string) => new Date(s + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+      // Bonus's own day-of-week math (periods.js's nextConfiguredPeriodStart/
+      // prepareNextPeriod), adapted to find the week CONTAINING today
+      // (Payment's need) instead of the next occurrence after today
+      // (Bonus's need when starting a brand new period).
+      const d = new Date(); d.setHours(0, 0, 0, 0);
+      const startDelta = (d.getDay() - startDay + 7) % 7;
+      d.setDate(d.getDate() - startDelta);
+      const start = isoDate(d);
+
+      // periods.js's own "end" calculation, verbatim: delta relative to
+      // the end day, off of the period's actual start-of-week day.
+      const endDelta = (endDay - startDay + 7) % 7;
+      const endD = new Date(start + 'T00:00:00');
+      endD.setDate(endD.getDate() + endDelta);
+      const end = isoDate(endD);
+
+      return `Week of ${fmtDate(start)} → ${fmtDate(end)}`;
+    });
+
+    await expect(page.locator('#week-range')).toHaveText(expected, { timeout: 10_000 });
+  });
+});
+
 test.describe('prerequisites: an active Work Unit, Team and Person', () => {
   test('create active Work Unit', async ({ page }) => {
     await page.goto('work-units-form.html');
