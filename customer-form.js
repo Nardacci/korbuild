@@ -37,7 +37,7 @@ async function save(event){
   const endereco=$('endereco').value.trim()||null;
   if(!nome){msg('Name is required.','error');return;}
   if(!email){msg('Email is required.','error');return;}
-  const btn=$('save-btn');btn.disabled=true;btn.textContent='Saving...';
+  await ready;if(!state.empresaId)return;const btn=$('save-btn');btn.disabled=true;btn.textContent='Saving...';
   try{
     let error;
     if(state.editingId){
@@ -60,4 +60,4 @@ $('menu-logout')?.addEventListener('click',async()=>{await db.auth.signOut();loc
 $('client-form').addEventListener('submit',save);
 
 async function init(){if(!(await loadProfile()))return;await loadClient();}
-init();
+const ready=init();

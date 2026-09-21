@@ -95,6 +95,14 @@ begin
     elsif v_state <> '42501' then failures := failures || format('  [2] anon: %s wrong rejection (%s: %s)%s', names[i], v_state, v_msg, E'\n'); end if;
     n_checked := n_checked + 1;
   end loop;
+
+  -- get_payment_instructions() has no company parameter (and no guard of its
+  -- own): it is for signed-in users only, so anon must not be able to call it.
+  v_ok := false; v_state := null; v_msg := null;
+  begin perform public.get_payment_instructions(); v_ok := true;
+  exception when others then get stacked diagnostics v_state = returned_sqlstate; v_msg := sqlerrm; end;
+  if v_ok then failures := failures || format('  [2] anon: get_payment_instructions ACCEPTED the call%s', E'\n');
+  elsif v_state <> '42501' then failures := failures || format('  [2] anon: get_payment_instructions wrong rejection (%s: %s)%s', v_state, v_msg, E'\n'); end if;
   execute 'reset role';
 
   -- ---- 3. authenticated user with NO company (valid JWT, no usuarios row) ---
@@ -141,6 +149,13 @@ begin
       failures := failures || format('  [5] %s lost service_role EXECUTE%s', fn.sig, E'\n'); end if;
   end loop;
 
+  -- get_payment_instructions(): signed-in users + service_role only.
+  if has_function_privilege('anon', 'public.get_payment_instructions()'::regprocedure, 'execute') then
+    failures := failures || format('  [5] get_payment_instructions is still executable by anon%s', E'\n'); end if;
+  if not has_function_privilege('authenticated', 'public.get_payment_instructions()'::regprocedure, 'execute')
+     or not has_function_privilege('service_role', 'public.get_payment_instructions()'::regprocedure, 'execute') then
+    failures := failures || format('  [5] get_payment_instructions lost authenticated/service_role EXECUTE%s', E'\n'); end if;
+
   -- ---- 6. positive control: a real user still works ---------------------------
   perform set_config('request.jwt.claim.sub', v_suite::text, true);
   perform set_config('request.jwt.claims', json_build_object('sub', v_suite::text, 'role', 'authenticated')::text, true);
@@ -149,6 +164,9 @@ begin
     select count(*) into n from public.obter_clientes(v_empresa);
     if n = 0 then failures := failures || format('  [6] control: obter_clientes returned 0 rows for the suite user%s', E'\n'); end if;
     select count(*) into n from public.obter_categorias_despesa(v_empresa);
+    -- billing.js still gets the payment details once signed in
+    if public.get_payment_instructions() is null then
+      failures := failures || format('  [6] control: get_payment_instructions returned NULL for the suite user%s', E'\n'); end if;
   exception when others then
     failures := failures || format('  [6] control: legitimate call rejected: %s%s', sqlerrm, E'\n');
   end;

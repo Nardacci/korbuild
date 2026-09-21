@@ -45,7 +45,7 @@ $('service-form')?.addEventListener('submit',async e=>{
   if(!nome){msg('Name is required.','error');return}
   if(!Number.isFinite(duracao)||duracao<=0){msg('Duration must be greater than zero.','error');return}
   if(!Number.isFinite(preco)||preco<0){msg('Default price cannot be negative.','error');return}
-  set('save-btn','disabled',true);
+  await ready;if(!state.empresaId)return;set('save-btn','disabled',true);
   try{
     let result;
     if(state.id)result=await db.rpc('atualizar_servico',{p_servico_id:state.id,p_nome:nome,p_duracao_padrao_minutos:duracao,p_preco_padrao:preco,p_ativo:ativo});
@@ -59,4 +59,4 @@ $('service-form')?.addEventListener('submit',async e=>{
   }
 });
 
-init();
+const ready=init();
