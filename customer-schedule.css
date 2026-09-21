@@ -5,7 +5,7 @@
 .calendar-nav{display:flex;align-items:center;gap:8px}
 .calendar-nav .secondary-btn{padding:8px 12px;font-size:12px}
 .calendar-nav strong{font-size:13px;color:var(--ink);white-space:nowrap}
-.calendar-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px}
+.calendar-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px;overflow-x:auto}
 #calendar{min-height:520px}
 .appointment-cancelado{opacity:.45;text-decoration:line-through}
 

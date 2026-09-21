@@ -146,7 +146,21 @@ function goToNewAppointment(resourceId,start){
   location.href='customer-appointment-form.html?'+params.toString();
 }
 
+// DayPilot Lite has no fixed column width option (columnWidthSpec is Pro-only):
+// it divides the width of #calendar by the number of columns. With one column
+// per active collaborator, a workspace with many collaborators ended up with
+// columns -- and appointment blocks -- a few pixels wide, or 0px (182
+// collaborators on a 1280px screen), so appointments could not be seen or
+// clicked. Give #calendar a minimum width proportional to the column count;
+// .calendar-card scrolls horizontally when it overflows.
+const MIN_COLUMN_WIDTH=140, HOUR_COLUMN_WIDTH=60;
+function applyCalendarMinWidth(){
+  const columns=state.view==='day'?visibleColaboradores().length:0;
+  $('calendar').style.minWidth=columns?(HOUR_COLUMN_WIDTH+columns*MIN_COLUMN_WIDTH)+'px':'';
+}
+
 function buildCalendarConfig(){
+  applyCalendarMinWidth();
   const {start}=rangeForView();
   const base={
     startDate:start,
@@ -191,6 +205,7 @@ $('user-menu-btn')?.addEventListener('click',e=>{e.stopPropagation();const menu=
 document.addEventListener('click',e=>{if(!e.target.closest('.user-menu-wrap'))closeMenu();});
 $('menu-logout')?.addEventListener('click',async()=>{await db.auth.signOut();location.href='index.html';});
 $('colaborador-filter').addEventListener('change',()=>{
+  applyCalendarMinWidth();
   if(state.view==='day')state.calendar.update({columns:visibleColaboradores().map(c=>({name:c.name,id:c.id}))});
   refetchAndRender();
 });

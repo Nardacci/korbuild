@@ -149,6 +149,10 @@ test.describe('Customer Service: Appointments (calendar)', () => {
     await page.goto('customer-schedule.html');
     const event = page.locator('.calendar_default_event', { hasText: clientName });
     await expect(event).toHaveCount(1, { timeout: 15_000 });
+    // The Day view has one column per active collaborator and scrolls
+    // horizontally when there are many (see MIN_COLUMN_WIDTH in
+    // customer-schedule.js), so bring the event into view first.
+    await event.scrollIntoViewIfNeeded();
     const box = await event.boundingBox();
     if (!box) throw new Error('Could not read the appointment event\'s bounding box.');
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
@@ -172,6 +176,10 @@ test.describe('Customer Service: Appointments (calendar)', () => {
     await page.goto('customer-schedule.html');
     const event = page.locator('.calendar_default_event', { hasText: clientName });
     await expect(event).toHaveCount(1, { timeout: 15_000 });
+    // The Day view has one column per active collaborator and scrolls
+    // horizontally when there are many (see MIN_COLUMN_WIDTH in
+    // customer-schedule.js), so bring the event into view first.
+    await event.scrollIntoViewIfNeeded();
     const box = await event.boundingBox();
     if (!box) throw new Error('Could not read the appointment event\'s bounding box.');
     const columnHeaders = page.locator('.calendar_default_colheader_inner');
@@ -179,14 +187,22 @@ test.describe('Customer Service: Appointments (calendar)', () => {
     if (headerCount < 2) {
       test.skip(true, 'Not enough active collaborator columns in this workspace to test a cross-column drag.');
     }
-    // Find a column header horizontally different from the event's own
-    // column (its x-center) to drag onto.
+    // Find the nearest column header (other than the event's own column)
+    // that is actually visible inside the horizontally-scrolling calendar
+    // card, to drag onto.
+    const cardBox = await page.locator('.calendar-card').boundingBox();
+    const eventCenterX = box.x + box.width / 2;
     const targetBox = await (async () => {
+      let best: { x: number; y: number; width: number; height: number } | null = null;
       for (let i = 0; i < headerCount; i++) {
         const b = await columnHeaders.nth(i).boundingBox();
-        if (b && Math.abs(b.x + b.width / 2 - (box.x + box.width / 2)) > box.width) return b;
+        if (!b || !cardBox) continue;
+        const fullyVisible = b.x >= cardBox.x + 60 && b.x + b.width <= cardBox.x + cardBox.width;
+        const distinct = Math.abs(b.x + b.width / 2 - eventCenterX) > box.width;
+        if (!fullyVisible || !distinct) continue;
+        if (!best || Math.abs(b.x + b.width / 2 - eventCenterX) < Math.abs(best.x + best.width / 2 - eventCenterX)) best = b;
       }
-      return null;
+      return best;
     })();
     if (!targetBox) test.skip(true, 'Could not find a distinct target column to drag onto.');
 
