@@ -10,6 +10,26 @@
 .ap-status-tag.cancelado{background:#f2f3f6;color:#697386}
 .expense-recurring-toggle{margin-top:2px}
 #expense-frequencia-wrap.hidden{display:none}
+/* #expense-form/#receivable-form had no layout rules of their own -- they
+   only ever inherited loans.css's generic .loan-modal/.loan-dialog wrapper
+   sizing, never the #loan-form-scoped grid/label/input rules that actually
+   lay a form out, since those are ID-selectors and don't apply outside
+   #loan-form. Mirrors #loan-form's own pattern for consistency. */
+#expense-form,#receivable-form{display:grid;gap:14px}
+#expense-form label,#receivable-form label{display:grid;gap:6px;font-size:11px;font-weight:800;color:#26354d}
+#expense-form input,#expense-form select,#receivable-form input,#receivable-form select{width:100%;border:1px solid #cfd7e5;border-radius:10px;padding:10px 12px;font:inherit;font-size:12px;color:#12203a;box-sizing:border-box}
+.required{color:#b24d59;margin-left:3px}
+.optional{font-weight:600;color:#69778d}
+/* !important mirrors the same override people.css already needs for its
+   own .toggle-row inside a grid-label form -- a plain class selector
+   otherwise loses to the ID-scoped "label{display:grid}" rule above. */
+.toggle-row{display:flex!important;align-items:center;justify-content:space-between;padding:13px;border:1px solid var(--line);border-radius:11px}
+.toggle-row b{font-size:12px}
+.toggle-row small{display:block;color:var(--muted);font-size:10px;font-weight:500;margin-top:4px}
+.toggle-row input{width:18px;height:18px;accent-color:#635bff;flex:none}
+@media(max-width:480px){
+  .loan-dialog{padding:20px}
+}
 .categories-add-row{display:flex;gap:8px;margin-bottom:16px}
 .categories-add-row input{flex:1;border:1px solid #cfd7e5;border-radius:10px;padding:10px 12px;font:inherit;font-size:12px}
 .categories-table{width:100%;border-collapse:collapse;font-size:12px}
