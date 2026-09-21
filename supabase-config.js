@@ -3,18 +3,12 @@ window.KORBUILD_SUPABASE = {
   publishableKey: 'sb_publishable_OTGYzEhQxckBa_8Xqu4Uog_Dm3RmTtD'
 };
 
-const KORBUILD_VERSION = '1.2.9';
-// Environment gating: the "DEMO" badge and the "Development environment" footer
-// suffix are only shown on the GitHub Pages test site (and local dev / file://).
-// Any other hostname -- e.g. the Hostinger production domain -- is treated as
-// production and hides both. app-config.js carries the same one-line check.
-window.KORBUILD_IS_TEST_ENV = window.KORBUILD_IS_TEST_ENV ?? /(^|[.])github[.]io$|^(localhost|127[.]0[.]0[.]1|)$/i.test(location.hostname);
-const KORBUILD_ENVIRONMENT = window.KORBUILD_IS_TEST_ENV ? 'Development environment' : '';
-const applyKORbuildVersion = () => { document.querySelectorAll('.app-version, .demo-note').forEach(el => { el.textContent = `KORbuild V${KORBUILD_VERSION}` + (KORBUILD_ENVIRONMENT ? ` · ${KORBUILD_ENVIRONMENT}` : ''); }); if (!window.KORBUILD_IS_TEST_ENV) document.querySelectorAll('.demo-badge').forEach(el => el.remove()); };
-window.KORBUILD_APP = Object.freeze({ version: KORBUILD_VERSION, environment: KORBUILD_ENVIRONMENT || 'Production', isTestEnvironment: window.KORBUILD_IS_TEST_ENV, cacheVersion: KORBUILD_VERSION });
+// Version + environment (DEMO badge / "Development environment" gating) live in
+// app-config.js -- the single source of truth, loaded before this file on every page.
+if (!window.KORBUILD_APP) console.error('KORbuild: app-config.js must be loaded before supabase-config.js');
 if (!document.querySelector('link[data-korbuild-ui-fixes]')) { const style=document.createElement('link');style.rel='stylesheet';style.href='ui-fixes.css?v=1.2.8';style.dataset.korbuildUiFixes='true';document.head.appendChild(style); }
 (function applyKORbuildShell(){
- const run=()=>{ applyKORbuildVersion(); const sidebar=document.querySelector('aside.sidebar'); if(!sidebar)return;
+ const run=()=>{ const sidebar=document.querySelector('aside.sidebar'); if(!sidebar)return;
   const brand=sidebar.querySelector('.side-brand'); if(brand){brand.outerHTML=`<a class="side-brand" href="home.html" aria-label="KORbuild Dashboard"><div class="mini-mark">K</div><div>KOR<span>build</span></div>${window.KORBUILD_IS_TEST_ENV?'<span class="demo-badge logo-demo">DEMO</span>':''}</a>`;}
   const workspaceCard=sidebar.querySelector('.company-switcher'); if(workspaceCard){const legacyCompany=document.createElement('span');legacyCompany.id='side-company';legacyCompany.style.display='none';workspaceCard.replaceWith(legacyCompany);}
   const nav=sidebar.querySelector('nav'); if(nav){const path=(location.pathname.split('/').pop()||'home.html').toLowerCase();const is=files=>files.includes(path);const active={dashboard:is(['home.html','','dashboard-people.html','dashboard-financial.html']),evaluations:is(['evaluations.html']),periods:is(['periods.html']),schedule:is(['schedule.html','schedule-form.html']),bonusSettlement:is(['bonus-settlement.html']),collaboratorMovement:is(['collaborator-movement.html']),workUnits:is(['work-units.html','work-units-form.html']),teams:is(['teams.html','teams-form.html']),people:is(['people.html','people-form.html']),occurrences:is(['occurrences.html','occurrence-form.html']),payrollSettings:is(['payroll-settings.html']),weeklyPayments:is(['weekly-payments.html']),loans:is(['loans.html']),accountsPayable:is(['accounts-payable.html']),accountsReceivable:is(['accounts-receivable.html']),customerCalendar:is(['customer-schedule.html','customer-appointment-form.html']),customers:is(['customers.html','customer-form.html']),services:is(['services.html','service-form.html']),reminderSettings:is(['reminder-settings.html'])};
@@ -38,7 +32,6 @@ if (!document.querySelector('link[data-korbuild-ui-fixes]')) { const style=docum
  }
   const wrap=document.querySelector('.user-menu-wrap');if(wrap){let menu=wrap.querySelector('#user-menu');if(!menu){menu=document.createElement('div');menu.id='user-menu';menu.className='user-menu hidden';wrap.appendChild(menu);}menu.innerHTML=`<div class="menu-header"><span class="avatar large" id="menu-avatar">O</span><div><b id="menu-full-name">Owner</b><small id="menu-full-email"></small></div></div><div class="menu-divider"></div><a class="menu-item" href="home.html">⌂ <span>Dashboard</span></a><a class="menu-item" href="setup.html">⚙ <span>Workspace Setup</span></a><a class="menu-item" href="billing.html">▣ <span>Billing & Subscription</span></a><button id="menu-logout" class="menu-item danger">↪ <span>Sign out</span></button>`;}
  }; if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run,{once:true});else run();})();
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',applyKORbuildVersion,{once:false});else applyKORbuildVersion();
 // Central shell actions must use delegation because the shell replaces menu markup during initialization.
 document.addEventListener('click', async (event) => {
  const logout = event.target.closest('#menu-logout');
@@ -64,7 +57,7 @@ document.addEventListener('click', async (event) => {
 // accessible so a blocked user can regularize the subscription.
 (function initKORbuildAccessGuard(){
   const publicPages=new Set([
-    'index.html','index-v2.html','signup.html','signup-complete.html','check-email.html'
+    'index.html','signup.html','signup-complete.html','check-email.html'
   ]);
   const allowedPages=new Set(['setup.html','billing.html']);
   const currentPage=(location.pathname.split('/').pop()||'index.html').toLowerCase();
