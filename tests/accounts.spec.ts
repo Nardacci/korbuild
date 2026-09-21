@@ -159,6 +159,162 @@ test.describe('Accounts Payable: recurring expense generates 12 future occurrenc
   });
 });
 
+test.describe('Accounts Payable: editing a despesa (single occurrence only)', () => {
+  const editExpenseName = testbotName('AP_EditExpense');
+  const editedExpenseName = testbotName('AP_EditExpense_Updated');
+
+  test('create a one-time expense to edit', async ({ page }) => {
+    await page.goto('accounts-payable.html');
+    await expect(page.locator('#add-expense')).toBeEnabled({ timeout: 15_000 });
+    const { from, to } = currentMonthRange();
+    await page.fill('#filter-data-inicio', from);
+    await page.fill('#filter-data-fim', to);
+
+    await page.click('#add-expense');
+    await expect(page.locator('#expense-modal')).toBeVisible({ timeout: 10_000 });
+    await page.selectOption('#expense-categoria', { label: categoryName });
+    await page.fill('#expense-descricao', editExpenseName);
+    await page.fill('#expense-valor', '300.00');
+    await page.click('#expense-save');
+    await expect(page.locator('#message')).toContainText('Expense created successfully.', { timeout: 10_000 });
+  });
+
+  test('editing it changes category, description, amount and due date', async ({ page }) => {
+    await page.goto('accounts-payable.html');
+    await expect(page.locator('#add-expense')).toBeEnabled({ timeout: 15_000 });
+
+    const groupRow = page.locator('#ap-groups-body tr', { hasText: categoryName });
+    await expect(groupRow).toHaveCount(1, { timeout: 10_000 });
+    await groupRow.click();
+    await expect(page.locator('#detail-view')).toBeVisible({ timeout: 10_000 });
+
+    const row = page.locator('#ap-detail-body tr', { hasText: editExpenseName });
+    await expect(row).toHaveCount(1, { timeout: 10_000 });
+    await row.locator('button[data-action="edit-despesa"]').click();
+
+    await expect(page.locator('#expense-modal')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('#expense-modal-title')).toHaveText('Edit Expense');
+    await expect(page.locator('#expense-save')).toHaveText('Save Changes');
+    // Prefilled with the existing values.
+    await expect(page.locator('#expense-descricao')).toHaveValue(editExpenseName);
+    await expect(page.locator('#expense-valor')).toHaveValue('300');
+    const selectedCategoryLabel = await page.locator('#expense-categoria').locator('option:checked').textContent();
+    expect(selectedCategoryLabel?.trim()).toBe(categoryName);
+    // A single occurrence's tipo/frequencia can't change here -- the
+    // recurring-expense controls are hidden entirely while editing.
+    await expect(page.locator('#expense-recurring-section')).toBeHidden();
+    // No warning banner for a still-provisioned expense.
+    await expect(page.locator('#expense-message')).toBeHidden();
+
+    const newDueDate = new Date();
+    newDueDate.setDate(newDueDate.getDate() + 1);
+    const newDueDateIso = newDueDate.toISOString().slice(0, 10);
+
+    await page.selectOption('#expense-categoria', ''); // switch to "No category" -- moves it to the Uncategorized group
+    await page.fill('#expense-descricao', editedExpenseName);
+    await page.fill('#expense-valor', '425.50');
+    await page.fill('#expense-data-prevista', newDueDateIso);
+    await page.click('#expense-save');
+    await expect(page.locator('#detail-message')).toContainText('Expense updated successfully.', { timeout: 10_000 });
+
+    // Changing its category moved it out of the group currently open here.
+    await expect(page.locator('#ap-detail-body tr', { hasText: editedExpenseName })).toHaveCount(0);
+
+    await page.click('#back-to-summary');
+    const uncategorizedRow = page.locator('#ap-groups-body tr', { hasText: 'Uncategorized' });
+    await expect(uncategorizedRow).toHaveCount(1, { timeout: 10_000 });
+    await uncategorizedRow.click();
+
+    const updatedRow = page.locator('#ap-detail-body tr', { hasText: editedExpenseName });
+    await expect(updatedRow).toHaveCount(1, { timeout: 10_000 });
+    await expect(updatedRow.locator('.pay-money')).toContainText('425');
+    await expect(page.locator('#ap-detail-body tr', { hasText: editExpenseName })).toHaveCount(0); // old name is gone
+  });
+
+  test('editing an already-paid expense shows a non-blocking audit warning', async ({ page }) => {
+    // expenseName was marked paid earlier in this suite -- reuse it rather
+    // than paying off another one just for this check.
+    await page.goto('accounts-payable.html');
+    await expect(page.locator('#add-expense')).toBeEnabled({ timeout: 15_000 });
+
+    const groupRow = page.locator('#ap-groups-body tr', { hasText: categoryName });
+    await expect(groupRow).toHaveCount(1, { timeout: 10_000 });
+    await groupRow.click();
+    await expect(page.locator('#detail-view')).toBeVisible({ timeout: 10_000 });
+
+    const row = page.locator('#ap-detail-body tr', { hasText: expenseName });
+    await expect(row).toHaveCount(1, { timeout: 10_000 });
+    await expect(row.locator('.ap-status-tag')).toHaveText('Paid');
+    await row.locator('button[data-action="edit-despesa"]').click();
+
+    await expect(page.locator('#expense-modal')).toBeVisible({ timeout: 10_000 });
+    // Warned, but not blocked -- the form is still fully usable.
+    await expect(page.locator('#expense-message')).toBeVisible();
+    await expect(page.locator('#expense-message')).toContainText('already marked as paid');
+    await expect(page.locator('#expense-save')).toBeEnabled();
+    await page.click('#expense-cancel');
+  });
+});
+
+test.describe('Accounts Payable: editing one recurring occurrence never touches its siblings', () => {
+  test('editing the current occurrence leaves the other 12 in the series unchanged', async ({ page }) => {
+    await page.goto('accounts-payable.html');
+    await expect(page.locator('#add-expense')).toBeEnabled({ timeout: 15_000 });
+
+    // Find this series' occurrences directly, the same technique the
+    // "confirm 13 occurrences" test uses -- the one due today (created
+    // directly, not one of the 12 generated future ones) is the one
+    // visible in the current month's drill-down.
+    const occurrences = await page.evaluate(async (descricao) => {
+      const cfg = (window as any).KORBUILD_SUPABASE;
+      const supabase = (window as any).supabase;
+      const db = supabase.createClient(cfg.url, cfg.publishableKey, { auth: { persistSession: true } });
+      const { data: { session } } = await db.auth.getSession();
+      const { data: profile } = await db.from('usuarios').select('empresa_id').eq('id', session.user.id).maybeSingle();
+      const { data, error } = await db.rpc('obter_despesas', { p_empresa_id: profile.empresa_id });
+      if (error) throw new Error(error.message);
+      return (data || []).filter((d: any) => d.descricao === descricao).sort((a: any, b: any) => a.data_prevista.localeCompare(b.data_prevista));
+    }, recurringExpenseName);
+    expect(occurrences.length).toBe(13);
+    const targetId = occurrences[0].id; // the earliest -- the one entered directly, due this month
+
+    const groupRow = page.locator('#ap-groups-body tr', { hasText: 'Uncategorized' });
+    await expect(groupRow).toHaveCount(1, { timeout: 10_000 });
+    await groupRow.click();
+    await expect(page.locator('#detail-view')).toBeVisible({ timeout: 10_000 });
+
+    const row = page.locator(`#ap-detail-body tr[data-id="${targetId}"]`);
+    await expect(row).toHaveCount(1, { timeout: 10_000 });
+    await row.locator('button[data-action="edit-despesa"]').click();
+    await expect(page.locator('#expense-modal')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('#expense-recurring-section')).toBeHidden(); // can't turn a single occurrence into its own series here
+
+    await page.fill('#expense-valor', '150.00');
+    await page.click('#expense-save');
+    await expect(page.locator('#detail-message')).toContainText('Expense updated successfully.', { timeout: 10_000 });
+
+    const after = await page.evaluate(async (id) => {
+      const cfg = (window as any).KORBUILD_SUPABASE;
+      const supabase = (window as any).supabase;
+      const db = supabase.createClient(cfg.url, cfg.publishableKey, { auth: { persistSession: true } });
+      const { data } = await db.from('despesas').select('id,valor').eq('id', id).maybeSingle();
+      return data;
+    }, targetId);
+    expect(Number(after.valor)).toBe(150);
+
+    const siblingIds = occurrences.slice(1).map((o: any) => o.id);
+    const siblings = await page.evaluate(async (ids) => {
+      const cfg = (window as any).KORBUILD_SUPABASE;
+      const supabase = (window as any).supabase;
+      const db = supabase.createClient(cfg.url, cfg.publishableKey, { auth: { persistSession: true } });
+      const { data } = await db.from('despesas').select('id,valor').in('id', ids);
+      return data;
+    }, siblingIds);
+    expect(siblings.length).toBe(12);
+    for (const sibling of siblings) expect(Number(sibling.valor)).toBe(100); // untouched
+  });
+});
+
 test.describe('Accounts Receivable: create client prerequisite', () => {
   test('create Client for receivables', async ({ page }) => {
     await page.goto('customer-form.html');
@@ -288,6 +444,10 @@ test.describe('Accounts Payable: multiple payroll payments summarize into one gr
       await expect(itemRow).toHaveCount(1, { timeout: 10_000 });
       await expect(itemRow.locator('.origin-tag')).toHaveText('Payroll');
       await expect(itemRow.locator('button[data-action="mark-paid"]')).toHaveCount(0);
+      // Payroll rows have no Edit action at all (not just disabled) -- a
+      // colaborador's payment data has exactly one source of truth,
+      // weekly-payments.html.
+      await expect(itemRow.locator('button[data-action="edit-despesa"]')).toHaveCount(0);
     }
 
     await page.click('#back-to-summary');

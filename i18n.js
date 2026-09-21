@@ -558,7 +558,11 @@
     "Uncategorized": "Sem categoria",
     "Back to Accounts Payable": "Voltar para Contas a Pagar",
     "No items for this status": "Nenhum item para este status",
-    "Try a different status filter.": "Tente um filtro de status diferente."
+    "Try a different status filter.": "Tente um filtro de status diferente.",
+    "Edit Expense": "Editar Despesa",
+    "Unable to update this expense.": "Não foi possível atualizar esta despesa.",
+    "Expense updated successfully.": "Despesa atualizada com sucesso.",
+    "This expense is already marked as paid. Editing it here only corrects the record -- it does not reverse or reissue the payment.": "Esta despesa já está marcada como paga. Editá-la aqui apenas corrige o registro -- não estorna nem reemite o pagamento."
   };
 
   const reverse = Object.fromEntries(Object.entries(DICT).map(([en, pt]) => [pt, en]));

@@ -45,3 +45,9 @@
 .detail-heading-block{display:flex;flex-direction:column;gap:2px}
 .detail-heading-block strong{font-size:15px;color:var(--ink)}
 .detail-heading-block small{font-size:11px;color:var(--muted)}
+/* Hidden entirely (not just its frequency sub-field) when editing a single
+   existing despesa -- atualizar_despesa never touches tipo/frequencia, so
+   showing recurrence controls during an edit would imply a capability
+   that isn't there. */
+#expense-recurring-section{display:grid;gap:14px}
+.message.warning{background:#fff4df;color:#a86200}

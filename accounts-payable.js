@@ -2,7 +2,7 @@ if(!window.KORBUILD_APP){const s=document.createElement('script');s.src='app-con
 const {url,publishableKey}=window.KORBUILD_SUPABASE;
 const db=window.supabase.createClient(url,publishableKey,{auth:{persistSession:true,autoRefreshToken:true}});
 const $=id=>document.getElementById(id);
-const state={empresaId:null,currency:'BRL',categorias:[],rows:[],despesaById:new Map(),currentDetail:null};
+const state={empresaId:null,currency:'BRL',categorias:[],rows:[],despesaById:new Map(),currentDetail:null,editingDespesaId:null};
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=v=>new Intl.NumberFormat(state.currency==='BRL'?'pt-BR':'en-US',{style:'currency',currency:state.currency}).format(Number(v||0));
 const fmtDate=s=>s?new Date(s+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
@@ -163,6 +163,10 @@ function renderDetail(){
 
   $('detail-empty-state').classList.toggle('hidden',rows.length!==0);
   $('ap-detail-body').innerHTML=rows.map(r=>{
+    // Payroll rows are never editable here -- a colaborador's payment data
+    // has exactly one source of truth, weekly-payments.html, so no Edit
+    // action is rendered for them at all (not just disabled).
+    const canEdit=r.origem==='despesa';
     const canMarkPaid=r.origem==='despesa'&&r.status==='provisionado';
     return `<tr data-id="${r.referencia_id}" data-origem="${r.origem}">
       <td><div class="team-name">${esc(r.descricao)}</div></td>
@@ -170,19 +174,51 @@ function renderDetail(){
       <td>${fmtDate(r.data)}</td>
       <td class="pay-money">${money(r.valor)}</td>
       <td><span class="ap-status-tag ${r.status}">${esc(statusLabel(r.status))}</span></td>
-      <td>${canMarkPaid?`<button type="button" class="small-btn" data-action="mark-paid">${t('Mark as Paid')}</button>`:''}</td>
+      <td><div class="row-actions">${canEdit?`<button type="button" class="small-btn" data-action="edit-despesa">${t('Edit')}</button>`:''}${canMarkPaid?`<button type="button" class="small-btn" data-action="mark-paid">${t('Mark as Paid')}</button>`:''}</div></td>
     </tr>`;
   }).join('');
 }
 
 function openExpenseModal(){
+  state.editingDespesaId=null;
   $('expense-form').reset();
   $('expense-message').classList.add('hidden');
   $('expense-frequencia-wrap').classList.add('hidden');
+  $('expense-recurring-section').classList.remove('hidden');
+  $('expense-modal-title').textContent=t('New Expense');
+  $('expense-save').textContent=t('Create Expense');
   $('expense-data-prevista').value=isoDate(new Date());
   $('expense-modal').classList.remove('hidden');
 }
-function closeExpenseModal(){$('expense-modal').classList.add('hidden');}
+
+// Editing an existing occurrence only ever changes categoria/descricao/
+// valor/data_prevista on that one row (atualizar_despesa's own scope) --
+// tipo/frequencia_recorrencia are fixed at creation, so the whole
+// recurring-expense section is hidden rather than shown in a state it
+// can't actually act on. A despesa already marked 'pago' can still be
+// edited (this isn't a payment reversal, just a record correction), but
+// gets a visible, non-blocking warning first since changing a paid
+// expense's amount or date has real audit implications.
+function openEditExpenseModal(despesaId){
+  const d=state.despesaById.get(despesaId);
+  if(!d)return;
+  state.editingDespesaId=despesaId;
+  $('expense-form').reset();
+  $('expense-message').classList.add('hidden');
+  $('expense-recurring-section').classList.add('hidden');
+  $('expense-modal-title').textContent=t('Edit Expense');
+  $('expense-save').textContent=t('Save Changes');
+  $('expense-categoria').value=d.categoria_id||'';
+  $('expense-descricao').value=d.descricao||'';
+  $('expense-valor').value=d.valor;
+  $('expense-data-prevista').value=d.data_prevista;
+  if(d.status==='pago'){
+    expenseMsg(t('This expense is already marked as paid. Editing it here only corrects the record -- it does not reverse or reissue the payment.'),'warning');
+  }
+  $('expense-modal').classList.remove('hidden');
+}
+
+function closeExpenseModal(){$('expense-modal').classList.add('hidden');state.editingDespesaId=null;}
 
 async function createExpense(event){
   event.preventDefault();
@@ -190,7 +226,7 @@ async function createExpense(event){
   const descricao=$('expense-descricao').value.trim();
   const valor=Number($('expense-valor').value);
   const dataPrevista=$('expense-data-prevista').value;
-  const isRecorrente=$('expense-recorrente').checked;
+  const isRecorrente=state.editingDespesaId?false:$('expense-recorrente').checked;
   const frequencia=isRecorrente?$('expense-frequencia').value:null;
 
   if(!descricao){expenseMsg(t('Description is required.'),'error');return;}
@@ -198,18 +234,31 @@ async function createExpense(event){
   if(!dataPrevista){expenseMsg(t('Select a due date.'),'error');return;}
 
   const btn=$('expense-save');btn.disabled=true;const original=btn.textContent;btn.textContent=t('Saving...');
-  const {error}=await db.rpc('criar_despesa',{
-    p_categoria_id:categoriaId,
-    p_descricao:descricao,
-    p_tipo:isRecorrente?'recorrente':'pontual',
-    p_valor:valor,
-    p_data_prevista:dataPrevista,
-    p_frequencia_recorrencia:frequencia
-  });
+  const {error}=state.editingDespesaId
+    ?await db.rpc('atualizar_despesa',{
+        p_despesa_id:state.editingDespesaId,
+        p_categoria_id:categoriaId,
+        p_descricao:descricao,
+        p_valor:valor,
+        p_data_prevista:dataPrevista
+      })
+    :await db.rpc('criar_despesa',{
+        p_categoria_id:categoriaId,
+        p_descricao:descricao,
+        p_tipo:isRecorrente?'recorrente':'pontual',
+        p_valor:valor,
+        p_data_prevista:dataPrevista,
+        p_frequencia_recorrencia:frequencia
+      });
   btn.disabled=false;btn.textContent=original;
-  if(error){expenseMsg(`${t('Unable to create this expense.')} ${error.message}`,'error');return;}
+  if(error){
+    expenseMsg(`${state.editingDespesaId?t('Unable to update this expense.'):t('Unable to create this expense.')} ${error.message}`,'error');
+    return;
+  }
+  const wasEditing=!!state.editingDespesaId;
   closeExpenseModal();
-  msg(isRecorrente?t('Recurring expense created (13 occurrences).'):t('Expense created successfully.'));
+  if(wasEditing)detailMsg(t('Expense updated successfully.'));
+  else msg(isRecorrente?t('Recurring expense created (13 occurrences).'):t('Expense created successfully.'));
   await loadConsolidated();
 }
 
@@ -282,6 +331,8 @@ $('back-to-summary').addEventListener('click',closeDetail);
 $('detail-filter-status').addEventListener('change',renderDetail);
 
 $('ap-detail-body').addEventListener('click',e=>{
+  const editBtn=e.target.closest('button[data-action="edit-despesa"]');
+  if(editBtn){openEditExpenseModal(editBtn.closest('tr').dataset.id);return;}
   const btn=e.target.closest('button[data-action="mark-paid"]');if(!btn)return;
   markPaid(btn.closest('tr').dataset.id);
 });
