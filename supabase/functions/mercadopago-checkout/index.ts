@@ -87,6 +87,11 @@ interface ConversionResult {
 }
 
 // deno-lint-ignore no-explicit-any
+// What the browser gets when Mercado Pago (or the request to it) fails. The
+// provider's error body and any thrown error message stay in the function log
+// (console.error) and in payment_events -- never in the HTTP response.
+const GENERIC_CHECKOUT_ERROR = "We could not start the checkout. Please try again later or use the manual PIX option.";
+
 async function convertToBrl(admin: any, amount: number, currency: string): Promise<ConversionResult | { error: string; currency_pair: string }> {
   const normalized = currency.toUpperCase();
   if (normalized === "BRL") {
@@ -234,7 +239,7 @@ Deno.serve(async (req) => {
       });
     } catch (error) {
       console.error("[mercadopago-checkout] preference request threw", error instanceof Error ? error.message : String(error));
-      return json({ error: "mercadopago_request_failed", message: error instanceof Error ? error.message : String(error) }, 502);
+      return json({ error: "mercadopago_request_failed", message: GENERIC_CHECKOUT_ERROR }, 502);
     }
 
     const mpBody = await mpResponse.json().catch(() => null);
@@ -252,7 +257,7 @@ Deno.serve(async (req) => {
         raw_payload: { ...(mpBody ?? { status: mpResponse.status }), _conversion: setupConversion.conversion },
         error_message: `Mercado Pago responded ${mpResponse.status}`,
       });
-      return json({ error: "mercadopago_create_failed", status: mpResponse.status, details: mpBody }, 502);
+      return json({ error: "mercadopago_create_failed", message: GENERIC_CHECKOUT_ERROR }, 502);
     }
 
     await admin.from("payment_events").insert({
@@ -305,7 +310,7 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     console.error("[mercadopago-checkout] preapproval request threw", error instanceof Error ? error.message : String(error));
-    return json({ error: "mercadopago_request_failed", message: error instanceof Error ? error.message : String(error) }, 502);
+    return json({ error: "mercadopago_request_failed", message: GENERIC_CHECKOUT_ERROR }, 502);
   }
 
   const mpBody = await mpResponse.json().catch(() => null);
@@ -326,7 +331,7 @@ Deno.serve(async (req) => {
       raw_payload: { ...(mpBody ?? { status: mpResponse.status }), _conversion: monthlyConversion.conversion },
       error_message: `Mercado Pago responded ${mpResponse.status}`,
     });
-    return json({ error: "mercadopago_create_failed", status: mpResponse.status, details: mpBody }, 502);
+    return json({ error: "mercadopago_create_failed", message: GENERIC_CHECKOUT_ERROR }, 502);
   }
 
   await admin.from("payment_events").insert({
