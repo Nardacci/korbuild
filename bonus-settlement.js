@@ -6,6 +6,14 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const money=v=>'$'+Number(v||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const month=v=>new Date(2026,Number(v)-1,1).toLocaleDateString('en-US',{month:'long'});
 function showError(t){const e=$('cycles-message');e.textContent=t;e.classList.remove('hidden')}
+// bonus_cycles.status ('OPEN'/'CLOSED') is a raw DB value -- i18n.js's DOM
+// walk only reaches static text, never this. Local map, same pattern as
+// periods.js's own cycleStatusLabel(). Note: this page doesn't load
+// i18n.js yet (separate, not-yet-fixed audit finding), so this currently
+// always resolves to en-US until that's added -- kept consistent with
+// the rest of the app regardless.
+const CYCLE_STATUS_LABEL={'en-US':{open:'OPEN',closed:'CLOSED'},'pt-BR':{open:'ABERTO',closed:'FECHADO'}};
+function cycleStatusLabel(raw){const lang=window.KORbuildI18n?window.KORbuildI18n.language:'en-US';return (CYCLE_STATUS_LABEL[lang]||CYCLE_STATUS_LABEL['en-US'])[raw==='CLOSED'?'closed':'open'];}
 async function profile(){
  const {data:{session}}=await db.auth.getSession();if(!session?.user){location.href='index.html';return false}
  const {data:u,error}=await db.from('usuarios').select('id,name,empresa_id,empresas(name)').eq('id',session.user.id).maybeSingle();
@@ -31,7 +39,7 @@ async function openReport(id){
  const cycle=state.cycles.find(c=>String(c.id)===String(id));if(!cycle)return;
  state.selected=cycle;$('cycles-view').classList.add('hidden');$('report-view').classList.remove('hidden');
  $('report-cycle-name').textContent=cycle.name;$('report-cycle-meta').textContent=cycle.year+' · '+month(cycle.start_month)+' → '+month(cycle.end_month);
- $('report-status').textContent=cycle.status||'OPEN';$('company-name').textContent=state.companyName;
+ $('report-status').textContent=cycleStatusLabel(cycle.status);$('company-name').textContent=state.companyName;
  const pointValue=Number(cycle.point_value??state.config?.point_value??0);
  $('point-rule').textContent='Final balance × '+money(pointValue)+' per point';
  $('settlement-body').innerHTML='<tr><td colspan="7" class="empty">Calculating settlement...</td></tr>';

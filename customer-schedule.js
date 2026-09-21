@@ -9,6 +9,14 @@ function closeMenu(){$('user-menu')?.classList.add('hidden');$('user-menu-btn')?
 function msg(text,type='success'){const e=$('message');e.textContent=text;e.className=`message ${type}`;e.classList.remove('hidden');}
 function clearMsg(){$('message')?.classList.add('hidden');}
 const t=s=>window.KORbuildI18n?window.KORbuildI18n.t(s):s;
+// agendamentos_servico.status is a raw Portuguese DB value -- i18n.js's
+// DOM walk only reaches static text, never this. Local map, same pattern
+// used elsewhere in this audit.
+const APPOINTMENT_STATUS_LABEL={
+  'en-US':{agendado:'Scheduled',cancelado:'Cancelled',no_show:'No-show',concluido:'Completed'},
+  'pt-BR':{agendado:'Agendado',cancelado:'Cancelado',no_show:'Não compareceu',concluido:'Concluído'}
+};
+function appointmentStatusLabel(status){const lang=window.KORbuildI18n?window.KORbuildI18n.language:'en-US';return (APPOINTMENT_STATUS_LABEL[lang]||APPOINTMENT_STATUS_LABEL['en-US'])[status]||status;}
 
 function colorFor(colaboradorId){
   let hash=0;
@@ -112,7 +120,7 @@ function openDetail(e){
   $('detail-service').textContent=row.servico_nome;
   $('detail-colaborador').textContent=row.colaborador_nome;
   $('detail-when').textContent=`${row.data} · ${row.hora_inicio.slice(0,5)} – ${row.hora_fim.slice(0,5)}`;
-  $('detail-status').textContent=row.status;
+  $('detail-status').textContent=appointmentStatusLabel(row.status);
   $('detail-notes').textContent=row.observacoes||'—';
   $('detail-cancel-appointment').dataset.id=row.id;
   $('detail-cancel-appointment').classList.toggle('hidden',row.status==='cancelado');
