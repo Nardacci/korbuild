@@ -10,6 +10,7 @@
 .ap-status-tag.cancelado{background:#f2f3f6;color:#697386}
 .expense-recurring-toggle{margin-top:2px}
 #expense-frequencia-wrap.hidden{display:none}
+#expense-recurring-section.hidden{display:none}
 /* #expense-form/#receivable-form had no layout rules of their own -- they
    only ever inherited loans.css's generic .loan-modal/.loan-dialog wrapper
    sizing, never the #loan-form-scoped grid/label/input rules that actually
