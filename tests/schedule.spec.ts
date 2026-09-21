@@ -33,8 +33,20 @@ const clientName = testbotName('Client');
 const clientEmail = `${clientName.toLowerCase()}@example.com`;
 const serviceName = testbotName('Service');
 
+// Root cause of a 2026-09-20 flake: new Date().toISOString() always
+// returns the UTC calendar date, not the local one. In a UTC-behind
+// timezone (e.g. UTC-3), local evenings already fall on the "next day"
+// in UTC -- confirmed directly: at 22:14 local on Sep 20, toISOString()
+// already read "2026-09-21". customer-schedule.js's calendar, correctly,
+// shows the LOCAL date (DayPilot.Date.today() -- a real calendar app has
+// to key off wall-clock date, not UTC), so an appointment created here
+// for "today" landed one day ahead of the view that was about to look
+// for it, and simply never appeared. This wasn't the app degrading near
+// a date boundary -- the app was right and this helper was wrong. Reads
+// local Y/M/D components instead of converting through UTC.
 function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 test.describe('prerequisites: an active Work Unit, Team and Person', () => {

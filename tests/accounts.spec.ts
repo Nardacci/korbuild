@@ -29,10 +29,22 @@ const clientName = testbotName('AR_Client');
 const clientEmail = `${clientName.toLowerCase()}@example.com`;
 const receivableName = testbotName('AR_Receivable');
 
+// Date.toISOString() always reads the UTC calendar date, not the local
+// one -- in a UTC-behind timezone this silently returns "tomorrow" for
+// part of the local evening (root-caused and fixed the same way in
+// schedule.spec.ts's todayIso() on 2026-09-20, after it made a same-day
+// calendar appointment invisible to the app's own local-dated view).
+// None of the dates built here are currently compared against a
+// local-dated app view the way that one was, but they're all meant to be
+// local calendar dates, so they're built the same safe way on principle.
+function isoDateLocal(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 function currentMonthRange(): { from: string; to: string } {
   const today = new Date();
-  const from = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10);
-  const to = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().slice(0, 10);
+  const from = isoDateLocal(new Date(today.getFullYear(), today.getMonth(), 1));
+  const to = isoDateLocal(new Date(today.getFullYear(), today.getMonth() + 1, 0));
   return { from, to };
 }
 
@@ -208,7 +220,7 @@ test.describe('Accounts Payable: editing a despesa (single occurrence only)', ()
 
     const newDueDate = new Date();
     newDueDate.setDate(newDueDate.getDate() + 1);
-    const newDueDateIso = newDueDate.toISOString().slice(0, 10);
+    const newDueDateIso = isoDateLocal(newDueDate);
 
     await page.selectOption('#expense-categoria', ''); // switch to "No category" -- moves it to the Uncategorized group
     await page.fill('#expense-descricao', editedExpenseName);
@@ -433,7 +445,7 @@ test.describe('Accounts Receivable: editing a receivable (client is locked)', ()
 
     const newDueDate = new Date();
     newDueDate.setDate(newDueDate.getDate() + 1);
-    const newDueDateIso = newDueDate.toISOString().slice(0, 10);
+    const newDueDateIso = isoDateLocal(newDueDate);
 
     await page.fill('#receivable-descricao', editedReceivableName);
     await page.fill('#receivable-valor', '450.00');
