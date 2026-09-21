@@ -253,10 +253,14 @@ test.describe('Hourly rate: "Save new rate" cannot fire before its date default 
     await page.waitForURL(/people-form\.html\?id=/, { timeout: 10_000 });
 
     // Slow down the exact read that populates #rate-new-date's default,
-    // to force the original race window wide open.
+    // to force the original race window wide open. More than one request
+    // can land on this same route (a CORS preflight alongside the real
+    // GET, or the reload itself superseding an in-flight one) -- continue()
+    // throws if a route was already resolved another way, which is
+    // harmless here, so it's swallowed rather than failing the test.
     await page.route('**/configuracoes_operacionais**', async (route) => {
-      await new Promise((r) => setTimeout(r, 2000));
-      await route.continue();
+      if (route.request().method() === 'GET') await new Promise((r) => setTimeout(r, 2000));
+      await route.continue().catch(() => {});
     });
     await page.reload();
 
@@ -291,10 +295,17 @@ test.describe('Hourly rate: "Save new rate" cannot fire before its date default 
     expect(vigenteDe).toBe(shownDefault);
 
     // End-to-end guarantee: this person now shows up in the CURRENT
-    // week's Payment list on the very first visit.
+    // week's Payment list on the very first visit. This suite's shared
+    // company accumulates TESTBOT_ people across every run (see
+    // tests/README.md), so by now dozens of them can need a brand-new row
+    // auto-created on the same load -- loadPayments() awaits every one of
+    // those RPC pairs before rendering, which under real network
+    // round-trips can take noticeably longer than a single-person load.
+    // A generous timeout accounts for that without weakening what's
+    // actually being asserted.
     await page.unroute('**/configuracoes_operacionais**');
     await page.goto('weekly-payments.html');
-    await expect(page.locator('#payments-body tr', { hasText: raceProofPersonName })).toHaveCount(1, { timeout: 15_000 });
+    await expect(page.locator('#payments-body tr', { hasText: raceProofPersonName })).toHaveCount(1, { timeout: 30_000 });
   });
 });
 
