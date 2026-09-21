@@ -7,6 +7,16 @@ function closeMenu(){$('user-menu')?.classList.add('hidden');$('user-menu-btn')?
 function msg(text,type='success'){const e=$('message');e.textContent=text;e.className=`message ${type}`;e.classList.remove('hidden');}
 function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
 const t=s=>window.KORbuildI18n?window.KORbuildI18n.t(s):s;
+// tipos_escala.rotulo is seeded straight into English by garantir_tipos_
+// escala_padrao() (codigo stays a stable Portuguese key: turno/ferias/
+// folga/compromisso). i18n.js only reaches static text, not this kind of
+// DB-sourced value, so it's translated here by codigo -- same local-map
+// pattern used for status pills elsewhere (accounts-payable.js/loans.js).
+const TIPO_ESCALA_LABEL={
+  'en-US':{turno:'Shift',ferias:'Vacation',folga:'Day Off',compromisso:'Commitment'},
+  'pt-BR':{turno:'Turno',ferias:'Férias',folga:'Folga',compromisso:'Compromisso'}
+};
+function tipoEscalaLabel(codigo){const lang=window.KORbuildI18n?window.KORbuildI18n.language:'en-US';return (TIPO_ESCALA_LABEL[lang]||TIPO_ESCALA_LABEL['en-US'])[codigo]||codigo;}
 
 async function loadProfile(){
   const {data:{session},error}=await db.auth.getSession();
@@ -31,7 +41,7 @@ async function loadOptions(){
   if(ce)throw ce;if(te)throw te;
   state.tipos=tipos||[];
   $('colaborador-id').innerHTML='<option value="">Select a person</option>'+(colaboradores||[]).map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
-  $('tipo-escala-id').innerHTML='<option value="">Select a type</option>'+state.tipos.map(t=>`<option value="${t.id}">${esc(t.rotulo)}</option>`).join('');
+  $('tipo-escala-id').innerHTML='<option value="">Select a type</option>'+state.tipos.map(tipo=>`<option value="${tipo.id}">${esc(tipoEscalaLabel(tipo.codigo))}</option>`).join('');
 }
 
 function updateApprovalHint(){

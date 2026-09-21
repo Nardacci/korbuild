@@ -12,6 +12,14 @@ const STATUS_LABEL={
   'pt-BR':{pendente:'Pendente',aprovado:'Aprovado',rejeitado:'Rejeitado',confirmado:'Confirmado'}
 };
 function statusLabel(status){const lang=window.KORbuildI18n?window.KORbuildI18n.language:'en-US';return (STATUS_LABEL[lang]||STATUS_LABEL['en-US'])[status]||status;}
+// tipos_escala.rotulo is seeded straight into English -- translated here
+// by tipo_codigo (a stable Portuguese key obter_escalas already returns),
+// same pattern as schedule-form.js's own tipoEscalaLabel().
+const TIPO_ESCALA_LABEL={
+  'en-US':{turno:'Shift',ferias:'Vacation',folga:'Day Off',compromisso:'Commitment'},
+  'pt-BR':{turno:'Turno',ferias:'Férias',folga:'Folga',compromisso:'Compromisso'}
+};
+function tipoEscalaLabel(codigo){const lang=window.KORbuildI18n?window.KORbuildI18n.language:'en-US';return (TIPO_ESCALA_LABEL[lang]||TIPO_ESCALA_LABEL['en-US'])[codigo]||codigo;}
 function closeMenu(){$('user-menu')?.classList.add('hidden');$('user-menu-btn')?.setAttribute('aria-expanded','false');}
 function msg(text,type='success'){const e=$('message');e.textContent=text;e.className=`message ${type}`;e.classList.remove('hidden');}
 function clearMsg(){$('message')?.classList.add('hidden');}
@@ -72,7 +80,7 @@ function render(){
     const time=r.hora_inicio&&r.hora_fim?`${fmtTime(r.hora_inicio)} – ${fmtTime(r.hora_fim)}`:'—';
     return `<tr>
       <td><div class="team-name">${esc(r.colaborador_nome)}</div></td>
-      <td><span class="type-chip" style="--chip-color:${esc(r.tipo_cor||'#635bff')}"><span class="dot"></span>${esc(r.tipo_rotulo)}</span></td>
+      <td><span class="type-chip" style="--chip-color:${esc(r.tipo_cor||'#635bff')}"><span class="dot"></span>${esc(tipoEscalaLabel(r.tipo_codigo))}</span></td>
       <td>${period}</td>
       <td>${time}</td>
       <td><span class="schedule-status ${r.status}"><span class="dot"></span>${statusLabel(r.status)}</span></td>

@@ -4,6 +4,17 @@ const db=window.supabase.createClient(url,publishableKey,{auth:{persistSession:t
 const $=id=>document.getElementById(id);
 const state={empresaId:null,granularity:'month',lancamentos:[],ocorrencias:[],escalas:[],charts:{}};
 const COLORS={accent:'#635bff',accent2:'#8b5cf6',positive:'#3ca064',negative:'#c44343',blue:'#4383d9',orange:'#e4941c',muted:'#9aa5b8'};
+// tipos_escala.rotulo is seeded straight into English -- translated here
+// by tipos_escala.codigo (a stable Portuguese key), same pattern as
+// schedule.js/schedule-form.js's own tipoEscalaLabel(). Resolved BEFORE
+// being handed to Chart.js as a dataset label: chart legends render to
+// <canvas>, entirely outside the DOM i18n.js's MutationObserver walks, so
+// this is the only point where a translation can still be applied.
+const TIPO_ESCALA_LABEL={
+  'en-US':{turno:'Shift',ferias:'Vacation',folga:'Day Off',compromisso:'Commitment',other:'Other'},
+  'pt-BR':{turno:'Turno',ferias:'Férias',folga:'Folga',compromisso:'Compromisso',other:'Outros'}
+};
+function tipoEscalaLabel(codigo){const lang=window.KORbuildI18n?window.KORbuildI18n.language:'en-US';const map=TIPO_ESCALA_LABEL[lang]||TIPO_ESCALA_LABEL['en-US'];return map[codigo]||map.other;}
 
 function msg(text,type='error'){const e=$('message');e.textContent=text;e.className=`message ${type}`;e.classList.remove('hidden');}
 
@@ -57,7 +68,7 @@ async function loadData(){
   const [lr,or_,er]=await Promise.all([
     db.from('lancamentos').select('total_score,periodos(start_date)').eq('empresa_id',state.empresaId),
     db.from('ocorrencias').select('quantity,tipos_ocorrencia(occurrence_type),lancamentos(periodos(start_date))').eq('empresa_id',state.empresaId),
-    db.from('escalas').select('data_inicio,status,tipos_escala(rotulo,requer_aprovacao)').eq('empresa_id',state.empresaId)
+    db.from('escalas').select('data_inicio,status,tipos_escala(codigo,rotulo,requer_aprovacao)').eq('empresa_id',state.empresaId)
   ]);
   if(lr.error)throw lr.error;if(or_.error)throw or_.error;if(er.error)throw er.error;
   state.lancamentos=(lr.data||[]).filter(r=>r.periodos?.start_date);
@@ -121,7 +132,7 @@ function renderOccurrences(){
 function renderScheduleTypes(){
   const series=new Map();
   state.escalas.forEach(r=>{
-    const type=r.tipos_escala?.rotulo||'Other';
+    const type=tipoEscalaLabel(r.tipos_escala?.codigo);
     const k=bucketKey(r.data_inicio);
     if(!series.has(type))series.set(type,new Map());
     const m=series.get(type);m.set(k,(m.get(k)||0)+1);
