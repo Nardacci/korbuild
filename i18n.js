@@ -735,7 +735,8 @@
     "CALCULATION RULE": "REGRA DE CÁLCULO",
     "Final balance × value per point": "Saldo final × valor por ponto",
     "Workspace": "Workspace",
-    "Loading...": "Carregando..."
+    "Loading...": "Carregando...",
+    "Owner": "Responsável"
   };
 
   const reverse = Object.fromEntries(Object.entries(DICT).map(([en, pt]) => [pt, en]));

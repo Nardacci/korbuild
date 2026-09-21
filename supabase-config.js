@@ -4,13 +4,18 @@ window.KORBUILD_SUPABASE = {
 };
 
 const KORBUILD_VERSION = '1.2.9';
-const KORBUILD_ENVIRONMENT = 'Development environment';
-const applyKORbuildVersion = () => { document.querySelectorAll('.app-version, .demo-note').forEach(el => { el.textContent = `KORbuild V${KORBUILD_VERSION} · ${KORBUILD_ENVIRONMENT}`; }); };
-window.KORBUILD_APP = Object.freeze({ version: KORBUILD_VERSION, environment: KORBUILD_ENVIRONMENT, cacheVersion: KORBUILD_VERSION });
+// Environment gating: the "DEMO" badge and the "Development environment" footer
+// suffix are only shown on the GitHub Pages test site (and local dev / file://).
+// Any other hostname -- e.g. the Hostinger production domain -- is treated as
+// production and hides both. app-config.js carries the same one-line check.
+window.KORBUILD_IS_TEST_ENV = window.KORBUILD_IS_TEST_ENV ?? /(^|[.])github[.]io$|^(localhost|127[.]0[.]0[.]1|)$/i.test(location.hostname);
+const KORBUILD_ENVIRONMENT = window.KORBUILD_IS_TEST_ENV ? 'Development environment' : '';
+const applyKORbuildVersion = () => { document.querySelectorAll('.app-version, .demo-note').forEach(el => { el.textContent = `KORbuild V${KORBUILD_VERSION}` + (KORBUILD_ENVIRONMENT ? ` · ${KORBUILD_ENVIRONMENT}` : ''); }); if (!window.KORBUILD_IS_TEST_ENV) document.querySelectorAll('.demo-badge').forEach(el => el.remove()); };
+window.KORBUILD_APP = Object.freeze({ version: KORBUILD_VERSION, environment: KORBUILD_ENVIRONMENT || 'Production', isTestEnvironment: window.KORBUILD_IS_TEST_ENV, cacheVersion: KORBUILD_VERSION });
 if (!document.querySelector('link[data-korbuild-ui-fixes]')) { const style=document.createElement('link');style.rel='stylesheet';style.href='ui-fixes.css?v=1.2.8';style.dataset.korbuildUiFixes='true';document.head.appendChild(style); }
 (function applyKORbuildShell(){
  const run=()=>{ applyKORbuildVersion(); const sidebar=document.querySelector('aside.sidebar'); if(!sidebar)return;
-  const brand=sidebar.querySelector('.side-brand'); if(brand){brand.outerHTML=`<a class="side-brand" href="home.html" aria-label="KORbuild Dashboard"><div class="mini-mark">K</div><div>KOR<span>build</span></div><span class="demo-badge logo-demo">DEMO</span></a>`;}
+  const brand=sidebar.querySelector('.side-brand'); if(brand){brand.outerHTML=`<a class="side-brand" href="home.html" aria-label="KORbuild Dashboard"><div class="mini-mark">K</div><div>KOR<span>build</span></div>${window.KORBUILD_IS_TEST_ENV?'<span class="demo-badge logo-demo">DEMO</span>':''}</a>`;}
   const workspaceCard=sidebar.querySelector('.company-switcher'); if(workspaceCard){const legacyCompany=document.createElement('span');legacyCompany.id='side-company';legacyCompany.style.display='none';workspaceCard.replaceWith(legacyCompany);}
   const nav=sidebar.querySelector('nav'); if(nav){const path=(location.pathname.split('/').pop()||'home.html').toLowerCase();const is=files=>files.includes(path);const active={dashboard:is(['home.html','','dashboard-people.html','dashboard-financial.html']),evaluations:is(['evaluations.html']),periods:is(['periods.html']),schedule:is(['schedule.html','schedule-form.html']),bonusSettlement:is(['bonus-settlement.html']),collaboratorMovement:is(['collaborator-movement.html']),workUnits:is(['work-units.html','work-units-form.html']),teams:is(['teams.html','teams-form.html']),people:is(['people.html','people-form.html']),occurrences:is(['occurrences.html','occurrence-form.html']),payrollSettings:is(['payroll-settings.html']),weeklyPayments:is(['weekly-payments.html']),loans:is(['loans.html']),accountsPayable:is(['accounts-payable.html']),accountsReceivable:is(['accounts-receivable.html']),customerCalendar:is(['customer-schedule.html','customer-appointment-form.html']),customers:is(['customers.html','customer-form.html']),services:is(['services.html','service-form.html']),reminderSettings:is(['reminder-settings.html'])};
    const groupActive={records:active.people||active.teams||active.workUnits||active.customers||active.services,bonus:active.evaluations||active.periods||active.occurrences||active.bonusSettlement||active.collaboratorMovement,payment:active.weeklyPayments||active.payrollSettings||active.loans,financial:active.accountsPayable||active.accountsReceivable};
