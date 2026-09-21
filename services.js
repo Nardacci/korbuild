@@ -4,6 +4,15 @@ const db=window.supabase.createClient(url,publishableKey,{auth:{persistSession:t
 const $=id=>document.getElementById(id);
 const state={empresaId:null,items:[]};
 function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
+// Local map, not routed through i18n.js's DOM text-node walk: the DICT's
+// own "Active"->"Ativas" entry is tuned for a plural KPI-card context
+// elsewhere, not a singular per-row status badge. "Inactive"/"Activate"/
+// "Deactivate" have no DICT entry at all. Same pattern used in
+// accounts-payable.js/loans.js.
+const ACTIVE_STATUS_LABEL={'en-US':{active:'Active',inactive:'Inactive'},'pt-BR':{active:'Ativo',inactive:'Inativo'}};
+const ACTIVE_TOGGLE_LABEL={'en-US':{active:'Deactivate',inactive:'Activate'},'pt-BR':{active:'Desativar',inactive:'Ativar'}};
+function activeStatusLabel(isActive){const lang=window.KORbuildI18n?window.KORbuildI18n.language:'en-US';return (ACTIVE_STATUS_LABEL[lang]||ACTIVE_STATUS_LABEL['en-US'])[isActive?'active':'inactive'];}
+function activeToggleLabel(isActive){const lang=window.KORbuildI18n?window.KORbuildI18n.language:'en-US';return (ACTIVE_TOGGLE_LABEL[lang]||ACTIVE_TOGGLE_LABEL['en-US'])[isActive?'active':'inactive'];}
 function msg(t,type='success'){const e=$('message');e.textContent=t;e.className=`message ${type}`;e.classList.remove('hidden')}
 function closeMenu(){$('user-menu')?.classList.add('hidden');$('user-menu-btn')?.setAttribute('aria-expanded','false')}
 function date(v){return v?new Date(v).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—'}
@@ -39,7 +48,7 @@ function render(){
   $('total-count').textContent=state.items.length;
   $('services-body').innerHTML=rows.map(x=>{
     const editUrl=`service-form.html?id=${encodeURIComponent(x.id)}`;
-    return `<tr><td><div class="team-name">${esc(x.nome)}</div></td><td>${x.duracao_padrao_minutos} min</td><td>${money(x.preco_padrao)}</td><td><span class="team-status ${x.ativo?'active':'inactive'}"><span class="dot"></span>${x.ativo?'Active':'Inactive'}</span></td><td>${date(x.criado_em)}</td><td><div class="row-actions"><a class="small-btn" href="${editUrl}">Edit</a><button class="small-btn danger" data-action="toggle" data-id="${x.id}">${x.ativo?'Deactivate':'Activate'}</button></div></td></tr>`;
+    return `<tr><td><div class="team-name">${esc(x.nome)}</div></td><td>${x.duracao_padrao_minutos} min</td><td>${money(x.preco_padrao)}</td><td><span class="team-status ${x.ativo?'active':'inactive'}"><span class="dot"></span>${activeStatusLabel(x.ativo)}</span></td><td>${date(x.criado_em)}</td><td><div class="row-actions"><a class="small-btn" href="${editUrl}">Edit</a><button class="small-btn danger" data-action="toggle" data-id="${x.id}">${activeToggleLabel(x.ativo)}</button></div></td></tr>`;
   }).join('');
   $('empty-state').classList.toggle('hidden',rows.length>0);
 }
