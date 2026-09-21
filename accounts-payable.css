@@ -19,6 +19,9 @@
 #expense-form,#receivable-form{display:grid;gap:14px}
 #expense-form label,#receivable-form label{display:grid;gap:6px;font-size:11px;font-weight:800;color:#26354d}
 #expense-form input,#expense-form select,#receivable-form input,#receivable-form select{width:100%;border:1px solid #cfd7e5;border-radius:10px;padding:10px 12px;font:inherit;font-size:12px;color:#12203a;box-sizing:border-box}
+/* Locked while editing a receivable -- changing the client would change
+   whose debt this is, not just correct a record. */
+#receivable-cliente:disabled{background:#f4f5f8;color:#8b95a7;cursor:not-allowed}
 .required{color:#b24d59;margin-left:3px}
 .optional{font-weight:600;color:#69778d}
 /* !important mirrors the same override people.css already needs for its

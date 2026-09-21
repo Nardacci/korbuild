@@ -562,7 +562,11 @@
     "Edit Expense": "Editar Despesa",
     "Unable to update this expense.": "Não foi possível atualizar esta despesa.",
     "Expense updated successfully.": "Despesa atualizada com sucesso.",
-    "This expense is already marked as paid. Editing it here only corrects the record -- it does not reverse or reissue the payment.": "Esta despesa já está marcada como paga. Editá-la aqui apenas corrige o registro -- não estorna nem reemite o pagamento."
+    "This expense is already marked as paid. Editing it here only corrects the record -- it does not reverse or reissue the payment.": "Esta despesa já está marcada como paga. Editá-la aqui apenas corrige o registro -- não estorna nem reemite o pagamento.",
+    "Edit Receivable": "Editar Recebimento",
+    "Unable to update this receivable.": "Não foi possível atualizar este recebimento.",
+    "Receivable updated successfully.": "Recebimento atualizado com sucesso.",
+    "Back to Accounts Receivable": "Voltar para Contas a Receber"
   };
 
   const reverse = Object.fromEntries(Object.entries(DICT).map(([en, pt]) => [pt, en]));

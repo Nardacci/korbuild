@@ -326,8 +326,8 @@ test.describe('Accounts Receivable: create client prerequisite', () => {
   });
 });
 
-test.describe('Accounts Receivable: receivable lifecycle', () => {
-  test('create a receivable', async ({ page }) => {
+test.describe('Accounts Receivable: receivable lifecycle (grouped summary + drill-down)', () => {
+  test('create a receivable, then drill into its client group', async ({ page }) => {
     await page.goto('accounts-receivable.html');
     await expect(page.locator('#add-receivable')).toBeEnabled({ timeout: 15_000 });
 
@@ -344,26 +344,154 @@ test.describe('Accounts Receivable: receivable lifecycle', () => {
     await page.click('#receivable-save');
     await expect(page.locator('#message')).toContainText('Receivable created successfully.', { timeout: 10_000 });
 
-    const row = page.locator('#ar-body tr', { hasText: receivableName });
+    // The main screen now shows one summarized row per client, not the
+    // receivable itself -- assert the group exists, then drill into it.
+    const groupRow = page.locator('#ar-groups-body tr', { hasText: clientName });
+    await expect(groupRow).toHaveCount(1, { timeout: 10_000 });
+    await groupRow.click();
+
+    await expect(page.locator('#detail-view')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('#summary-view')).toBeHidden();
+    await expect(page.locator('#detail-heading')).toHaveText(clientName);
+
+    const row = page.locator('#ar-detail-body tr', { hasText: receivableName });
     await expect(row).toHaveCount(1, { timeout: 10_000 });
     assertTestbotName((await row.locator('.team-name').textContent())?.trim());
-    await expect(row.locator('td', { hasText: clientName })).toHaveCount(1);
     await expect(row.locator('.ap-status-tag')).toHaveText('Pending');
     await expect(row.locator('button[data-action="mark-received"]')).toBeVisible();
+    await expect(row.locator('button[data-action="edit-receivable"]')).toBeVisible();
+
+    await page.click('#back-to-summary');
+    await expect(page.locator('#summary-view')).toBeVisible({ timeout: 10_000 });
   });
 
-  test('mark the receivable as received', async ({ page }) => {
+  test('mark the receivable as received from inside the drill-down', async ({ page }) => {
     await page.goto('accounts-receivable.html');
     await expect(page.locator('#add-receivable')).toBeEnabled({ timeout: 15_000 });
-    const row = page.locator('#ar-body tr', { hasText: receivableName });
+
+    const groupRow = page.locator('#ar-groups-body tr', { hasText: clientName });
+    await expect(groupRow).toHaveCount(1, { timeout: 10_000 });
+    await groupRow.click();
+    await expect(page.locator('#detail-view')).toBeVisible({ timeout: 10_000 });
+
+    const row = page.locator('#ar-detail-body tr', { hasText: receivableName });
     await expect(row).toHaveCount(1, { timeout: 10_000 });
     await row.locator('button[data-action="mark-received"]').click();
-    await expect(page.locator('#message')).toContainText('Receivable marked as received.', { timeout: 10_000 });
+    await expect(page.locator('#detail-message')).toContainText('Receivable marked as received.', { timeout: 10_000 });
 
-    const refreshedRow = page.locator('#ar-body tr', { hasText: receivableName });
+    const refreshedRow = page.locator('#ar-detail-body tr', { hasText: receivableName });
     await expect(refreshedRow).toHaveCount(1, { timeout: 10_000 });
     await expect(refreshedRow.locator('.ap-status-tag')).toHaveText('Received');
     await expect(refreshedRow.locator('button[data-action="mark-received"]')).toHaveCount(0);
+  });
+});
+
+test.describe('Accounts Receivable: editing a receivable (client is locked)', () => {
+  const editReceivableName = testbotName('AR_EditReceivable');
+  const editedReceivableName = testbotName('AR_EditReceivable_Updated');
+
+  test('create a receivable to edit', async ({ page }) => {
+    await page.goto('accounts-receivable.html');
+    await expect(page.locator('#add-receivable')).toBeEnabled({ timeout: 15_000 });
+    const { from, to } = currentMonthRange();
+    await page.fill('#filter-data-inicio', from);
+    await page.fill('#filter-data-fim', to);
+
+    await page.click('#add-receivable');
+    await expect(page.locator('#receivable-modal')).toBeVisible({ timeout: 10_000 });
+    await page.selectOption('#receivable-cliente', { label: clientName });
+    await page.fill('#receivable-descricao', editReceivableName);
+    await page.fill('#receivable-valor', '300.00');
+    await page.click('#receivable-save');
+    await expect(page.locator('#message')).toContainText('Receivable created successfully.', { timeout: 10_000 });
+  });
+
+  test('editing it changes description, amount and due date -- the client stays locked', async ({ page }) => {
+    await page.goto('accounts-receivable.html');
+    await expect(page.locator('#add-receivable')).toBeEnabled({ timeout: 15_000 });
+
+    const groupRow = page.locator('#ar-groups-body tr', { hasText: clientName });
+    await expect(groupRow).toHaveCount(1, { timeout: 10_000 });
+    await groupRow.click();
+    await expect(page.locator('#detail-view')).toBeVisible({ timeout: 10_000 });
+
+    const row = page.locator('#ar-detail-body tr', { hasText: editReceivableName });
+    await expect(row).toHaveCount(1, { timeout: 10_000 });
+    await row.locator('button[data-action="edit-receivable"]').click();
+
+    await expect(page.locator('#receivable-modal')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('#receivable-modal-title')).toHaveText('Edit Receivable');
+    await expect(page.locator('#receivable-save')).toHaveText('Save Changes');
+    // Prefilled with the existing values; the client select shows the
+    // right client but is locked -- editing a receivable can't reassign
+    // whose debt it is.
+    await expect(page.locator('#receivable-descricao')).toHaveValue(editReceivableName);
+    await expect(page.locator('#receivable-valor')).toHaveValue('300');
+    await expect(page.locator('#receivable-cliente')).toBeDisabled();
+    const selectedClientLabel = await page.locator('#receivable-cliente').locator('option:checked').textContent();
+    expect(selectedClientLabel?.trim()).toBe(clientName);
+
+    const newDueDate = new Date();
+    newDueDate.setDate(newDueDate.getDate() + 1);
+    const newDueDateIso = newDueDate.toISOString().slice(0, 10);
+
+    await page.fill('#receivable-descricao', editedReceivableName);
+    await page.fill('#receivable-valor', '450.00');
+    await page.fill('#receivable-data-prevista', newDueDateIso);
+    await page.click('#receivable-save');
+    await expect(page.locator('#detail-message')).toContainText('Receivable updated successfully.', { timeout: 10_000 });
+
+    // Unchanged client -- still shows up in the same client's group.
+    const updatedRow = page.locator('#ar-detail-body tr', { hasText: editedReceivableName });
+    await expect(updatedRow).toHaveCount(1, { timeout: 10_000 });
+    await expect(updatedRow.locator('.pay-money')).toContainText('450');
+    await expect(page.locator('#ar-detail-body tr', { hasText: editReceivableName })).toHaveCount(0); // old name is gone
+  });
+});
+
+test.describe('Accounts Receivable: multiple receivables from the same client summarize into one group', () => {
+  const multiReceivableA = testbotName('AR_Receivable_Multi_A');
+  const multiReceivableB = testbotName('AR_Receivable_Multi_B');
+
+  test('create two receivables for the same client', async ({ page }) => {
+    await page.goto('accounts-receivable.html');
+    await expect(page.locator('#add-receivable')).toBeEnabled({ timeout: 15_000 });
+    const { from, to } = currentMonthRange();
+    await page.fill('#filter-data-inicio', from);
+    await page.fill('#filter-data-fim', to);
+
+    for (const name of [multiReceivableA, multiReceivableB]) {
+      await page.click('#add-receivable');
+      await expect(page.locator('#receivable-modal')).toBeVisible({ timeout: 10_000 });
+      await page.selectOption('#receivable-cliente', { label: clientName });
+      await page.fill('#receivable-descricao', name);
+      await page.fill('#receivable-valor', '200.00');
+      await page.click('#receivable-save');
+      await expect(page.locator('#message')).toContainText('Receivable created successfully.', { timeout: 10_000 });
+    }
+  });
+
+  test('the client group is a single summarized row, and drill-down lists both new items', async ({ page }) => {
+    await page.goto('accounts-receivable.html');
+    await expect(page.locator('#add-receivable')).toBeEnabled({ timeout: 15_000 });
+    const { from, to } = currentMonthRange();
+    await page.fill('#filter-data-inicio', from);
+    await page.fill('#filter-data-fim', to);
+
+    // Exactly one summarized row for this client -- never one per receivable.
+    const clientRow = page.locator('#ar-groups-body tr', { hasText: clientName });
+    await expect(clientRow).toHaveCount(1, { timeout: 10_000 });
+
+    const itemCount = Number((await clientRow.locator('td').nth(3).textContent())?.trim());
+    expect(itemCount).toBeGreaterThanOrEqual(2); // at least this test's own two receivables
+
+    await clientRow.click();
+    await expect(page.locator('#detail-view')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('#detail-heading')).toHaveText(clientName);
+
+    for (const name of [multiReceivableA, multiReceivableB]) {
+      await expect(page.locator('#ar-detail-body tr', { hasText: name })).toHaveCount(1, { timeout: 10_000 });
+    }
   });
 });
 

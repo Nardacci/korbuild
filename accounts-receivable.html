@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>KORbuild · Accounts Receivable</title><link rel="stylesheet" href="home.css?v=26"><link rel="stylesheet" href="teams.css?v=1.2.3"><link rel="stylesheet" href="loans.css?v=1.0.1"><link rel="stylesheet" href="accounts-payable.css?v=1.3.1"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app-config.js?v=1.2.2"></script></head><body class="app-body"><div class="app-shell"><aside class="sidebar"><div class="side-brand"><div class="mini-mark">K</div><div>KOR<span>build</span></div></div><nav></nav></aside><main class="main-content"><header class="topbar page-topbar"><div class="topbar-page-context page-identity"><strong>Accounts Receivable</strong><small>Amounts due from clients.</small></div><div class="user-menu-wrap"><button id="user-menu-btn" class="user-menu-btn" aria-expanded="false"><span class="user-copy"><strong id="user-name">Owner</strong><small id="user-email"></small></span><span class="avatar" id="user-avatar">O</span><span class="chevron">⌄</span></button><div id="user-menu" class="user-menu hidden"><div class="menu-header"><span class="avatar large" id="menu-avatar">O</span><div><b id="menu-full-name">Owner</b><small id="menu-full-email"></small></div></div><div class="menu-divider"></div><a class="menu-item" href="home.html">⌂ <span>Dashboard</span></a><button id="menu-logout" class="menu-item danger">↪ <span>Sign out</span></button></div></div></header>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>KORbuild · Accounts Receivable</title><link rel="stylesheet" href="home.css?v=26"><link rel="stylesheet" href="teams.css?v=1.2.3"><link rel="stylesheet" href="loans.css?v=1.0.1"><link rel="stylesheet" href="accounts-payable.css?v=1.4.0"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app-config.js?v=1.2.2"></script></head><body class="app-body"><div class="app-shell"><aside class="sidebar"><div class="side-brand"><div class="mini-mark">K</div><div>KOR<span>build</span></div></div><nav></nav></aside><main class="main-content"><header class="topbar page-topbar"><div class="topbar-page-context page-identity"><strong>Accounts Receivable</strong><small>Amounts due from clients.</small></div><div class="user-menu-wrap"><button id="user-menu-btn" class="user-menu-btn" aria-expanded="false"><span class="user-copy"><strong id="user-name">Owner</strong><small id="user-email"></small></span><span class="avatar" id="user-avatar">O</span><span class="chevron">⌄</span></button><div id="user-menu" class="user-menu hidden"><div class="menu-header"><span class="avatar large" id="menu-avatar">O</span><div><b id="menu-full-name">Owner</b><small id="menu-full-email"></small></div></div><div class="menu-divider"></div><a class="menu-item" href="home.html">⌂ <span>Dashboard</span></a><button id="menu-logout" class="menu-item danger">↪ <span>Sign out</span></button></div></div></header>
 
 <section class="teams-summary">
   <article><small>PENDING</small><strong id="summary-pending-count">0</strong><span>Receivables not yet received, in the selected period</span></article>
@@ -6,28 +6,46 @@
   <article><small>RECEIVED</small><strong id="summary-received-total">—</strong><span>Sum already received, in the selected period</span></article>
 </section>
 
-<section class="teams-panel">
-  <div class="teams-toolbar">
-    <label class="range-field">From <input id="filter-data-inicio" type="date"></label>
-    <label class="range-field">To <input id="filter-data-fim" type="date"></label>
-    <select id="filter-status"><option value="ALL">All status</option><option value="pendente">Pending</option><option value="recebido">Received</option><option value="cancelado">Cancelled</option></select>
-    <select id="filter-cliente"><option value="ALL">All clients</option></select>
-    <button id="add-receivable" class="primary-btn toolbar-primary" disabled>+ New Receivable</button>
-  </div>
-  <div id="message" class="message hidden"></div>
-  <div class="table-wrap">
-    <table>
-      <thead><tr><th>DESCRIPTION</th><th>CLIENT</th><th>DATE</th><th>AMOUNT</th><th>STATUS</th><th></th></tr></thead>
-      <tbody id="ar-body"></tbody>
-    </table>
-    <div id="empty-state" class="empty-state hidden"><div>¤</div><h3>Nothing due in this period</h3><p>Create a receivable, or adjust the date range above.</p></div>
-  </div>
+<section id="summary-view">
+  <section class="teams-panel">
+    <div class="teams-toolbar">
+      <label class="range-field">From <input id="filter-data-inicio" type="date"></label>
+      <label class="range-field">To <input id="filter-data-fim" type="date"></label>
+      <button id="add-receivable" class="primary-btn toolbar-primary" disabled>+ New Receivable</button>
+    </div>
+    <div id="message" class="message hidden"></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>CLIENT</th><th>PENDING</th><th>RECEIVED</th><th>ITEMS</th><th></th></tr></thead>
+        <tbody id="ar-groups-body"></tbody>
+      </table>
+      <div id="empty-state" class="empty-state hidden"><div>¤</div><h3>Nothing due in this period</h3><p>Create a receivable, or adjust the date range above.</p></div>
+    </div>
+  </section>
+</section>
+
+<section id="detail-view" class="hidden">
+  <button id="back-to-summary" class="back-btn" type="button"><span aria-hidden="true">←</span> Back to Accounts Receivable</button>
+  <section class="teams-panel">
+    <div class="teams-toolbar">
+      <div class="detail-heading-block"><strong id="detail-heading">Client</strong><small id="detail-subheading"></small></div>
+      <select id="detail-filter-status"><option value="ALL">All status</option><option value="pendente">Pending</option><option value="recebido">Received</option><option value="cancelado">Cancelled</option></select>
+    </div>
+    <div id="detail-message" class="message hidden"></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>DESCRIPTION</th><th>DATE</th><th>AMOUNT</th><th>STATUS</th><th></th></tr></thead>
+        <tbody id="ar-detail-body"></tbody>
+      </table>
+      <div id="detail-empty-state" class="empty-state hidden"><div>¤</div><h3>No items for this status</h3><p>Try a different status filter.</p></div>
+    </div>
+  </section>
 </section>
 
 <div id="receivable-modal" class="loan-modal hidden">
   <div class="loan-dialog">
     <button id="receivable-modal-close" class="loan-modal-close" type="button">×</button>
-    <h2>New Receivable</h2>
+    <h2 id="receivable-modal-title">New Receivable</h2>
     <form id="receivable-form">
       <label>Client<span class="required">*</span><select id="receivable-cliente" required><option value="">Select a client</option></select></label>
       <label>Description<span class="required">*</span><input id="receivable-descricao" type="text" required maxlength="200" placeholder="e.g. Consulting services"></label>
@@ -39,4 +57,4 @@
   </div>
 </div>
 
-</main><div class="app-version">KORbuild V1.2.2 · Development environment</div></div><script src="supabase-config.js?v=1.3.3"></script><script src="notification-bell.js?v=1.0.0"></script><script src="i18n.js?v=1.9.0"></script><script src="accounts-receivable.js?v=1.0.0"></script></body></html>
+</main><div class="app-version">KORbuild V1.2.2 · Development environment</div></div><script src="supabase-config.js?v=1.3.3"></script><script src="notification-bell.js?v=1.0.0"></script><script src="i18n.js?v=2.0.0"></script><script src="accounts-receivable.js?v=2.0.0"></script></body></html>
