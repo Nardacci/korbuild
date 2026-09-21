@@ -213,6 +213,91 @@ test.describe('Hourly rate lives on the Person page now', () => {
   });
 });
 
+// Regression test for a real bug fixed 2026-09-20. It first looked like a
+// weekly-payments.js rendering race (a brand-new person's payment row
+// sometimes just didn't render on the very first page load), but tracing
+// it end to end -- including confirming directly against
+// pagamentos_semanais that the server-side upsert was never the
+// problem -- found the actual cause one page earlier, in people-form.js:
+// loadRateHistory() populates #rate-new-date with the current week's
+// start only after 3 awaited network round trips, and saveRate() used to
+// fall back to today's date whenever that field was still blank. Clicking
+// "Save new rate" before that default finished loading (a real
+// possibility on a slow connection, not just under test automation)
+// silently registered the rate as effective today instead of the week
+// start. Since calcular_pagamento_semanal/registrar_pagamento only treat
+// a rate as effective for a week when vigente_de <= that week's start,
+// a rate dated "today" (whenever today isn't itself the week-start day)
+// fails that check for the week already in progress -- the person then
+// never appeared in that week's Payment list, with no error anywhere.
+//
+// The fix: "Save new rate" now starts disabled and only enables once
+// #rate-new-date's real default is in place. This test forces the race
+// window wide open (delaying the exact fetch that default depends on)
+// and asserts the button cannot be used inside it, then verifies the
+// rate that does get saved lands on the shown default, not today, and
+// that the person shows up in Payment on the very first visit.
+test.describe('Hourly rate: "Save new rate" cannot fire before its date default is ready', () => {
+  const raceProofPersonName = testbotName('Pay_RateRace');
+
+  test('the button stays disabled through a slow date-default load, then saves the correct effective date', async ({ page }) => {
+    await page.goto('people-form.html');
+    await page.fill('#person-name', raceProofPersonName);
+    await page.selectOption('#person-team', { label: teamName });
+    await page.click('#save-person');
+    await page.waitForURL(/people\.html/, { timeout: 10_000 });
+
+    const row = page.locator('#people-body tr', { hasText: raceProofPersonName });
+    await expect(row).toHaveCount(1, { timeout: 10_000 });
+    await row.locator('button[data-action="edit"]').click();
+    await page.waitForURL(/people-form\.html\?id=/, { timeout: 10_000 });
+
+    // Slow down the exact read that populates #rate-new-date's default,
+    // to force the original race window wide open.
+    await page.route('**/configuracoes_operacionais**', async (route) => {
+      await new Promise((r) => setTimeout(r, 2000));
+      await route.continue();
+    });
+    await page.reload();
+
+    // Immediately after reload, before that delayed read resolves, the
+    // button must stay disabled -- this is the fix itself: it used to be
+    // clickable here, which is exactly how a rate got silently registered
+    // with today's date instead of the current week's start.
+    await expect(page.locator('#rate-save-btn')).toBeDisabled();
+
+    await expect(page.locator('#rate-save-btn')).toBeEnabled({ timeout: 10_000 });
+    const shownDefault = await page.locator('#rate-new-date').inputValue();
+    expect(shownDefault).not.toBe('');
+
+    await page.fill('#rate-new-value', '20.00');
+    await page.click('#rate-save-btn');
+    await expect(page.locator('#message')).toContainText('Hourly rate registered', { timeout: 10_000 });
+
+    // The registered rate's effective date must be the week-start default
+    // the field showed -- never today's date sneaking in via the old
+    // fallback (these only coincide when today happens to BE the
+    // configured week-start day, which this assertion doesn't rely on).
+    const vigenteDe = await page.evaluate(async (name) => {
+      const cfg = (window as any).KORBUILD_SUPABASE;
+      const supabase = (window as any).supabase;
+      const db = supabase.createClient(cfg.url, cfg.publishableKey, { auth: { persistSession: true } });
+      const { data: { session } } = await db.auth.getSession();
+      const { data: profile } = await db.from('usuarios').select('empresa_id').eq('id', session.user.id).maybeSingle();
+      const { data: person } = await db.from('colaboradores').select('id').eq('empresa_id', profile.empresa_id).eq('name', name).maybeSingle();
+      const { data: rate } = await db.from('historico_valor_hora').select('vigente_de').eq('colaborador_id', person.id).order('vigente_de', { ascending: false }).limit(1).maybeSingle();
+      return rate?.vigente_de;
+    }, raceProofPersonName);
+    expect(vigenteDe).toBe(shownDefault);
+
+    // End-to-end guarantee: this person now shows up in the CURRENT
+    // week's Payment list on the very first visit.
+    await page.unroute('**/configuracoes_operacionais**');
+    await page.goto('weekly-payments.html');
+    await expect(page.locator('#payments-body tr', { hasText: raceProofPersonName })).toHaveCount(1, { timeout: 15_000 });
+  });
+});
+
 test.describe('Payment: this week is auto-generated once a rate exists', () => {
   test('the person now appears in the current week, auto-generated with hours=0', async ({ page }) => {
     await page.goto('weekly-payments.html');

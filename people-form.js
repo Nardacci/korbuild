@@ -44,6 +44,9 @@ async function loadRateHistory(){
 
   const {data:opConfig}=await db.from('configuracoes_operacionais').select('period_start_day').eq('empresa_id',state.empresaId).order('created_at',{ascending:false}).limit(1).maybeSingle();
   $('rate-new-date').value=currentWeekStart(opConfig?.period_start_day??1);
+  // Only now is it safe to save a new rate -- see saveRate()'s own comment
+  // for why "Save new rate" starts disabled in the HTML.
+  $('rate-save-btn').disabled=false;
 
   const {data,error}=await db.rpc('obter_historico_valor_hora',{p_colaborador_id:state.editingId});
   if(error){showMessage(`${t('Unable to load rate history.')} ${error.message}`,'error');return;}
@@ -60,6 +63,21 @@ async function loadRateHistory(){
   $('rate-history-body').innerHTML=history.length?history.map(h=>`<tr><td>${fmtDate(h.vigente_de)}</td><td>${h.vigente_ate?fmtDate(h.vigente_ate):t('Ongoing')}</td><td>${money(h.valor_hora)}</td></tr>`).join(''):`<tr><td colspan="3" class="rate-history-empty">${t('No rate history yet.')}</td></tr>`;
 }
 
+// Root cause of a 2026-09-20 bug: this used to fall back to todayIso()
+// whenever #rate-new-date was still blank, which happened for real
+// whenever "Save new rate" got clicked before loadRateHistory()'s async
+// chain (3 sequential/awaited network round trips) had populated that
+// field with its intended default (the current week's start -- see
+// currentWeekStart()'s own comment above for why that default matters).
+// A rate silently registered with vigente_de=today instead of the week
+// start can fail calcular_pagamento_semanal/registrar_pagamento's own
+// "vigente_de <= week start" eligibility check for the week already in
+// progress -- the person then just doesn't appear in that week's Payment
+// list, with no error anywhere, since nothing was actually wrong from the
+// RPCs' point of view. "Save new rate" now starts disabled in the HTML
+// and is only enabled once #rate-new-date's real default is in place, so
+// this fallback is now unreachable in practice; kept only so a bug here
+// never lets vigenteDe end up blank outright.
 async function saveRate(){
   const value=Number($('rate-new-value').value);
   const vigenteDe=$('rate-new-date').value||todayIso();
